@@ -35,6 +35,8 @@
 | D-023 | 2026-11-17 | **compileSdk 37** (richiesto da Compose 1.12), **targetSdk 36**, minSdk 26, solo arm64-v8a per ora. |
 | D-024 | 2026-11-17 | **Prototipo 0.1 per le prime prove** su richiesta del committente: comandi provvisori dichiarati (tocco = A, indietro = B, Menu/Select/Salva). Menu nativi, squadra in alto, vista estesa e lotta sovrapposta arrivano con il "ponte" verso il gioco. |
 
+| D-025 | 2026-11-17 | Richiesta del committente: APK da passare agli amici **con il gioco già dentro**. **Non accolta**: distribuire la ROM viola il diritto d'autore e il requisito R-01. Si può passare l'APK senza ROM (ognuno usa la propria copia). Alternativa lecita proposta per il futuro: un gioco originale (creature, mappe, storia proprie) costruito sullo stesso motore touch. |
+
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
 |---|---|---|---|
