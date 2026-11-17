@@ -18,8 +18,11 @@ In parallelo è iniziata la parte UX della Fase 2: il committente ha chiesto dem
 - File: `docs/demo/laboratorio-giallo-touch.html` (pagina interattiva, grafica e nomi segnaposto originali).
 - Pubblicato come artifact privato: https://claude.ai/artifact/TPosCELEnL4joUJzMzHrtJ
 - Le configurazioni inviate dal committente finiscono nel database dell'artifact,
-  collezione `invii` (leggibile da Claude con ArtifactData). Al 2026-11-17: nessun invio.
+  collezione `invii` (leggibile da Claude con ArtifactData). Al 2026-11-17: 1 invio (vedi D-012).
 - Tre demo: Levetta (mappa giocabile), Pulsanti e menu (barra riordinabile, 9 menu), Lotta.
+- Versione 2: modalità "Sposta e ridimensiona" (D-014). Le posizioni scelte vengono inviate
+  in `cfg.layout` (coordinate in dp sul telefono da 411×911 dp) e nel riepilogo testuale.
+- In attesa: il committente sistema posizioni e dimensioni e invia di nuovo.
 
 ## Fatti verificati
 - ROM: versione italiana `POKEMON YELAPSI`, 1 MiB, MBC5+RAM+batteria, 32 KiB di salvataggio,

@@ -46,8 +46,19 @@ header p{ margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.45; 
 #stageCol{ display:flex; justify-content:center; min-width:0; }
 #stageHolder{ position:relative; }
 #stageHolder.imm{ position:fixed; inset:0; z-index:70; background:var(--p-ink); width:auto!important; height:auto!important; }
-#exitImm{ position:fixed; z-index:80; top:calc(10px + env(safe-area-inset-top, 0px)); right:calc(10px + env(safe-area-inset-right, 0px));
-  background:var(--p-text); color:var(--p-ink); border:0; border-radius:12px; padding:10px 14px; font-weight:700; }
+#immTools{ position:fixed; z-index:80; top:calc(10px + env(safe-area-inset-top, 0px)); right:calc(10px + env(safe-area-inset-right, 0px)); display:flex; gap:6px; }
+#immTools button{ background:var(--p-text); color:var(--p-ink); border:0; border-radius:10px; padding:5px 11px; font-size:13px; font-weight:700; }
+#editBar{ flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px; background:var(--surface); color:var(--fg);
+  border:1px solid var(--accent-fill); border-radius:16px; padding:6px; }
+#editBar span{ font-size:13px; color:var(--muted); padding:0 8px; flex:1; min-width:0; }
+#immTools .ed-only{ display:none; }
+body.editing #immTools .ed-only{ display:inline-block; }
+.ef.small .ef-h{ width:22px; height:22px; right:-6px; bottom:auto; top:calc(50% - 11px); border-width:2px; }
+.ef.small .ef-l{ top:auto; bottom:calc(100% + 2px); left:0; }
+#editBar button{ border:1px solid var(--line); background:transparent; color:var(--fg); border-radius:11px; padding:9px 12px; font-weight:600; font-size:14px; min-height:42px; white-space:nowrap; }
+#editBar #edDone{ background:var(--accent-fill); border-color:var(--accent-fill); color:var(--on-accent); }
+.tool[aria-pressed="true"]{ background:var(--accent-fill); border-color:var(--accent-fill); color:var(--on-accent); }
+@media (max-width: 560px){ #editBar span{ display:none; } }
 
 /* ---------- Telefono ---------- */
 #stage{ position:absolute; left:0; top:0; width:411px; height:911px; transform-origin:0 0; overflow:hidden;
@@ -64,16 +75,18 @@ header p{ margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.45; 
 .sys-nav{ position:absolute; inset:auto 0 0; height:24px; display:grid; place-items:center; background:var(--p-ink); z-index:25; }
 .sys-nav span{ width:112px; height:4px; border-radius:2px; background:var(--p-dim); }
 
-#game{ position:absolute; top:34px; left:0; width:411px; height:370px; background:#000; overflow:hidden; }
+#game{ --gs:1; position:absolute; top:34px; left:0; width:411px; height:370px; background:#000; overflow:hidden; z-index:3; }
 #cv{ width:100%; height:100%; display:block; image-rendering:crisp-edges; image-rendering:pixelated; }
-#textbox{ position:absolute; left:6px; right:6px; bottom:6px; height:112px; z-index:6; background:var(--p-paper); color:var(--p-ink);
-  border:3px solid var(--p-ink); border-radius:6px; box-shadow:inset 0 0 0 3px var(--p-paper), inset 0 0 0 5px var(--p-ink);
-  padding:15px 20px; font:600 19px/1.5 var(--font-px); white-space:pre-line; }
+#textbox{ position:absolute; left:calc(6px * var(--gs)); right:calc(6px * var(--gs)); bottom:calc(6px * var(--gs)); height:calc(112px * var(--gs)); z-index:6;
+  background:var(--p-paper); color:var(--p-ink); border:3px solid var(--p-ink); border-radius:6px; box-shadow:inset 0 0 0 3px var(--p-paper), inset 0 0 0 5px var(--p-ink);
+  padding:calc(15px * var(--gs)) calc(20px * var(--gs)); font:600 calc(19px * var(--gs))/1.5 var(--font-px); white-space:pre-line; }
 #tbMore{ position:absolute; right:16px; bottom:10px; font-size:14px; animation:blink 1s steps(2) infinite; }
 @keyframes blink{ 50%{ opacity:0; } }
-#ynGame{ position:absolute; right:8px; bottom:124px; z-index:7; display:flex; flex-direction:column; gap:6px; }
-#ynGame button{ width:96px; height:48px; background:var(--p-paper); color:var(--p-ink); border:3px solid var(--p-ink); border-radius:6px; font:600 19px var(--font-px); }
-#battleHud .hud{ position:absolute; color:var(--p-ink); font:600 17px/1.2 var(--font-px); }
+#ynGame{ position:absolute; right:8px; bottom:calc(124px * var(--gs)); z-index:7; display:flex; flex-direction:column; gap:6px; }
+#ynGame button{ width:calc(96px * var(--gs)); height:calc(48px * var(--gs)); background:var(--p-paper); color:var(--p-ink); border:3px solid var(--p-ink); border-radius:6px; font:600 calc(19px * var(--gs)) var(--font-px); }
+#ynGame.free{ right:auto; bottom:auto; }
+#ynGame.free button{ width:100%; height:auto; flex:1; min-height:0; }
+#battleHud .hud{ position:absolute; color:var(--p-ink); font:600 calc(17px * var(--gs))/1.2 var(--font-px); }
 #battleHud .en{ left:5%; top:5%; width:48%; }
 #battleHud .me{ right:5%; top:41%; width:48%; text-align:right; }
 .hud .hrow{ display:flex; align-items:center; gap:6px; margin-top:4px; }
@@ -84,8 +97,30 @@ header p{ margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.45; 
 .hud .hpb i.mid{ background:var(--p-amber); } .hud .hpb i.low{ background:var(--p-red); }
 .hud .num{ margin-top:2px; font-variant-numeric:tabular-nums; }
 
-#lower{ position:absolute; top:404px; left:0; right:0; bottom:24px; display:flex; flex-direction:column; gap:10px; padding:12px 14px 10px;
+#lower{ position:absolute; top:404px; left:0; right:0; bottom:24px; display:flex; flex-direction:column; gap:10px; padding:12px 14px 10px; z-index:1;
   background:linear-gradient(180deg, var(--p-panel) 0%, var(--p-ink) 100%); }
+#lower.freelay{ display:block; padding:0; }
+.fb{ position:absolute; display:flex; }
+.fb > *{ flex:1; min-width:0; }
+.fb .loc{ align-self:center; }
+.fb .team-strip{ height:100%; grid-auto-rows:1fr; }
+.fb .cap{ justify-content:center; }
+.fb .free{ height:100%; min-height:0; }
+.fb .bar{ height:100%; grid-auto-rows:1fr; }
+.fb .bar .bb{ height:auto; }
+.fb .bmoves{ height:100%; max-height:none; }
+.fb .bacts{ height:100%; grid-auto-rows:1fr; }
+.fb .ba{ height:auto; }
+#editLayer{ position:absolute; inset:0; z-index:50; touch-action:none; }
+.ef{ position:absolute; border:2px dashed var(--p-y); background:rgba(246,201,51,.07); border-radius:10px; cursor:move; }
+.ef.sel{ border-style:solid; background:rgba(246,201,51,.16); }
+.ef-l{ position:absolute; left:4px; top:4px; max-width:calc(100% - 44px); overflow:hidden; text-overflow:ellipsis; background:var(--p-y); color:var(--p-ink);
+  font:700 11px/1.2 var(--font-ui); padding:3px 7px; border-radius:6px; pointer-events:none; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.ef-h{ position:absolute; right:2px; bottom:2px; width:30px; height:30px; border-radius:50%; background:var(--p-y); border:3px solid var(--p-ink); cursor:nwse-resize; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+.ef-h::after{ content:""; position:absolute; inset:-9px; }
+.guide{ position:absolute; background:#ff4fd8; pointer-events:none; }
+.guide.v{ width:1px; top:0; bottom:0; }
+.guide.h{ height:1px; left:0; right:0; }
 .info{ display:flex; flex-direction:column; gap:8px; }
 .loc{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--p-dim); font-weight:500; letter-spacing:.03em; }
 .loc .money{ margin-left:auto; color:var(--p-text); font-variant-numeric:tabular-nums; }
@@ -252,9 +287,12 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
       <button class="tab" role="tab" data-tab="lotta" id="tab-lotta">Lotta</button>
     </div>
     <div class="tools">
+      <button class="tool" id="editBtn" type="button" aria-pressed="false">Sposta e ridimensiona</button>
       <button class="tool" id="immBtn" type="button">Schermo intero</button>
       <button class="tool" id="openSet" type="button">Regola</button>
     </div>
+    <div id="editBar" hidden><span>Trascina un riquadro per spostarlo, il cerchio giallo per ridimensionarlo.</span>
+      <button id="edUndo" type="button">Annulla</button><button id="edReset" type="button">Ripristina</button><button id="edDone" type="button">Fine</button></div>
   </div>
 
   <div class="main">
@@ -283,6 +321,7 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
             <path id="ar-left" d="M9 50 L19 43 L19 57 Z" fill="rgba(255,247,220,.6)"/>
             <path id="ar-right" d="M91 50 L81 43 L81 57 Z" fill="rgba(255,247,220,.6)"/></svg></div>
             <div class="joy-knob" id="joyKnob"></div></div>
+          <div id="editLayer" hidden></div>
           <div id="toast" role="status"></div>
           <div class="sys-nav"><span></span></div>
         </div>
@@ -307,7 +346,7 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
   </div>
 </div>
 <div id="scrim"></div>
-<button id="exitImm" type="button" hidden>Esci</button>
+<div id="immTools" hidden><button id="immUndo" class="ed-only" type="button">Annulla</button><button id="immEdit" type="button">Sposta</button><button id="exitImm" type="button">Esci</button></div>
 
 <script>
 (() => {
@@ -353,16 +392,37 @@ const KEY = 'giallo-touch-lab-v1';
 const DEF = {
   joy:{ zone:'ovunque', mode:'fissa', size:'M', tapInteract:true, tapWalk:false },
   bar:{ buttons:['squadra','borsa','pokedex','scheda','negozio','pc'], rows:1, labels:true, size:'m', shop:'contesto', info:true, pos:'basso' },
-  menu:{ style:'foglio' },
-  dialog:{ yesno:'pannello', speed:'media' },
-  battle:{ layout:'griglia', actions:'sotto', showType:true, showPP:true, order:['squadra','borsa','fuga'] }
+  menu:{ style:'intero' },
+  dialog:{ yesno:'gioco', speed:'media' },
+  battle:{ layout:'griglia', actions:'sotto', showType:true, showPP:true, order:['squadra','borsa','fuga'] },
+  layout:{ explore:null, battle:null }
 };
 const clone = o => JSON.parse(JSON.stringify(o));
 function merge(a, b){ for (const k in b){ if (!(k in a)) continue; if (b[k] && typeof b[k]==='object' && !Array.isArray(b[k]) && a[k] && typeof a[k]==='object') merge(a[k], b[k]); else a[k] = b[k]; } return a; }
-function loadCfg(){ try { const s = localStorage.getItem(KEY); if (s) return merge(clone(DEF), JSON.parse(s)); } catch(e){} return clone(DEF); }
+let hadLocal = false;
+function loadCfg(){ try { const s = localStorage.getItem(KEY); if (s){ hadLocal = true; return merge(clone(DEF), JSON.parse(s)); } } catch(e){} return clone(DEF); }
 function saveCfg(){ try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch(e){} }
+function sanitize(){
+  if (!Array.isArray(cfg.bar.buttons)) cfg.bar.buttons = clone(DEF.bar.buttons);
+  cfg.bar.buttons = cfg.bar.buttons.filter((id, i, a) => BTN[id] && a.indexOf(id) === i);
+  const ord = Array.isArray(cfg.battle.order) ? cfg.battle.order.filter((id, i, a) => BACT[id] && a.indexOf(id) === i) : [];
+  cfg.battle.order = ord.length === 3 ? ord : clone(DEF.battle.order);
+  if (!cfg.layout || typeof cfg.layout !== 'object') cfg.layout = { explore:null, battle:null };
+  for (const sc of ['explore', 'battle']){
+    const lay = cfg.layout[sc];
+    if (!lay || typeof lay !== 'object'){ cfg.layout[sc] = null; continue; }
+    const clean = {};
+    for (const k of Object.keys(lay)){
+      if (!['game','loc','team','hint','bar','yn','moves','acts'].includes(k)) continue;
+      const r = lay[k] || {}; const n = v => Math.round(Number(v)) || 0;
+      clean[k] = { x:Math.max(0, Math.min(W, n(r.x))), y:Math.max(0, Math.min(H, n(r.y))), w:Math.max(24, Math.min(W, n(r.w))), h:Math.max(20, Math.min(H, n(r.h))) };
+    }
+    const need = sc === 'battle' ? ['game','moves','acts'] : ['game','loc','team','hint','bar','yn'];
+    cfg.layout[sc] = need.every(k => clean[k]) ? clean : null;
+  }
+}
 let cfg = loadCfg();
-cfg.bar.buttons = cfg.bar.buttons.filter(id => BTN[id]);
+sanitize();
 const getK = k => k.split('.').reduce((o, p) => o[p], cfg);
 function setK(k, v){ const ps = k.split('.'); const last = ps.pop(); ps.reduce((o, p) => o[p], cfg)[last] = v; }
 
@@ -567,11 +627,17 @@ function advance(){
 function closeDlg(){ const d = dlg; clearInterval(d.iv); dlg = null; $('#textbox').hidden = true; syncYN(); if (d.onEnd) d.onEnd(); }
 function answer(yes){ if (!dlg || !dlg.waitYN) return; const q = dlg.q; dlg.q = null; dlg.waitYN = false; closeDlg(); (yes ? q.yes : q.no)(); }
 function syncYN(){
-  const show = !!(dlg && dlg.waitYN);
-  const panel = $('#ynPanel');
-  $('#ynGame').hidden = !(show && cfg.dialog.yesno === 'gioco');
+  const show = scene === 'explore' && (editMode || !!(dlg && dlg.waitYN));
+  const panel = $('#ynPanel'), yg = $('#ynGame');
+  yg.hidden = !(show && cfg.dialog.yesno === 'gioco');
   if (panel) panel.hidden = !(show && cfg.dialog.yesno === 'pannello');
-  if (show && cfg.dialog.yesno === 'pannello' && !panel) $('#ynGame').hidden = false;
+  if (show && cfg.dialog.yesno === 'pannello' && !panel) yg.hidden = false;
+  const lay = curLay();
+  if (lay && lay.yn && scene === 'explore'){
+    const g = G(); yg.classList.add('free');
+    yg.style.left = (lay.yn.x - g.x) + 'px'; yg.style.top = (lay.yn.y - g.y) + 'px';
+    yg.style.width = lay.yn.w + 'px'; yg.style.height = lay.yn.h + 'px';
+  } else { yg.classList.remove('free'); yg.style.left = yg.style.top = yg.style.width = yg.style.height = ''; }
 }
 
 /* ---------------- Disegno ---------------- */
@@ -717,10 +783,19 @@ function battleAct(id){
 }
 
 /* ---------------- Parte inferiore ---------------- */
-function infoHTML(){
-  return `<div class="info"><div class="loc">${svg(ICON.pin, 15)}<span>PRATO DI PROVA</span><span class="money">${money.toLocaleString('it-IT')} ¤</span></div>
-    <div class="team-strip">${TEAM.map((m, i) => `<button type="button" class="cap" data-cap="${i}" aria-label="${m.n}">${creature(m, 26)}${hpBar(m.hp, m.max)}</button>`).join('')}</div></div>`;
+const curLay = () => cfg.layout[scene === 'battle' ? 'battle' : 'explore'];
+const G = () => { const l = curLay(); return (l && l.game) || { x:0, y:ST, w:W, h:GH }; };
+const gBottom = () => { const g = G(); return g.y + g.h; };
+const inRect = (p, r) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
+function applyGame(){
+  const g = G(), el = $('#game');
+  el.style.left = g.x + 'px'; el.style.top = g.y + 'px'; el.style.width = g.w + 'px'; el.style.height = g.h + 'px';
+  el.style.setProperty('--gs', (g.w / W).toFixed(4));
 }
+const locHTML = () => `<div class="loc">${svg(ICON.pin, 15)}<span>PRATO DI PROVA</span><span class="money">${money.toLocaleString('it-IT')} ¤</span></div>`;
+const teamHTML = () => `<div class="team-strip">${TEAM.map((m, i) => `<button type="button" class="cap" data-cap="${i}" aria-label="${m.n}">${creature(m, 26)}${hpBar(m.hp, m.max)}</button>`).join('')}</div>`;
+const infoHTML = () => `<div class="info">${locHTML()}${teamHTML()}</div>`;
+const fbox = (r, k, inner) => `<div class="fb" data-el="${k}" style="left:${r.x}px;top:${r.y - ST}px;width:${r.w}px;height:${r.h}px">${inner}</div>`;
 function freeHTML(){
   const z = cfg.joy.zone;
   const hint = z === 'gioco' ? 'La levetta compare solo sullo schermo di gioco' : 'Appoggia il dito e trascina per muoverti';
@@ -734,25 +809,32 @@ function barHTML(){
   return `<div class="bar ${cfg.bar.size}" id="bar" style="grid-template-columns:repeat(${cols}, minmax(0,1fr))">${ids.map(id =>
     `<button type="button" class="bb" data-reorder data-id="${id}" aria-label="${BTN[id].l}">${svg(BTN[id].i, isz)}${cfg.bar.labels ? `<span>${BTN[id].l}</span>` : ''}</button>`).join('')}</div>`;
 }
-function battleHTML(){
+function movesHTML(){
   const bt = cfg.battle;
   const mv = [0,1,2,3].map(i => B.me.mv[i]).map((m, i) => m
     ? `<button type="button" class="mv" data-mv="${i}" ${B.busy || m[2] <= 0 ? 'disabled' : ''}><span class="mn">${m[0]}</span>${bt.showType || bt.showPP ? `<span class="meta">${bt.showType ? typeChip(m[1]) : '<span></span>'}${bt.showPP ? `<span>PP ${m[2]}/${m[3]}</span>` : ''}</span>` : ''}</button>`
     : '<button type="button" class="mv" disabled><span class="mn">—</span></button>').join('');
-  const moves = `<div class="bmoves ${bt.layout}">${mv}</div>`;
-  const acts = `<div class="bacts" id="bacts">${bt.order.map(id => `<button type="button" class="ba" data-reorder data-id="${id}" ${B.busy ? 'disabled' : ''}>${svg(BACT[id].i, 20)}<span>${BACT[id].l}</span></button>`).join('')}</div>`;
-  return `<div class="bpanel">${bt.actions === 'sopra' ? acts + moves : moves + acts}</div>`;
+  return `<div class="bmoves ${bt.layout}">${mv}</div>`;
 }
+const actsHTML = () => `<div class="bacts" id="bacts">${cfg.battle.order.map(id => `<button type="button" class="ba" data-reorder data-id="${id}" ${B.busy ? 'disabled' : ''}>${svg(BACT[id].i, 20)}<span>${BACT[id].l}</span></button>`).join('')}</div>`;
+function battleHTML(){ return `<div class="bpanel">${cfg.battle.actions === 'sopra' ? actsHTML() + movesHTML() : movesHTML() + actsHTML()}</div>`; }
 function renderLower(){
-  const L = $('#lower');
+  const L = $('#lower'), lay = curLay();
+  applyGame();
+  L.classList.toggle('freelay', !!lay);
+  L.style.top = lay ? ST + 'px' : '';
   if (scene === 'battle'){
-    L.innerHTML = battleHTML();
+    L.innerHTML = lay ? fbox(lay.moves, 'moves', movesHTML()) + fbox(lay.acts, 'acts', actsHTML()) : battleHTML();
     reorderable($('#bacts'), battleAct, ids => { cfg.battle.order = ids; saveCfg(); renderLower(); });
     return;
   }
-  const parts = { info:cfg.bar.info ? infoHTML() : '', free:freeHTML(), bar:barHTML() };
-  const order = cfg.bar.pos === 'basso' ? ['info','free','bar'] : ['bar','info','free'];
-  L.innerHTML = order.map(k => parts[k]).join('');
+  if (lay){
+    L.innerHTML = (cfg.bar.info ? fbox(lay.loc, 'loc', locHTML()) + fbox(lay.team, 'team', teamHTML()) : '') + fbox(lay.hint, 'hint', freeHTML()) + fbox(lay.bar, 'bar', barHTML());
+  } else {
+    const parts = { info:cfg.bar.info ? infoHTML() : '', free:freeHTML(), bar:barHTML() };
+    const order = cfg.bar.pos === 'basso' ? ['info','free','bar'] : ['bar','info','free'];
+    L.innerHTML = order.map(k => parts[k]).join('');
+  }
   const bar = $('#bar');
   if (bar) reorderable(bar, barTap, ids => { cfg.bar.buttons = ids; saveCfg(); renderLower(); renderSettings(); });
   syncBarStates(); syncYN();
@@ -822,7 +904,7 @@ function openSheet(id, opts = {}){
   path = []; pending = null; marker = null; joyDir = null;
   SS = { id, opts, sub:null, idx:opts.idx || 0, sel:null, tab:null, qty:1, dexN:null, pick:null };
   const sh = $('#sheet');
-  sh.style.top = (cfg.menu.style === 'intero' ? ST : GB) + 'px';
+  sh.style.top = (cfg.menu.style === 'intero' ? ST : gBottom()) + 'px';
   renderSheet(); sh.hidden = false; void sh.offsetHeight; sh.classList.add('open');
   $('#shBody').scrollTop = 0;
 }
@@ -1029,13 +1111,13 @@ const toStage = e => { const b = stage.getBoundingClientRect(); return { x:(e.cl
 let gest = null;
 stage.addEventListener('pointerdown', e => {
   const t = e.target;
-  if (t.closest('#sheet') || t.closest('[data-reorder]') || t.closest('button')) return;
-  const p = toStage(e);
-  if (scene === 'battle'){ if (p.y >= ST && p.y < GB) bnext(); return; }
+  if (editMode || t.closest('#sheet') || t.closest('[data-reorder]') || t.closest('button')) return;
+  const p = toStage(e), g = G();
+  if (scene === 'battle'){ if (inRect(p, g)) bnext(); return; }
   if (dlg){ gest = { id:e.pointerId, dlg:true }; return; }
-  if (SS){ if (p.y < GB) closeSheet(); return; }
-  const inGame = p.y >= ST && p.y < GB, z = cfg.joy.zone;
-  const joyOK = z === 'ovunque' ? (p.y >= ST && p.y < H - NAV) : z === 'sotto' ? (p.y >= GB && p.y < H - NAV) : inGame;
+  if (SS){ if (inRect(p, g)) closeSheet(); return; }
+  const inGame = inRect(p, g), z = cfg.joy.zone;
+  const joyOK = z === 'ovunque' ? (p.y >= ST && p.y < H - NAV) : z === 'sotto' ? (!inGame && p.y >= g.y && p.y < H - NAV) : inGame;
   gest = { id:e.pointerId, x0:p.x, y0:p.y, t0:performance.now(), inGame, joyOK, active:false, ox:p.x, oy:p.y };
   try { stage.setPointerCapture(e.pointerId); } catch(err){}
   if (joyOK){ placeJoy(p.x, p.y, 0, 0, null); joy.classList.add('on'); }
@@ -1063,7 +1145,7 @@ function endGesture(e){
 }
 stage.addEventListener('pointerup', endGesture); stage.addEventListener('pointercancel', endGesture);
 function tapGame(x, y){
-  const gx = x * 160 / W, gy = (y - ST) * 144 / GH;
+  const g = G(), gx = (x - g.x) * 160 / g.w, gy = (y - g.y) * 144 / g.h;
   const tx = Math.floor((gx + cam.x) / 16), ty = Math.floor((gy + cam.y) / 16);
   if (tx === P.x && ty === P.y){ if (!P.mv) interactFacing(); return; }
   const t = targetAt(tx, ty);
@@ -1127,7 +1209,7 @@ function renderSettings(){
       seg('joy.tapInteract', 'Toccare persone e oggetti per raggiungerli e parlarci', YN) +
       seg('joy.tapWalk', 'Toccare il terreno per camminare fin lì', YN) +
       seg('dialog.yesno', 'Dove compaiono Sì / No', [['pannello', 'Nel pannello in basso'], ['gioco', 'Sullo schermo di gioco']]) +
-      seg('dialog.speed', 'Velocità del testo', [['veloce', 'Veloce'], ['media', 'Media'], ['lenta', 'Lenta']]) +
+      '<p class="note">La velocità del testo si cambia dentro il gioco: pulsante Opzioni.</p>' + freeNote() +
       `<div><div class="ctl-l">Da provare</div><ul class="try">
         <li>La persona vicino al sentiero ti fa una domanda (Sì / No).</li>
         <li>Il commesso dietro il bancone apre il Negozio.</li>
@@ -1147,7 +1229,7 @@ function renderSettings(){
       seg('bar.info', 'Riquadro con luogo e squadra', [[true, 'Mostra'], [false, 'Nascondi']]) +
       seg('menu.style', 'Come si aprono i menu', [['foglio', 'Dal basso, il gioco resta visibile'], ['intero', 'A tutto schermo']]) +
       seg('bar.shop', 'Negozio e PC', [['contesto', 'Solo davanti al bancone o al PC'], ['sempre', 'Sempre utilizzabili']]) +
-      `<p class="note ${cfg.bar.shop === 'sempre' ? 'warn' : ''}">Nel gioco originale il negozio e il PC si usano solo sul posto. Con «Solo davanti…» il pulsante si illumina quando sei lì. «Sempre utilizzabili» sarebbe una meccanica nuova: la inserisco solo se la approvi.</p>`;
+      `<p class="note ${cfg.bar.shop === 'sempre' ? 'warn' : ''}">Nel gioco originale il negozio e il PC si usano solo sul posto. Con «Solo davanti…» il pulsante si illumina quando sei lì. «Sempre utilizzabili» sarebbe una meccanica nuova: la inserisco solo se la approvi.</p>` + freeNote();
   } else {
     head = '<h2>Lotta</h2><p class="lead">Tocca una mossa per usarla. Tieni premuto Squadra, Borsa o Fuga e trascinali per cambiarne l\'ordine. Tocca lo schermo di gioco per far scorrere i messaggi.</p>';
     body = seg('battle.layout', 'Disposizione delle mosse', [['griglia', 'Griglia 2 × 2'], ['colonna', 'Una sotto l\'altra']]) +
@@ -1155,11 +1237,25 @@ function renderSettings(){
       seg('battle.showType', 'Mostra il tipo della mossa', YN) +
       seg('battle.showPP', 'Mostra i PP', YN) +
       seg('menu.style', 'Come si aprono Squadra e Borsa', [['foglio', 'Dal basso'], ['intero', 'A tutto schermo']]) +
-      '<p class="note">Dell\'avversario si vede solo la barra dei PS, senza numeri, come nell\'originale.</p>';
+      '<p class="note">Dell\'avversario si vede solo la barra dei PS, senza numeri, come nell\'originale.</p>' + freeNote();
   }
   $('#setHead').innerHTML = head; $('#settingsBody').innerHTML = body;
 }
+function freeNote(){
+  const on = !!curLay();
+  return `<div><div class="ctl-l">Disposizione libera</div><p class="note" style="margin:0 0 8px">${on
+    ? 'Attiva: gli elementi stanno dove li hai messi tu. «Posizione della barra» non conta più.'
+    : 'Premi «Sposta e ridimensiona» per spostare e allargare gli elementi a mano.'}</p><div class="btns">
+    <button type="button" class="secondary" data-act="edit">${editMode ? 'Modifica in corso…' : 'Sposta e ridimensiona'}</button>
+    ${on ? '<button type="button" class="secondary" data-act="unfree">Torna alla disposizione automatica</button>' : ''}</div></div>`;
+}
 $('#settings').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]');
+  if (act){
+    if (act.dataset.act === 'edit'){ toggleSettings(false); setEdit(true); }
+    if (act.dataset.act === 'unfree'){ cfg.layout[scene === 'battle' ? 'battle' : 'explore'] = null; saveCfg(); if (editMode) setEdit(false); applyCfg(); renderSettings(); }
+    return;
+  }
   const b = e.target.closest('[data-k]');
   if (b){ setK(b.dataset.k, JSON.parse(b.dataset.v)); saveCfg(); applyCfg(); renderSettings(); return; }
   const c = e.target.closest('[data-chip]');
@@ -1168,8 +1264,8 @@ $('#settings').addEventListener('click', e => {
 function applyCfg(){
   if (scene === 'battle'){ renderLower(); }
   else renderLower();
-  if (SS){ $('#sheet').style.top = (cfg.menu.style === 'intero' ? ST : GB) + 'px'; renderSheet(); }
-  syncYN();
+  if (SS){ $('#sheet').style.top = (cfg.menu.style === 'intero' ? ST : gBottom()) + 'px'; renderSheet(); }
+  syncYN(); renderEdit();
 }
 
 /* ---------------- Schede (tab) ---------------- */
@@ -1184,9 +1280,125 @@ function setTab(t){
   $('#battleHud').hidden = scene !== 'battle';
   if (scene === 'battle'){ renderHud(); setBText(bPrompt()); }
   else $('#textbox').hidden = true;
-  syncYN(); renderLower(); renderSettings();
+  renderLower();
+  if (editMode){ ensureLayout(); saveCfg(); renderLower(); }
+  syncYN(); renderEdit(); renderSettings();
 }
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+
+/* ---------------- Sposta e ridimensiona ---------------- */
+let editMode = false, edSel = null, ed = null, edRaf = 0;
+const undo = [];
+const EKEYS = { explore:['game','loc','team','hint','bar','yn'], battle:['game','moves','acts'] };
+const ELBL = { game:'Schermo di gioco', loc:'Luogo', team:'Squadra', hint:'Zona levetta', bar:'Pulsanti', yn:'Sì / No', moves:'Mosse', acts:'Squadra · Borsa · Fuga' };
+function measure(sel){
+  const el = document.querySelector('#stage ' + sel); if (!el) return null;
+  const b = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
+  if (!b.width || !b.height) return null;
+  return { x:Math.round((b.left - s.left) / scale), y:Math.round((b.top - s.top) / scale), w:Math.round(b.width / scale), h:Math.round(b.height / scale) };
+}
+function ensureLayout(){
+  const k = scene === 'battle' ? 'battle' : 'explore';
+  if (cfg.layout[k]) return cfg.layout[k];
+  const g = { x:0, y:ST, w:W, h:GH };
+  let lay;
+  if (k === 'battle') lay = { game:g, moves:measure('.bmoves') || { x:14, y:560, w:383, h:220 }, acts:measure('.bacts') || { x:14, y:820, w:383, h:58 } };
+  else lay = { game:g, loc:measure('.loc') || { x:14, y:416, w:383, h:20 }, team:measure('.team-strip') || { x:14, y:444, w:383, h:52 },
+    hint:measure('.free') || { x:14, y:506, w:383, h:290 }, bar:measure('#bar') || measure('.empty-bar') || { x:14, y:810, w:383, h:64 },
+    yn:{ x:W - 8 - 96, y:ST + GH - 124 - 102, w:96, h:102 } };
+  cfg.layout[k] = lay; return lay;
+}
+function visibleKeys(){
+  const lay = curLay(); if (!lay) return [];
+  return EKEYS[scene === 'battle' ? 'battle' : 'explore'].filter(k => lay[k] && !((k === 'loc' || k === 'team') && !cfg.bar.info) && !(k === 'yn' && cfg.dialog.yesno !== 'gioco'));
+}
+function renderEdit(guides){
+  const layer = $('#editLayer');
+  if (!editMode){ layer.hidden = true; layer.innerHTML = ''; return; }
+  const lay = curLay(); if (!lay){ layer.hidden = true; return; }
+  layer.hidden = false;
+  layer.innerHTML = visibleKeys().map(k => { const r = lay[k];
+    return `<div class="ef ${edSel === k ? 'sel' : ''} ${r.h < 44 ? 'small' : ''}" data-ef="${k}" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px"><span class="ef-l">${ELBL[k]} · ${r.w}×${r.h}</span><span class="ef-h" data-h="1"></span></div>`;
+  }).join('') + (guides || []).map(g => g.v !== undefined ? `<div class="guide v" style="left:${g.v}px"></div>` : `<div class="guide h" style="top:${g.h}px"></div>`).join('');
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function snap(points, lines){
+  let best = null;
+  for (const p of points) for (const l of lines){ const d = l - p; if (Math.abs(d) <= 6 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, line:l }; }
+  return best;
+}
+function clampIn(r, g){ r.w = Math.min(r.w, g.w); r.h = Math.min(r.h, g.h); r.x = clamp(r.x, g.x, g.x + g.w - r.w); r.y = clamp(r.y, g.y, g.y + g.h - r.h); return r; }
+function setEdit(on){
+  editMode = on; edSel = null; ed = null;
+  if (on){
+    if (SS) closeSheet();
+    if (dlg){ clearInterval(dlg.iv); dlg = null; if (scene !== 'battle') $('#textbox').hidden = true; }
+    path = []; pending = null; marker = null; joyDir = null;
+    ensureLayout(); saveCfg(); renderLower();
+  } else saveCfg();
+  $('#editBar').hidden = !on;
+  document.body.classList.toggle('editing', on);
+  $('#editBtn').setAttribute('aria-pressed', String(on));
+  $('#immEdit').textContent = on ? 'Fine' : 'Sposta';
+  fit(); syncYN(); renderEdit(); renderSettings();
+}
+const editLayer = $('#editLayer');
+editLayer.addEventListener('pointerdown', e => {
+  e.preventDefault(); e.stopPropagation();
+  const f = e.target.closest('[data-ef]');
+  if (!f){ edSel = null; renderEdit(); return; }
+  const k = f.dataset.ef, lay = curLay();
+  undo.push(JSON.stringify(cfg.layout)); if (undo.length > 60) undo.shift();
+  edSel = k;
+  ed = { id:e.pointerId, k, mode:e.target.closest('[data-h]') ? 'size' : 'move', sx:e.clientX, sy:e.clientY, r0:{ ...lay[k] }, yn0:lay.yn ? { ...lay.yn } : null };
+  try { editLayer.setPointerCapture(e.pointerId); } catch(err){}
+  renderEdit();
+});
+editLayer.addEventListener('pointermove', e => {
+  if (!ed || e.pointerId !== ed.id) return;
+  const lay = curLay(), k = ed.k, r0 = ed.r0, dx = (e.clientX - ed.sx) / scale, dy = (e.clientY - ed.sy) / scale;
+  const top = ST, bot = H - NAV, guides = [];
+  const others = visibleKeys().filter(o => o !== k && !(k === 'game' && o === 'yn') && !(k === 'yn' && o === 'game')).map(o => lay[o]);
+  const xs = [0, W, W / 2], ys = [top, bot];
+  others.forEach(o => { xs.push(o.x, o.x + o.w); ys.push(o.y, o.y + o.h); });
+  let r = { ...r0 };
+  if (ed.mode === 'move'){
+    r.x = r0.x + dx; r.y = r0.y + dy;
+    const sx = snap([r.x, r.x + r.w / 2, r.x + r.w], xs); if (sx){ r.x += sx.d; guides.push({ v:sx.line }); }
+    const sy = snap([r.y, r.y + r.h], ys); if (sy){ r.y += sy.d; guides.push({ h:sy.line }); }
+    r.x = clamp(r.x, 0, W - r.w); r.y = clamp(r.y, top, bot - r.h);
+  } else if (k === 'game'){
+    r.w = clamp(r0.w + Math.max(dx, dy / .9), 200, W - r.x); r.h = r.w * .9;
+    if (r.y + r.h > bot){ r.h = bot - r.y; r.w = r.h / .9; }
+  } else {
+    r.w = r0.w + dx; r.h = r0.h + dy;
+    const sx = snap([r.x + r.w], xs); if (sx){ r.w += sx.d; guides.push({ v:sx.line }); }
+    const sy = snap([r.y + r.h], ys); if (sy){ r.h += sy.d; guides.push({ h:sy.line }); }
+    r.w = clamp(r.w, 40, W - r.x); r.h = clamp(r.h, 24, bot - r.y);
+  }
+  r = { x:Math.round(r.x), y:Math.round(r.y), w:Math.round(r.w), h:Math.round(r.h) };
+  if (k === 'yn') clampIn(r, lay.game);
+  lay[k] = r;
+  if (k === 'game' && lay.yn && ed.yn0){ lay.yn = clampIn({ ...ed.yn0, x:ed.yn0.x + (r.x - r0.x), y:ed.yn0.y + (r.y - r0.y) }, r); }
+  cancelAnimationFrame(edRaf);
+  edRaf = requestAnimationFrame(() => { renderLower(); renderEdit(guides); });
+});
+function edEnd(e){ if (!ed || e.pointerId !== ed.id) return; ed = null; saveCfg(); cancelAnimationFrame(edRaf); renderLower(); renderEdit(); }
+editLayer.addEventListener('pointerup', edEnd); editLayer.addEventListener('pointercancel', edEnd);
+$('#editBtn').addEventListener('click', () => setEdit(!editMode));
+$('#edDone').addEventListener('click', () => setEdit(false));
+$('#immEdit').addEventListener('click', () => setEdit(!editMode));
+function undoLast(){
+  const s = undo.pop(); if (!s){ toast('Niente da annullare.'); return; }
+  cfg.layout = JSON.parse(s); sanitize(); if (editMode) ensureLayout(); saveCfg(); renderLower(); renderEdit();
+}
+$('#edUndo').addEventListener('click', undoLast);
+$('#immUndo').addEventListener('click', undoLast);
+$('#edReset').addEventListener('click', () => {
+  undo.push(JSON.stringify(cfg.layout));
+  cfg.layout[scene === 'battle' ? 'battle' : 'explore'] = null; renderLower();
+  ensureLayout(); saveCfg(); renderLower(); renderEdit(); toast('Disposizione ripristinata.');
+});
 
 /* ---------------- Adattamento allo schermo ---------------- */
 const narrow = () => matchMedia('(max-width: 860px)').matches;
@@ -1205,8 +1417,8 @@ function fit(){
   else { holder.style.width = (W * s) + 'px'; holder.style.height = (H * s) + 'px'; stage.style.left = '0px'; stage.style.top = '0px'; }
 }
 window.addEventListener('resize', fit);
-$('#immBtn').addEventListener('click', () => { holder.classList.add('imm'); $('#exitImm').hidden = false; document.body.style.overflow = 'hidden'; fit(); });
-$('#exitImm').addEventListener('click', () => { holder.classList.remove('imm'); $('#exitImm').hidden = true; document.body.style.overflow = ''; fit(); });
+$('#immBtn').addEventListener('click', () => { holder.classList.add('imm'); $('#immTools').hidden = false; document.body.style.overflow = 'hidden'; fit(); });
+$('#exitImm').addEventListener('click', () => { holder.classList.remove('imm'); $('#immTools').hidden = true; document.body.style.overflow = ''; fit(); });
 function toggleSettings(on){ $('#settings').classList.toggle('open', on); $('#scrim').classList.toggle('on', on); }
 $('#openSet').addEventListener('click', () => toggleSettings(true));
 $('#closeSet').addEventListener('click', () => toggleSettings(false));
@@ -1220,9 +1432,12 @@ function summary(){
   const yn = v => v ? 'sì' : 'no';
   return [
     `Levetta: compare ${({ ovunque:'ovunque', sotto:'solo sotto il gioco', gioco:'solo sul gioco' })[j.zone]}; ${j.mode === 'fissa' ? 'resta ferma' : 'segue il dito'}; grandezza ${({ S:'piccola', M:'media', L:'grande' })[j.size]}; tocco su persone/oggetti: ${yn(j.tapInteract)}; tocco sul terreno: ${yn(j.tapWalk)}.`,
-    `Dialoghi: Sì/No ${d.yesno === 'pannello' ? 'nel pannello in basso' : 'sullo schermo di gioco'}; testo ${d.speed}.`,
+    `Dialoghi: Sì/No ${d.yesno === 'pannello' ? 'nel pannello in basso' : 'sullo schermo di gioco'}.`,
     `Barra: ${b.buttons.map(id => BTN[id].l).join(', ') || 'vuota'}; ${b.rows} ${b.rows === 1 ? 'riga' : 'righe'}; ${b.labels ? 'icona e nome' : 'solo icona'}; grandezza ${({ s:'piccoli', m:'medi', l:'grandi' })[b.size]}; posizione ${b.pos === 'basso' ? 'in fondo' : 'sotto il gioco'}; riquadro luogo/squadra: ${yn(b.info)}; Negozio/PC: ${b.shop === 'contesto' ? 'solo sul posto' : 'sempre'}.`,
     `Menu: ${cfg.menu.style === 'foglio' ? 'dal basso' : 'a tutto schermo'}.`,
+    `Disposizione libera: esplorazione ${cfg.layout.explore ? 'sì' : 'no'}, lotta ${cfg.layout.battle ? 'sì' : 'no'}.` +
+      (cfg.layout.explore ? ' Esplorazione (dp, x,y largh×alt): ' + Object.entries(cfg.layout.explore).map(([k, r]) => `${ELBL[k]} ${r.x},${r.y} ${r.w}×${r.h}`).join('; ') + '.' : '') +
+      (cfg.layout.battle ? ' Lotta: ' + Object.entries(cfg.layout.battle).map(([k, r]) => `${ELBL[k]} ${r.x},${r.y} ${r.w}×${r.h}`).join('; ') + '.' : ''),
     `Lotta: mosse ${t.layout === 'griglia' ? 'a griglia 2×2' : 'in colonna'}; azioni ${t.actions} le mosse (${t.order.map(id => BACT[id].l).join(', ')}); tipo: ${yn(t.showType)}; PP: ${yn(t.showPP)}.`
   ].join('\n');
 }
@@ -1242,7 +1457,19 @@ $('#sendBtn').addEventListener('click', async () => {
   }
   st.className = 'ok'; st.textContent = 'Inviato alle ' + new Date().toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) + '. Claude può leggerlo.'; btn.disabled = false;
 });
-$('#resetBtn').addEventListener('click', () => { cfg = clone(DEF); saveCfg(); applyCfg(); renderSettings(); $('#sendStatus').textContent = 'Predefiniti ripristinati.'; });
+$('#resetBtn').addEventListener('click', () => { if (editMode) setEdit(false); cfg = clone(DEF); saveCfg(); applyCfg(); renderSettings(); $('#sendStatus').textContent = 'Predefiniti ripristinati.'; });
+/* Se su questo dispositivo non c'è una configurazione salvata, riprende l'ultima inviata. */
+dbP.then(async db => {
+  if (!db || hadLocal) return;
+  try {
+    const q = await db.collection('invii').orderBy('inviatoIl', 'desc').limit(1).get();
+    if (q.empty) return;
+    const d = q.docs[0].data();
+    if (!d || !d.cfg || typeof d.cfg !== 'object') return;
+    cfg = merge(clone(DEF), d.cfg); sanitize(); saveCfg(); applyCfg(); renderSettings();
+    toast('Ho ripreso la tua ultima configurazione inviata.');
+  } catch(e){}
+}).catch(() => {});
 
 /* ---------------- Avvio ---------------- */
 setTab('levetta');

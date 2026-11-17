@@ -18,6 +18,9 @@
 | D-007 | 2026-11-17 | **Barra di pulsanti in basso, tutti con la stessa grafica e un'icona**, per Squadra, Borsa, Pokédex, Scheda Pokémon, Negozio, PC. Un tocco apre il menu corrispondente. |
 | D-008 | 2026-11-17 | **Dentro i menu si scorre e si seleziona col dito** (liste a scorrimento, righe grandi). |
 | D-009 | 2026-11-17 | **Dispositivo di riferimento: CMF Phone 2 Pro** (6,77", 1080×2392, 120 Hz, Dimensity 7300 Pro, Android 15 / Nothing OS 3.2 di fabbrica). |
+| D-012 | 2026-11-17 | Prima configurazione inviata dal Laboratorio: **menu a tutto schermo**, **Sì/No sullo schermo di gioco**, levetta ovunque/ferma/media, tocco su persone e oggetti sì, tocco sul terreno no, barra a una riga con icona e nome, lotta a griglia 2×2 con Squadra/Borsa/Fuga sotto. |
+| D-013 | 2026-11-17 | **La velocità del testo si regola nelle impostazioni del gioco** (menu Opzioni), non è un comando a parte. |
+| D-014 | 2026-11-17 | Il committente vuole **spostare e ridimensionare liberamente** gli elementi dell'interfaccia: aggiunta la modalità "Sposta e ridimensiona" al Laboratorio. Lo schermo di gioco mantiene sempre le proporzioni 10:9; testo dei dialoghi e informazioni di lotta fanno parte dell'immagine del gioco e si spostano con essa. |
 
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
