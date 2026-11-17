@@ -32,6 +32,11 @@ meccaniche originali.
 
 L'impronta SHA-1 servirà all'app per riconoscere la versione supportata.
 
+## Dispositivo di riferimento
+CMF Phone 2 Pro: 6,77" AMOLED 1080×2392 (circa 20:9), 120 Hz, MediaTek Dimensity 7300 Pro,
+Android 15 con Nothing OS 3.2 di fabbrica. In verticale lo schermo di gioco a tutta larghezza
+occupa circa 1080×972 pixel; restano circa 480 dp sotto per pannello e pulsanti.
+
 ## Stato generale
 **Fase 1 – Analisi**: analisi iniziale completata, **in attesa di approvazione
 dell'architettura** (vedi `ARCHITECTURE.md` e `DECISIONS.md`).

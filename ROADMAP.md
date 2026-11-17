@@ -10,9 +10,10 @@ Legenda: ✅ fatto · 🔄 in corso · ⏳ da fare · ⛔ in attesa di approvazi
 - ⛔ Approvazione architettura (D-001)
 - ⏳ 1b. Ricostruzione e verifica mappa memoria della versione italiana
 
-## Fase 2 – Progettazione ⏳
+## Fase 2 – Progettazione 🔄
 - Architettura dettagliata e struttura moduli definitiva
-- Proposta UX navigabile (verticale + orizzontale) → approvazione
+- 🔄 Proposta UX navigabile in verticale: Laboratorio interattivo pubblicato, in prova dal committente
+- ⏳ Orizzontale: bassa priorità (D-005)
 - Specifica sistema touch (movimento, interazioni, casi speciali)
 - Specifica salvataggi e ripresa
 - Versioni SDK/strumenti verificate su documentazione ufficiale

@@ -9,10 +9,21 @@
 - R-06 Sviluppo per fasi (Analisi → Progettazione → Prototipo → Implementazione → Test → Distribuzione).
 - R-07 Documentazione persistente nel repository.
 
-## Decisioni in attesa di approvazione
+## Decisioni approvate
+| ID | Data | Decisione |
+|---|---|---|
+| D-002 | 2026-11-17 | **Salvataggio ovunque approvato** (istantanea dello stato in qualsiasi momento + ripresa automatica). Più avanti: sistema con più slot e schermata di caricamento. |
+| D-005 | 2026-11-17 | **Il gioco funziona principalmente in verticale.** L'orizzontale passa in secondo piano (non prioritario). |
+| D-006 | 2026-11-17 | **Movimento base: levetta virtuale che compare sotto il dito quando serve e sparisce quando lo si alza.** Nessuna croce fissa. Dettagli (zona, comportamento, grandezza) da definire con le demo. |
+| D-007 | 2026-11-17 | **Barra di pulsanti in basso, tutti con la stessa grafica e un'icona**, per Squadra, Borsa, Pokédex, Scheda Pokémon, Negozio, PC. Un tocco apre il menu corrispondente. |
+| D-008 | 2026-11-17 | **Dentro i menu si scorre e si seleziona col dito** (liste a scorrimento, righe grandi). |
+| D-009 | 2026-11-17 | **Dispositivo di riferimento: CMF Phone 2 Pro** (6,77", 1080×2392, 120 Hz, Dimensity 7300 Pro, Android 15 / Nothing OS 3.2 di fabbrica). |
+
+## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
 |---|---|---|---|
-| D-001 | Architettura | A potenziata: core SameBoy + ponte di lettura stato + UI nativa Compose | ⛔ in attesa |
-| D-002 | Ripresa rapida | Istantanea automatica a slot unico alla chiusura/sospensione, non caricabile a piacere (niente "salva ovunque") | ⛔ in attesa |
-| D-003 | Visibilità repository | Il repository è pubblico: consigliato renderlo privato | ⛔ in attesa |
+| D-001 | Architettura | A potenziata: motore di emulazione (SameBoy) + ponte di lettura stato + UI nativa Compose. Spiegato cos'è SameBoy il 2026-11-17 | ⛔ attesa conferma esplicita |
+| D-003 | Visibilità repository | Il committente vuole renderlo privato; va fatto da GitHub (Claude non ha accesso alle impostazioni) | ⏳ a carico del committente |
 | D-004 | Versioni supportate | Solo la versione italiana fornita (riconosciuta tramite SHA-1) | proposta predefinita |
+| D-010 | Pulsanti Negozio e PC | Proposta fedele: attivi solo davanti al bancone o al PC (si illuminano). "Sempre utilizzabili" = meccanica nuova | ⛔ attesa scelta |
+| D-011 | Configurazione definitiva dei comandi | Da scegliere con il Laboratorio (`docs/demo/laboratorio-giallo-touch.html`) | ⏳ in prova |

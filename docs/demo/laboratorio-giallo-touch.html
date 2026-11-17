@@ -1,0 +1,1255 @@
+<title>Laboratorio Giallo Touch</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&display=swap">
+<style>
+/* Layout: banco di prova. A sinistra il telefono in scala reale (411×911 dp, CMF Phone 2 Pro in verticale),
+   a destra le regolazioni; su telefono le regolazioni stanno in un foglio a comparsa. */
+:root{
+  --bg:#e8ebf1; --surface:#ffffff; --fg:#1b1d2a; --muted:#565d76; --line:#d2d7e3;
+  --accent:#8a6800; --accent-fill:#f6c933; --on-accent:#1b1a12; --ok:#1f7a45; --frame:#0c0c13;
+  --font-ui:"Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-px:"Pixelify Sans", "Courier New", monospace;
+  /* aspetto fisso dell'app (uguale in tema chiaro e scuro) */
+  --p-ink:#171624; --p-panel:#232139; --p-panel2:#2e2b49; --p-line:#403c62;
+  --p-y:#f6c933; --p-y2:#ffe07a; --p-text:#fff7dc; --p-dim:#aaa4c8;
+  --p-red:#ef5b5b; --p-green:#58cf7c; --p-amber:#f2b23a; --p-paper:#fbfbf3;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#111219; --surface:#1b1d2a; --fg:#eceef6; --muted:#9ca2ba; --line:#2c2f45;
+    --accent:#f6c933; --accent-fill:#f6c933; --on-accent:#1b1a12; --ok:#58cf7c; --frame:#000000; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#111219; --surface:#1b1d2a; --fg:#eceef6; --muted:#9ca2ba; --line:#2c2f45;
+  --accent:#f6c933; --accent-fill:#f6c933; --on-accent:#1b1a12; --ok:#58cf7c; --frame:#000000; color-scheme:dark; }
+
+[hidden]{ display:none!important; }
+html,body{ height:100%; }
+body{ background:var(--bg); color:var(--fg); font-family:var(--font-ui); font-size:15px; }
+*{ box-sizing:border-box; }
+button{ font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+button:focus-visible, textarea:focus-visible{ outline:3px solid var(--accent-fill); outline-offset:2px; }
+
+.page{ max-width:1180px; margin:0 auto; padding-block:12px 20px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+header h1{ margin:0; font-size:clamp(20px, 2.6vw, 28px); font-weight:700; letter-spacing:-.01em; text-wrap:balance; }
+header p{ margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.45; max-width:70ch; }
+.bar-top{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
+.tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+.tab{ border:1px solid var(--line); background:var(--surface); color:var(--fg); border-radius:12px; padding:9px 14px; font-weight:600; font-size:14px; min-height:42px; }
+.tab[aria-selected="true"]{ background:var(--accent-fill); border-color:var(--accent-fill); color:var(--on-accent); }
+.tools{ margin-left:auto; display:flex; gap:6px; }
+.tool{ border:1px solid var(--line); background:transparent; color:var(--fg); border-radius:12px; padding:9px 12px; font-weight:600; font-size:14px; min-height:42px; }
+#openSet{ display:none; }
+
+.main{ display:grid; grid-template-columns:minmax(300px, 440px) minmax(0,1fr); gap:28px; align-items:start; }
+#stageCol{ display:flex; justify-content:center; min-width:0; }
+#stageHolder{ position:relative; }
+#stageHolder.imm{ position:fixed; inset:0; z-index:70; background:var(--p-ink); width:auto!important; height:auto!important; }
+#exitImm{ position:fixed; z-index:80; top:calc(10px + env(safe-area-inset-top, 0px)); right:calc(10px + env(safe-area-inset-right, 0px));
+  background:var(--p-text); color:var(--p-ink); border:0; border-radius:12px; padding:10px 14px; font-weight:700; }
+
+/* ---------- Telefono ---------- */
+#stage{ position:absolute; left:0; top:0; width:411px; height:911px; transform-origin:0 0; overflow:hidden;
+  border-radius:38px; background:var(--p-ink); color:var(--p-text); box-shadow:0 0 0 9px var(--frame), 0 24px 50px rgba(0,0,0,.28);
+  touch-action:none; user-select:none; -webkit-user-select:none; font-family:var(--font-ui); }
+#stageHolder.imm #stage{ border-radius:0; box-shadow:none; }
+.sys-status{ position:absolute; inset:0 0 auto; height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 24px;
+  font-size:13px; font-weight:600; background:var(--p-ink); z-index:5; font-variant-numeric:tabular-nums; }
+.cam{ position:absolute; left:50%; top:9px; width:16px; height:16px; margin-left:-8px; border-radius:50%; background:#04040a; box-shadow:inset 0 0 0 2px #24243a; }
+.sys-ic{ display:flex; gap:6px; align-items:center; }
+.sys-ic i{ display:block; width:16px; height:9px; border:1.5px solid var(--p-text); border-radius:2px; position:relative; }
+.sys-ic i::after{ content:""; position:absolute; inset:1px 4px 1px 1px; background:var(--p-text); border-radius:1px; }
+.sys-ic b{ display:block; width:12px; height:9px; background:linear-gradient(90deg, var(--p-text) 0 2px, transparent 2px 3px, var(--p-text) 3px 5px, transparent 5px 6px, var(--p-text) 6px 8px, transparent 8px 9px, var(--p-text) 9px); clip-path:polygon(0 100%,100% 0,100% 100%); }
+.sys-nav{ position:absolute; inset:auto 0 0; height:24px; display:grid; place-items:center; background:var(--p-ink); z-index:25; }
+.sys-nav span{ width:112px; height:4px; border-radius:2px; background:var(--p-dim); }
+
+#game{ position:absolute; top:34px; left:0; width:411px; height:370px; background:#000; overflow:hidden; }
+#cv{ width:100%; height:100%; display:block; image-rendering:crisp-edges; image-rendering:pixelated; }
+#textbox{ position:absolute; left:6px; right:6px; bottom:6px; height:112px; z-index:6; background:var(--p-paper); color:var(--p-ink);
+  border:3px solid var(--p-ink); border-radius:6px; box-shadow:inset 0 0 0 3px var(--p-paper), inset 0 0 0 5px var(--p-ink);
+  padding:15px 20px; font:600 19px/1.5 var(--font-px); white-space:pre-line; }
+#tbMore{ position:absolute; right:16px; bottom:10px; font-size:14px; animation:blink 1s steps(2) infinite; }
+@keyframes blink{ 50%{ opacity:0; } }
+#ynGame{ position:absolute; right:8px; bottom:124px; z-index:7; display:flex; flex-direction:column; gap:6px; }
+#ynGame button{ width:96px; height:48px; background:var(--p-paper); color:var(--p-ink); border:3px solid var(--p-ink); border-radius:6px; font:600 19px var(--font-px); }
+#battleHud .hud{ position:absolute; color:var(--p-ink); font:600 17px/1.2 var(--font-px); }
+#battleHud .en{ left:5%; top:5%; width:48%; }
+#battleHud .me{ right:5%; top:41%; width:48%; text-align:right; }
+.hud .hrow{ display:flex; align-items:center; gap:6px; margin-top:4px; }
+.hud .me-row{ justify-content:flex-end; }
+.hud .lbl{ font-size:12px; background:var(--p-ink); color:var(--p-y); padding:0 4px; border-radius:2px; }
+.hud .hpb{ flex:1; height:8px; border:2px solid var(--p-ink); border-radius:4px; background:var(--p-paper); overflow:hidden; max-width:150px; }
+.hud .hpb i{ display:block; height:100%; background:var(--p-green); transition:width .6s ease; }
+.hud .hpb i.mid{ background:var(--p-amber); } .hud .hpb i.low{ background:var(--p-red); }
+.hud .num{ margin-top:2px; font-variant-numeric:tabular-nums; }
+
+#lower{ position:absolute; top:404px; left:0; right:0; bottom:24px; display:flex; flex-direction:column; gap:10px; padding:12px 14px 10px;
+  background:linear-gradient(180deg, var(--p-panel) 0%, var(--p-ink) 100%); }
+.info{ display:flex; flex-direction:column; gap:8px; }
+.loc{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--p-dim); font-weight:500; letter-spacing:.03em; }
+.loc .money{ margin-left:auto; color:var(--p-text); font-variant-numeric:tabular-nums; }
+.team-strip{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:6px; }
+.cap{ background:var(--p-panel2); border:1px solid var(--p-line); border-radius:12px; padding:5px 5px 7px; display:flex; flex-direction:column; align-items:center; gap:3px; color:inherit; }
+.cap .hp{ width:100%; }
+.free{ flex:1; position:relative; display:flex; align-items:center; justify-content:center; min-height:60px; }
+.hint{ font-size:13px; color:var(--p-dim); border:1px dashed var(--p-line); padding:8px 14px; border-radius:999px; text-align:center; }
+.yesno{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:14px; background:var(--p-ink); border-radius:18px; }
+.yesno button{ width:140px; height:60px; border-radius:18px; font-size:19px; font-weight:700; border:1px solid var(--p-line); background:var(--p-panel2); color:var(--p-text); }
+.yesno button.yes{ background:var(--p-y); color:var(--p-ink); border-color:var(--p-y); }
+
+.bar{ display:grid; gap:8px; }
+.bb{ height:var(--bh, 64px); border-radius:16px; background:var(--p-panel2); border:1px solid var(--p-line); color:var(--p-y);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:0 2px; font-size:11.5px; font-weight:600; min-width:0; touch-action:none; }
+.bb span{ color:var(--p-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.bar.s{ --bh:52px; } .bar.m{ --bh:64px; } .bar.l{ --bh:80px; } .bar.l .bb{ font-size:13px; }
+.bb.locked{ opacity:.36; }
+.bb.lit{ background:var(--p-y); color:var(--p-ink); border-color:var(--p-y2); animation:glow 1.4s ease-in-out infinite; }
+.bb.lit span{ color:var(--p-ink); }
+@keyframes glow{ 50%{ box-shadow:0 0 0 5px rgba(246,201,51,.28); } }
+.bb:active, .ba:active, .mv:active, .row:active{ transform:scale(.97); }
+.placeholder{ opacity:.25; outline:2px dashed var(--p-y); outline-offset:-2px; }
+.ghost{ position:absolute!important; z-index:40; pointer-events:none; transform:scale(1.08); box-shadow:0 12px 26px rgba(0,0,0,.5); opacity:.95; }
+.empty-bar{ text-align:center; font-size:13px; color:var(--p-dim); padding:14px; border:1px dashed var(--p-line); border-radius:16px; }
+
+.bpanel{ flex:1; display:flex; flex-direction:column; gap:10px; min-height:0; }
+.bmoves{ display:grid; gap:10px; flex:1; grid-auto-rows:1fr; max-height:300px; }
+.bmoves.griglia{ grid-template-columns:1fr 1fr; }
+.mv{ min-height:80px; border-radius:18px; background:var(--p-panel2); border:1px solid var(--p-line); color:var(--p-text); text-align:left;
+  padding:10px 14px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
+.bmoves.colonna .mv{ min-height:58px; flex-direction:row; align-items:center; justify-content:space-between; }
+.mv .mn{ font-weight:700; font-size:16px; letter-spacing:.02em; }
+.mv .meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12.5px; color:var(--p-dim); font-variant-numeric:tabular-nums; }
+.bmoves.colonna .mv .meta{ justify-content:flex-end; }
+.mv:disabled{ opacity:.45; }
+.bacts{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+.ba{ height:58px; border-radius:16px; background:var(--p-ink); border:1px solid var(--p-line); color:var(--p-y); display:flex; align-items:center; justify-content:center; gap:8px; font-weight:700; font-size:15px; touch-action:none; }
+.ba span{ color:var(--p-text); }
+
+.type{ display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; color:var(--p-ink); letter-spacing:.02em; }
+.hp{ display:block; height:6px; border-radius:3px; background:#0f0e19; overflow:hidden; }
+.hp i{ display:block; height:100%; background:var(--p-green); }
+.hp i.mid{ background:var(--p-amber); } .hp i.low{ background:var(--p-red); }
+
+/* Foglio dei menu */
+#sheet{ position:absolute; left:0; right:0; bottom:24px; top:404px; z-index:20; background:var(--p-panel); border-radius:24px 24px 0 0;
+  display:flex; flex-direction:column; transform:translateY(105%); transition:transform .24s cubic-bezier(.2,.8,.2,1); box-shadow:0 -12px 30px rgba(0,0,0,.45); }
+#sheet.open{ transform:none; }
+.sh-head{ display:flex; align-items:center; gap:10px; padding:18px 14px 10px; position:relative; touch-action:none; }
+.grab{ position:absolute; top:7px; left:50%; width:42px; height:4px; margin-left:-21px; border-radius:2px; background:var(--p-line); }
+#shTitle{ margin:0; flex:1; font-size:21px; font-weight:700; }
+.icon-btn{ width:46px; height:46px; border-radius:14px; background:var(--p-panel2); border:1px solid var(--p-line); color:var(--p-text); display:grid; place-items:center; flex:none; }
+#shBody{ flex:1; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; padding:2px 14px 22px; display:flex; flex-direction:column; gap:8px; }
+.row{ display:flex; align-items:center; gap:12px; width:100%; min-height:64px; padding:10px 12px; border-radius:16px; background:var(--p-panel2);
+  border:1px solid var(--p-line); color:inherit; text-align:left; }
+.row.sel{ border-color:var(--p-y); }
+.row.swap{ outline:2px dashed var(--p-y); }
+.row .grow{ flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+.row .name{ font-weight:700; font-size:16px; letter-spacing:.02em; }
+.row .sub{ color:var(--p-dim); font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.row .right{ font-variant-numeric:tabular-nums; color:var(--p-text); font-weight:600; font-size:15px; }
+.status{ font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px; background:var(--p-red); color:var(--p-ink); }
+.acts{ display:flex; gap:8px; padding:2px 0 6px; }
+.act{ flex:1; height:50px; border-radius:14px; background:var(--p-y); color:var(--p-ink); font-weight:700; border:0; font-size:15px; }
+.act.alt{ background:transparent; color:var(--p-text); border:1px solid var(--p-line); }
+.act:disabled{ opacity:.4; }
+.stepper{ display:flex; align-items:center; gap:10px; padding:4px 0 2px; }
+.stepper button{ width:50px; height:50px; border-radius:14px; border:1px solid var(--p-line); background:var(--p-panel2); color:var(--p-text); font-size:22px; font-weight:700; }
+.stepper b{ min-width:44px; text-align:center; font-size:20px; font-variant-numeric:tabular-nums; }
+.stepper .tot{ margin-left:auto; color:var(--p-dim); font-size:14px; font-variant-numeric:tabular-nums; }
+.segtabs{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:6px; background:var(--p-ink); padding:4px; border-radius:14px; }
+.segtabs button{ height:44px; border-radius:11px; border:0; background:transparent; color:var(--p-dim); font-weight:700; font-size:15px; }
+.segtabs button.on{ background:var(--p-panel2); color:var(--p-text); }
+.sec{ font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--p-dim); margin:8px 2px 0; }
+.chiprow{ display:flex; gap:8px; overflow-x:auto; touch-action:pan-x; padding-bottom:4px; flex:none; }
+.mchip{ flex:none; display:flex; align-items:center; gap:6px; height:42px; padding:0 12px 0 6px; border-radius:999px; border:1px solid var(--p-line); background:var(--p-panel2); color:var(--p-text); font-weight:600; font-size:13px; }
+.mchip.on{ border-color:var(--p-y); background:var(--p-y); color:var(--p-ink); }
+.card-top{ display:flex; gap:14px; align-items:center; background:var(--p-ink); border-radius:18px; padding:14px; }
+.card-top .big{ font-size:22px; font-weight:700; letter-spacing:.02em; }
+.card-top .grow{ flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.stats{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
+.stats div{ background:var(--p-panel2); border:1px solid var(--p-line); border-radius:14px; padding:10px 6px; text-align:center; display:flex; flex-direction:column; gap:2px; }
+.stats span{ font-size:11px; color:var(--p-dim); font-weight:700; letter-spacing:.06em; }
+.stats b{ font-size:19px; font-variant-numeric:tabular-nums; }
+.pnote{ font-size:12.5px; color:var(--p-dim); line-height:1.45; margin:6px 2px 0; }
+.dexrow{ min-height:56px; }
+.dexrow .num{ width:44px; color:var(--p-dim); font-variant-numeric:tabular-nums; font-size:13px; font-weight:600; }
+.dexrow.none .name{ color:var(--p-dim); }
+.caught{ width:10px; height:10px; border-radius:50%; background:var(--p-y); }
+.badges{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+.badges div{ aspect-ratio:1; max-width:100%; border-radius:16px; background:var(--p-ink); border:1px solid var(--p-line); display:grid; place-items:center; color:var(--p-line); }
+.badges div.got{ color:var(--p-y); }
+.kv{ display:flex; justify-content:space-between; padding:12px 4px; border-bottom:1px solid var(--p-line); font-size:15px; }
+.kv b{ font-variant-numeric:tabular-nums; }
+.optrow{ display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+.optrow > span{ font-size:13px; color:var(--p-dim); font-weight:600; }
+
+#joy{ position:absolute; inset:0; pointer-events:none; z-index:30; opacity:0; transition:opacity .12s; }
+#joy.on{ opacity:1; }
+.joy-base{ position:absolute; border-radius:50%; background:rgba(23,22,36,.42); border:2px solid rgba(255,247,220,.6); }
+.joy-base svg{ position:absolute; inset:0; width:100%; height:100%; }
+.joy-knob{ position:absolute; border-radius:50%; background:var(--p-y); box-shadow:0 4px 12px rgba(0,0,0,.4); }
+#toast{ position:absolute; left:50%; bottom:132px; transform:translateX(-50%); z-index:45; width:max-content; max-width:360px;
+  background:var(--p-text); color:var(--p-ink); padding:11px 15px; border-radius:14px; font-weight:600; font-size:14px; text-align:center; line-height:1.35;
+  opacity:0; transition:opacity .2s; pointer-events:none; }
+#toast.show{ opacity:1; }
+
+/* ---------- Regolazioni ---------- */
+.settings{ background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:20px; display:flex; flex-direction:column; gap:18px; min-width:0; }
+.settings h2{ margin:0; font-size:19px; font-weight:700; }
+.settings .lead{ margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.5; }
+.set-head{ display:flex; align-items:flex-start; gap:10px; }
+.set-head > div{ flex:1; min-width:0; }
+#closeSet{ display:none; }
+#settingsBody{ display:flex; flex-direction:column; gap:16px; }
+.ctl-l{ font-size:13px; font-weight:600; color:var(--muted); margin-bottom:7px; }
+.seg{ display:flex; flex-wrap:wrap; gap:6px; }
+.seg button, .chip{ border:1px solid var(--line); background:transparent; color:var(--fg); padding:8px 12px; border-radius:12px; font-size:14px; font-weight:500; min-height:40px; }
+.seg button[aria-checked="true"], .chip[aria-pressed="true"]{ background:var(--accent-fill); color:var(--on-accent); border-color:var(--accent-fill); font-weight:600; }
+.chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip{ display:inline-flex; align-items:center; gap:6px; }
+.note{ font-size:13px; color:var(--muted); line-height:1.5; margin:6px 0 0; }
+.note.warn{ color:var(--accent); }
+.try{ margin:0; padding-left:18px; color:var(--muted); font-size:14px; line-height:1.6; }
+.send{ border-top:1px solid var(--line); padding-top:16px; display:flex; flex-direction:column; gap:10px; }
+.send h3{ margin:0; font-size:16px; }
+textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--fg); padding:10px 12px; font:14px/1.45 var(--font-ui); }
+.btns{ display:flex; gap:8px; flex-wrap:wrap; }
+.primary{ background:var(--fg); color:var(--bg); border:0; border-radius:12px; padding:12px 18px; font-weight:600; font-size:15px; min-height:46px; }
+.secondary{ background:transparent; color:var(--fg); border:1px solid var(--line); border-radius:12px; padding:12px 16px; font-weight:600; font-size:15px; min-height:46px; }
+#sendStatus{ font-size:14px; color:var(--muted); min-height:20px; }
+#sendStatus.ok{ color:var(--ok); }
+#scrim{ display:none; }
+
+@media (max-width: 860px){
+  .main{ grid-template-columns:1fr; }
+  #openSet{ display:inline-block; }
+  #closeSet{ display:grid; }
+  .settings{ position:fixed; left:0; right:0; bottom:0; z-index:60; max-height:80vh; overflow-y:auto; overscroll-behavior:contain;
+    border-radius:22px 22px 0 0; border-bottom:0; transform:translateY(102%); transition:transform .25s ease; box-shadow:0 -16px 40px rgba(0,0,0,.3);
+    padding-block:18px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding-left:max(18px, env(safe-area-inset-left, 0px)); padding-right:max(18px, env(safe-area-inset-right, 0px)); }
+  .settings.open{ transform:none; }
+  #scrim.on{ display:block; position:fixed; inset:0; z-index:55; background:rgba(0,0,0,.35); }
+  header p{ font-size:13px; }
+}
+.settings #closeSet{ border:1px solid var(--line); background:transparent; color:var(--fg); }
+@media (prefers-reduced-motion: reduce){
+  #sheet, .settings, #joy, #toast, .hud .hpb i{ transition:none; }
+  .bb.lit, #tbMore{ animation:none; }
+}
+</style>
+
+<div class="page">
+  <header>
+    <h1>Laboratorio Giallo Touch</h1>
+    <p>Prove dei comandi in verticale, alla grandezza reale del CMF Phone 2 Pro. Muovi i pezzi, prova, poi invia la configurazione che preferisci. Grafica e nomi sono segnaposto originali: nell'app vera vedrai la grafica del gioco.</p>
+  </header>
+  <div class="bar-top">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="levetta" id="tab-levetta">Levetta</button>
+      <button class="tab" role="tab" data-tab="pulsanti" id="tab-pulsanti">Pulsanti e menu</button>
+      <button class="tab" role="tab" data-tab="lotta" id="tab-lotta">Lotta</button>
+    </div>
+    <div class="tools">
+      <button class="tool" id="immBtn" type="button">Schermo intero</button>
+      <button class="tool" id="openSet" type="button">Regola</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="stageCol">
+      <div id="stageHolder">
+        <div id="stage" aria-label="Telefono di prova">
+          <div class="sys-status"><span id="clock">12:00</span><span class="cam"></span><span class="sys-ic"><b></b><i></i></span></div>
+          <div id="game">
+            <canvas id="cv" width="160" height="144"></canvas>
+            <div id="battleHud" hidden></div>
+            <div id="ynGame" hidden><button type="button" data-yn="1">SÌ</button><button type="button" data-yn="0">NO</button></div>
+            <div id="textbox" hidden><span id="tbText"></span><span id="tbMore" hidden>▼</span></div>
+          </div>
+          <div id="lower"></div>
+          <div id="sheet" hidden>
+            <div class="sh-head" id="shHead"><span class="grab"></span>
+              <button class="icon-btn" id="shBack" type="button" aria-label="Indietro" hidden></button>
+              <h3 id="shTitle"></h3>
+              <button class="icon-btn" id="shClose" type="button" aria-label="Chiudi"></button>
+            </div>
+            <div id="shBody"></div>
+          </div>
+          <div id="joy"><div class="joy-base" id="joyBase"><svg viewBox="0 0 100 100" aria-hidden="true">
+            <path id="ar-up" d="M50 9 L57 19 L43 19 Z" fill="rgba(255,247,220,.6)"/>
+            <path id="ar-down" d="M50 91 L57 81 L43 81 Z" fill="rgba(255,247,220,.6)"/>
+            <path id="ar-left" d="M9 50 L19 43 L19 57 Z" fill="rgba(255,247,220,.6)"/>
+            <path id="ar-right" d="M91 50 L81 43 L81 57 Z" fill="rgba(255,247,220,.6)"/></svg></div>
+            <div class="joy-knob" id="joyKnob"></div></div>
+          <div id="toast" role="status"></div>
+          <div class="sys-nav"><span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="settings" id="settings" aria-label="Regolazioni">
+      <div class="set-head"><div id="setHead"></div><button class="icon-btn" id="closeSet" type="button" aria-label="Chiudi regolazioni">✕</button></div>
+      <div id="settingsBody"></div>
+      <div class="send">
+        <h3>Invia la configurazione</h3>
+        <label for="note" class="ctl-l">Cosa vorresti cambiare? (facoltativo)</label>
+        <textarea id="note" placeholder="Es. i pulsanti li vorrei più grandi e la levetta solo in basso…"></textarea>
+        <div class="btns">
+          <button class="primary" id="sendBtn" type="button">Invia a Claude</button>
+          <button class="secondary" id="resetBtn" type="button">Ripristina predefiniti</button>
+        </div>
+        <div id="sendStatus" role="status"></div>
+        <textarea id="summary" hidden readonly aria-label="Riepilogo da copiare"></textarea>
+      </div>
+    </aside>
+  </div>
+</div>
+<div id="scrim"></div>
+<button id="exitImm" type="button" hidden>Esci</button>
+
+<script>
+(() => {
+'use strict';
+const W = 411, H = 911, ST = 34, GH = 370, GB = ST + GH, NAV = 24;
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), holder = $('#stageHolder'), cv = $('#cv'), ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+let scale = 1;
+
+/* ---------------- Icone ---------------- */
+const ICON = {
+  team:'<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 19c.4-3 2.7-5 5.5-5s5.1 2 5.5 5"/><path d="M13 14.6c.9-.4 1.9-.6 3-.6 2.8 0 5.1 2 5.5 5"/>',
+  bag:'<path d="M6 8h12l1 12H5L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><path d="M9 13h6"/>',
+  dex:'<rect x="5" y="3" width="14" height="18" rx="2"/><rect x="8" y="6" width="8" height="6" rx="1"/><circle cx="9.5" cy="16.5" r="1.4"/><path d="M13.5 15.5h2.5M13.5 18h2.5"/>',
+  card:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 13a4 4 0 0 1 8 0v1H8z"/><path d="M8 17.5h8"/><path d="M10 7h4"/>',
+  id:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.5"/><path d="M5.8 16.5c.8-1.5 1.9-2.2 3.2-2.2s2.4.7 3.2 2.2"/><path d="M14.5 10h4M14.5 13h3"/>',
+  shop:'<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9h16v1.5a2.7 2.7 0 0 1-5.3 0 2.7 2.7 0 0 1-5.4 0 2.7 2.7 0 0 1-5.3 0z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/>',
+  pc:'<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/><path d="M7 8h6M7 11h4"/>',
+  save:'<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4"/><rect x="8" y="13" width="8" height="5"/>',
+  gear:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+  run:'<path d="M10 4H5v16h5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/>',
+  pin:'<path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/>',
+  close:'<path d="M6 6l12 12M18 6L6 18"/>',
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  badge1:'<circle cx="12" cy="12" r="6"/>', badge2:'<path d="M12 5l2.2 4.5 4.8.6-3.5 3.3.9 4.8L12 16l-4.4 2.2.9-4.8L5 10.1l4.8-.6z"/>',
+  badge3:'<path d="M12 4l7 8-7 8-7-8z"/>', badge4:'<path d="M5 8l7-4 7 4v8l-7 4-7-4z"/>', badge5:'<path d="M12 4c3 4 5 6 5 9a5 5 0 0 1-10 0c0-3 2-5 5-9z"/>',
+  badge6:'<rect x="6" y="6" width="12" height="12" rx="2"/>', badge7:'<path d="M12 4l8 14H4z"/>', badge8:'<path d="M7 5h10l-2 7 2 7H7l2-7z"/>'
+};
+const svg = (i, s=24, sw=2) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${i}</svg>`;
+$('#shBack').innerHTML = svg(ICON.back, 22);
+$('#shClose').innerHTML = svg(ICON.close, 22);
+
+const BTN = {
+  squadra:{l:'Squadra', i:ICON.team}, borsa:{l:'Borsa', i:ICON.bag}, pokedex:{l:'Pokédex', i:ICON.dex},
+  scheda:{l:'Scheda', i:ICON.card}, negozio:{l:'Negozio', i:ICON.shop, ctx:'shop'}, pc:{l:'PC', i:ICON.pc, ctx:'pc'},
+  allenatore:{l:'Allenatore', i:ICON.id}, salva:{l:'Salva', i:ICON.save}, opzioni:{l:'Opzioni', i:ICON.gear}
+};
+const BACT = { squadra:{l:'Squadra', i:ICON.team}, borsa:{l:'Borsa', i:ICON.bag}, fuga:{l:'Fuga', i:ICON.run} };
+
+/* ---------------- Configurazione ---------------- */
+const KEY = 'giallo-touch-lab-v1';
+const DEF = {
+  joy:{ zone:'ovunque', mode:'fissa', size:'M', tapInteract:true, tapWalk:false },
+  bar:{ buttons:['squadra','borsa','pokedex','scheda','negozio','pc'], rows:1, labels:true, size:'m', shop:'contesto', info:true, pos:'basso' },
+  menu:{ style:'foglio' },
+  dialog:{ yesno:'pannello', speed:'media' },
+  battle:{ layout:'griglia', actions:'sotto', showType:true, showPP:true, order:['squadra','borsa','fuga'] }
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+function merge(a, b){ for (const k in b){ if (!(k in a)) continue; if (b[k] && typeof b[k]==='object' && !Array.isArray(b[k]) && a[k] && typeof a[k]==='object') merge(a[k], b[k]); else a[k] = b[k]; } return a; }
+function loadCfg(){ try { const s = localStorage.getItem(KEY); if (s) return merge(clone(DEF), JSON.parse(s)); } catch(e){} return clone(DEF); }
+function saveCfg(){ try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch(e){} }
+let cfg = loadCfg();
+cfg.bar.buttons = cfg.bar.buttons.filter(id => BTN[id]);
+const getK = k => k.split('.').reduce((o, p) => o[p], cfg);
+function setK(k, v){ const ps = k.split('.'); const last = ps.pop(); ps.reduce((o, p) => o[p], cfg)[last] = v; }
+
+/* ---------------- Dati segnaposto ---------------- */
+const TC = { Elettro:'#f2c84b', Normale:'#c9c3ad', Erba:'#7cc95a', Veleno:'#c48ae0', Acqua:'#6db3ef', Roccia:'#c9ad78', Volante:'#a9b8f2', Fuoco:'#f58b5c' };
+const typeChip = t => `<span class="type" style="background:${TC[t]||'#ccc'}">${t}</span>`;
+const TEAM = [
+  { n:'VOLTINO', t:['Elettro'], lv:12, hp:31, max:35, col:'#49c6b5', f:'leaf', st:'', stats:{ATT:21,DIF:15,VEL:30,'SPEC.':19},
+    mv:[['SCOSSA','Elettro',30,30],['BALZO','Normale',20,20],['SGUARDO FISSO','Normale',30,30],['SCUDO STATICO','Elettro',10,10]] },
+  { n:'FOGLIOLO', t:['Erba','Veleno'], lv:10, hp:29, max:29, col:'#7cc443', f:'leaf', st:'', stats:{ATT:16,DIF:17,VEL:14,'SPEC.':20},
+    mv:[['RAMETTO','Erba',25,25],['SPINTA','Normale',35,35],['POLLINE','Veleno',20,20]] },
+  { n:'BRUMINO', t:['Acqua'], lv:9, hp:12, max:27, col:'#4aa3e0', f:'fin', st:'AVV', stats:{ATT:14,DIF:19,VEL:13,'SPEC.':15},
+    mv:[['SPRUZZO','Acqua',25,25],['RITIRATA','Normale',40,40]] },
+  { n:'SASSOLO', t:['Roccia'], lv:8, hp:0, max:24, col:'#a99168', f:'rock', st:'KO', stats:{ATT:18,DIF:22,VEL:8,'SPEC.':9},
+    mv:[['SASSATA','Roccia',15,15],['SPINTA','Normale',35,35]] },
+  { n:'PIUMETTO', t:['Normale','Volante'], lv:7, hp:20, max:22, col:'#d8c08f', f:'wing', st:'', stats:{ATT:13,DIF:12,VEL:17,'SPEC.':11},
+    mv:[['BECCO','Volante',35,35],['VENTATA','Volante',35,35]] },
+  { n:'FIAMMI', t:['Fuoco'], lv:6, hp:19, max:21, col:'#ee7344', f:'flame', st:'', stats:{ATT:14,DIF:11,VEL:15,'SPEC.':13},
+    mv:[['BRACE','Fuoco',25,25],['GRAFFIO','Normale',35,35]] }
+];
+const BOX = [ { n:'GUSCIOLO', lv:5, col:'#9d7bd8', f:'horn', t:['Normale'] }, { n:'BRUCHETTO', lv:4, col:'#a6c94a', f:'leaf', t:['Erba'] }, { n:'TOPINO', lv:3, col:'#b9a3a0', f:'fin', t:['Normale'] } ];
+let BAG = [
+  { n:'POZIONE', q:3, d:'Cura 20 PS a un compagno.', use:'heal', p:300 },
+  { n:'ANTIDOTO', q:1, d:'Cura l’avvelenamento.', use:'cure', p:100 },
+  { n:'RISVEGLIO', q:2, d:'Sveglia un compagno addormentato.', use:'none', p:250 },
+  { n:'REPELLENTE', q:1, d:'Tiene lontane le creature selvatiche per un po’.', use:'field', p:350 },
+  { n:'BICICLETTA', key:1, d:'Oggetto chiave.' }, { n:'LENZA', key:1, d:'Oggetto chiave.' }, { n:'MAPPA', key:1, d:'Oggetto chiave.' }
+];
+const SHOP = [ { n:'POZIONE', p:300 }, { n:'ANTIDOTO', p:100 }, { n:'RISVEGLIO', p:250 }, { n:'REPELLENTE', p:350 }, { n:'CORDA', p:550 } ];
+let PCITEMS = [ { n:'POZIONE', q:1 } ];
+let money = 3000, lastSave = null, swapMode = false;
+const DEXK = { 3:['FOGLIOLO',1], 6:['FIAMMI',1], 9:['BRUMINO',1], 12:['BRUCHETTO',1], 18:['PIUMETTO',1], 21:['TOPINO',1], 31:['VOLTINO',1], 44:['SASSOLO',1], 57:['GUSCIOLO',1], 63:['MUFFOLO',0], 70:['NEBBIOLO',0] };
+const COLS = { FOGLIOLO:'#7cc443', FIAMMI:'#ee7344', BRUMINO:'#4aa3e0', BRUCHETTO:'#a6c94a', PIUMETTO:'#d8c08f', TOPINO:'#b9a3a0', VOLTINO:'#49c6b5', SASSOLO:'#a99168', GUSCIOLO:'#9d7bd8', MUFFOLO:'#b07acc', NEBBIOLO:'#9aa6b8' };
+const OPT = { anim:'Sì', stile:'Cambio', suono:'Mono' };
+
+function creature(m, size, sil){
+  const c = sil ? '#4a4670' : m.col;
+  const f = sil ? '' : ({
+    leaf:'<rect x="7" y="1" width="2" height="3" fill="#6bbf3a"/><rect x="9" y="1" width="2" height="1" fill="#6bbf3a"/>',
+    horn:'<rect x="7" y="1" width="2" height="3" fill="#f3e6c4"/>',
+    fin:`<rect x="7" y="2" width="2" height="2" fill="${c}"/><rect x="8" y="1" width="1" height="1" fill="${c}"/>`,
+    rock:'<rect x="5" y="3" width="2" height="2" fill="#8a7650"/><rect x="10" y="4" width="2" height="1" fill="#8a7650"/>',
+    wing:'<rect x="1" y="8" width="2" height="3" fill="#fff7dc"/><rect x="13" y="8" width="2" height="3" fill="#fff7dc"/>',
+    flame:'<rect x="7" y="1" width="2" height="3" fill="#f6c933"/><rect x="8" y="0" width="1" height="2" fill="#ef5b5b"/>'
+  }[m.f] || '');
+  const eyes = sil ? '' : '<rect x="6" y="8" width="1" height="2" fill="#171624"/><rect x="9" y="8" width="1" height="2" fill="#171624"/><rect x="7" y="11" width="2" height="1" fill="rgba(0,0,0,.25)"/>';
+  return `<svg viewBox="0 0 16 16" width="${size}" height="${size}" shape-rendering="crispEdges" aria-hidden="true">${f}<rect x="5" y="4" width="6" height="1" fill="${c}"/><rect x="4" y="5" width="8" height="9" fill="${c}"/><rect x="3" y="7" width="10" height="6" fill="${c}"/><rect x="4" y="13" width="8" height="1" fill="rgba(0,0,0,.22)"/>${eyes}</svg>`;
+}
+function hpCls(hp, max){ const p = max ? hp/max : 0; return p > .5 ? '' : p > .2 ? 'mid' : 'low'; }
+const hpBar = (hp, max) => `<span class="hp"><i class="${hpCls(hp,max)}" style="width:${Math.round(100*hp/max)}%"></i></span>`;
+
+/* ---------------- Mappa di prova ---------------- */
+const MAP = [
+  'TTTTTTTTTTTTTTTTTTTT',
+  'T..F.....====...,,,T',
+  'T.RRRR...====..,,,,T',
+  'T.HWWH...====..,,,,T',
+  'T.HDHH..S====...,,,T',
+  'T........====....P.T',
+  'T..========..====..T',
+  'T..=.....LLLL...=..T',
+  'T..=..N.........=..T',
+  'T..=..~~~~~...K.=..T',
+  'T..=..~~~~~..CCC=..T',
+  'T..=..~~~~~.....=..T',
+  'T..=........F...=..T',
+  'T..==========.===..T',
+  'T,,,,,...........F.T',
+  'T,,,,,..TT.....I...T',
+  'T,,,,,..TT.........T',
+  'TTTTTTTTTTTTTTTTTTTT'
+];
+const MW = 20, MHt = MAP.length;
+const grid = MAP.map(r => r.split(''));
+const ents = [];
+grid.forEach((row, y) => row.forEach((ch, x) => {
+  if (ch === 'N'){ ents.push({ k:'npc', x, y, dir:'down' }); row[x] = '.'; }
+  if (ch === 'K'){ ents.push({ k:'clerk', x, y, dir:'down' }); row[x] = '.'; }
+  if (ch === 'I'){ ents.push({ k:'item', x, y }); row[x] = '.'; }
+}));
+const D = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
+const OPP = { up:'down', down:'up', left:'right', right:'left' };
+const PASS = new Set(['.', ',', '=', 'F']);
+const tile = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MHt) ? 'T' : grid[y][x];
+const entAt = (x, y) => ents.find(e => !e.gone && e.x === x && e.y === y);
+const canStand = (x, y) => PASS.has(tile(x, y)) && !entAt(x, y);
+const dirTo = (ax, ay, bx, by) => bx > ax ? 'right' : bx < ax ? 'left' : by > ay ? 'down' : by < ay ? 'up' : null;
+
+const P = { x:10, y:5, dir:'down', mv:null, par:0 };
+const C = { x:10, y:4, dir:'down', mv:null, par:0, emote:0 };
+let path = [], pending = null, marker = null, joyDir = null, keyDir = null;
+let ctxState = { shop:false, pc:false };
+let tab = 'levetta', scene = 'explore';
+
+function tryStep(dir){
+  if (P.mv) return false;
+  P.dir = dir;
+  const [dx, dy] = D[dir];
+  let nx = P.x + dx, ny = P.y + dy, jump = false;
+  if (tile(nx, ny) === 'L'){ if (dir !== 'down') return false; ny += 1; jump = true; if (!canStand(nx, ny)) return false; }
+  else if (!canStand(nx, ny)) return false;
+  const now = performance.now(), dur = jump ? 430 : 245;
+  const ox = P.x, oy = P.y;
+  P.mv = { fx:ox, fy:oy, tx:nx, ty:ny, t0:now, dur, jump }; P.x = nx; P.y = ny; P.par ^= 1;
+  const cj = Math.abs(C.x - ox) + Math.abs(C.y - oy) > 1;
+  C.dir = dirTo(C.x, C.y, ox, oy) || C.dir;
+  C.mv = { fx:C.x, fy:C.y, tx:ox, ty:oy, t0:now, dur, jump:cj }; C.x = ox; C.y = oy; C.par ^= 1;
+  return true;
+}
+function updateContext(){
+  const shop = P.y === 11 && P.x >= 13 && P.x <= 15;
+  const pc = Math.abs(P.x - 17) + Math.abs(P.y - 5) === 1;
+  if (shop !== ctxState.shop || pc !== ctxState.pc){ ctxState = { shop, pc }; syncBarStates(); }
+}
+function bfs(goals){
+  const key = (x, y) => y * MW + x;
+  const gm = new Map(goals.map(g => [key(g.x, g.y), g]));
+  const start = key(P.x, P.y);
+  if (gm.has(start)) return { dirs:[], goal:gm.get(start) };
+  const prev = new Map([[start, null]]); const q = [[P.x, P.y]];
+  while (q.length){
+    const [x, y] = q.shift();
+    for (const d of ['up','down','left','right']){
+      const [dx, dy] = D[d]; let nx = x + dx, ny = y + dy;
+      if (tile(nx, ny) === 'L'){ if (d !== 'down') continue; ny += 1; }
+      if (!canStand(nx, ny)) continue;
+      const k = key(nx, ny); if (prev.has(k)) continue;
+      prev.set(k, [key(x, y), d]);
+      if (gm.has(k)){ const dirs = []; let c = k; while (prev.get(c)){ const [pk, dd] = prev.get(c); dirs.unshift(dd); c = pk; } return { dirs, goal:gm.get(k) }; }
+      q.push([nx, ny]);
+    }
+  }
+  return null;
+}
+function targetAt(tx, ty){
+  if (C.x === tx && C.y === ty) return { comp:true };
+  const e = entAt(tx, ty); if (e) return e;
+  const t = tile(tx, ty);
+  if (t === 'C') return ents.find(e => e.k === 'clerk');
+  if (t === 'S' || t === 'D' || t === 'P') return { x:tx, y:ty, tileT:t };
+  return null;
+}
+function planInteract(t){
+  if (t.comp){ const d = dirTo(P.x, P.y, C.x, C.y); if (d) P.dir = d; talkCompanion(); return; }
+  const goals = [];
+  for (const f of Object.keys(D)){
+    const [dx, dy] = D[f];
+    const sx = t.x - dx, sy = t.y - dy;
+    if ((canStand(sx, sy)) || (sx === P.x && sy === P.y)) goals.push({ x:sx, y:sy, face:f });
+    if (tile(sx, sy) === 'C' && canStand(sx - dx, sy - dy)) goals.push({ x:sx - dx, y:sy - dy, face:f });
+  }
+  const r = bfs(goals);
+  if (!r){ marker = { x:t.x, y:t.y, ok:false, t:performance.now() }; return; }
+  path = r.dirs; pending = { face:r.goal.face }; marker = { x:t.x, y:t.y, ok:true, t:performance.now() };
+}
+function interactFacing(){
+  const [dx, dy] = D[P.dir]; let x = P.x + dx, y = P.y + dy;
+  if (tile(x, y) === 'C'){ x += dx; y += dy; }
+  if (C.x === x && C.y === y && !C.mv) return talkCompanion();
+  const e = entAt(x, y); if (e) return interactEnt(e);
+  const t = tile(x, y);
+  if (t === 'S') return say(['PRATO DI PROVA\nQui si provano i comandi.']);
+  if (t === 'D') return say(['La porta è chiusa\na chiave.']);
+  if (t === 'P') return say(['Hai acceso il PC.'], () => openSheet('pc'));
+}
+function interactEnt(e){
+  if (e.k === 'npc'){ e.dir = OPP[P.dir];
+    return say(['Ciao! Vuoi sapere\ncome si usa la levetta?'], null, {
+      yes:() => say(['Appoggia il dito dove\nvuoi: la levetta compare lì.', 'Trascina per camminare.\nLascia per fermarti.']),
+      no:() => say(['Va bene! Buona\nesplorazione!']) }); }
+  if (e.k === 'clerk') return say(['Benvenuto! Posso\naiutarti?'], () => openSheet('negozio'));
+  if (e.k === 'item'){ e.gone = true; const b = BAG.find(i => i.n === 'POZIONE'); if (b) b.q++; return say(['Hai trovato una\nPOZIONE!']); }
+}
+function talkCompanion(){ C.dir = OPP[P.dir]; C.emote = performance.now() + 1500; say(['VOLTINO ti guarda\ncontento!']); }
+
+/* ---------------- Dialoghi ---------------- */
+let dlg = null;
+const SPEED = { veloce:10, media:28, lenta:55 };
+function say(pages, onEnd, q){
+  if (dlg) clearInterval(dlg.iv);
+  path = []; pending = null; joyDir = null;
+  dlg = { pages, i:0, onEnd, q, typing:false, waitYN:false, iv:0 };
+  $('#textbox').hidden = false; typePage();
+}
+function typePage(){
+  const el = $('#tbText'), txt = dlg.pages[dlg.i]; let n = 0;
+  dlg.typing = true; $('#tbMore').hidden = true; el.textContent = '';
+  clearInterval(dlg.iv);
+  dlg.iv = setInterval(() => { n++; el.textContent = txt.slice(0, n); if (n >= txt.length) finishTyping(); }, SPEED[cfg.dialog.speed] || 28);
+}
+function finishTyping(){
+  clearInterval(dlg.iv); dlg.typing = false; $('#tbText').textContent = dlg.pages[dlg.i];
+  if (dlg.i === dlg.pages.length - 1 && dlg.q){ dlg.waitYN = true; syncYN(); } else $('#tbMore').hidden = false;
+}
+function advance(){
+  if (!dlg) return;
+  if (dlg.typing) return finishTyping();
+  if (dlg.waitYN) return;
+  if (dlg.i < dlg.pages.length - 1){ dlg.i++; return typePage(); }
+  closeDlg();
+}
+function closeDlg(){ const d = dlg; clearInterval(d.iv); dlg = null; $('#textbox').hidden = true; syncYN(); if (d.onEnd) d.onEnd(); }
+function answer(yes){ if (!dlg || !dlg.waitYN) return; const q = dlg.q; dlg.q = null; dlg.waitYN = false; closeDlg(); (yes ? q.yes : q.no)(); }
+function syncYN(){
+  const show = !!(dlg && dlg.waitYN);
+  const panel = $('#ynPanel');
+  $('#ynGame').hidden = !(show && cfg.dialog.yesno === 'gioco');
+  if (panel) panel.hidden = !(show && cfg.dialog.yesno === 'pannello');
+  if (show && cfg.dialog.yesno === 'pannello' && !panel) $('#ynGame').hidden = false;
+}
+
+/* ---------------- Disegno ---------------- */
+const r = (c, x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+function grass(x, y){ r('#a3d977', x, y, 16, 16); r('#86c25c', x+3, y+4, 1, 1); r('#86c25c', x+11, y+9, 1, 1); r('#86c25c', x+6, y+13, 1, 1); r('#86c25c', x+13, y+2, 1, 1); }
+function drawTile(t, x, y, now){
+  switch (t){
+    case '.': grass(x, y); break;
+    case ',': r('#78b955', x, y, 16, 16);
+      for (const [sx, sy] of [[0,0],[8,0],[0,8],[8,8]]){ r('#4e9338', x+sx+1, y+sy+3, 1, 4); r('#4e9338', x+sx+3, y+sy+2, 1, 5); r('#4e9338', x+sx+5, y+sy+3, 1, 4); }
+      break;
+    case '=': r('#ecd7a0', x, y, 16, 16); r('#d6bb7d', x+4, y+3, 1, 1); r('#d6bb7d', x+12, y+7, 1, 1); r('#d6bb7d', x+7, y+12, 1, 1); r('#d6bb7d', x+1, y+10, 1, 1); break;
+    case 'F': grass(x, y); r('#ffffff', x+3, y+3, 2, 2); r('#f05a5a', x+11, y+5, 2, 2); r('#ffffff', x+7, y+11, 2, 2); r('#f6c933', x+12, y+12, 2, 2); break;
+    case 'T': grass(x, y); r('#2f7d3f', x+2, y+1, 12, 10); r('#2f7d3f', x+1, y+3, 14, 6); r('#4fa553', x+4, y+2, 5, 3); r('#24632f', x+3, y+9, 10, 2); r('#7a4a26', x+6, y+11, 4, 4); r('#86c25c', x+3, y+15, 10, 1); break;
+    case '~': { r('#4f9de0', x, y, 16, 16); const o = Math.floor(now / 380) % 6; r('#9fd5ff', x + 1 + o, y + 4, 5, 1); r('#9fd5ff', x + 10 - o, y + 11, 5, 1); break; }
+    case 'R': r('#c4533f', x, y, 16, 16); r('#a5402f', x, y+5, 16, 1); r('#a5402f', x, y+11, 16, 1); break;
+    case 'H': r('#efe6d2', x, y, 16, 16); r('#e0d5bc', x, y+7, 16, 1); r('#d2c5a8', x, y+15, 16, 1); break;
+    case 'W': r('#efe6d2', x, y, 16, 16); r('#5c7f9e', x+3, y+3, 10, 8); r('#9dd0ef', x+4, y+4, 8, 6); r('#5c7f9e', x+7, y+4, 1, 6); break;
+    case 'D': r('#efe6d2', x, y, 16, 16); r('#7a4a26', x+3, y+2, 10, 14); r('#5c3418', x+3, y+2, 10, 1); r('#f6c933', x+10, y+9, 1, 1); break;
+    case 'S': grass(x, y); r('#7a4a26', x+7, y+9, 2, 6); r('#b98545', x+2, y+3, 12, 7); r('#8a5a2b', x+2, y+9, 12, 1); r('#7a4a26', x+4, y+5, 8, 1); r('#7a4a26', x+4, y+7, 6, 1); break;
+    case 'L': grass(x, y); r('#6da347', x, y+9, 16, 3); r('#4e7f33', x, y+12, 16, 1); r('#b9e38f', x, y+8, 16, 1); break;
+    case 'C': r('#ecd7a0', x, y, 16, 16); r('#b47a3e', x, y+2, 16, 10); r('#d39a5a', x, y+2, 16, 3); r('#8a5a2b', x, y+12, 16, 2); break;
+    case 'P': grass(x, y); r('#c9ced8', x+2, y+1, 12, 12); r('#8f97a6', x+2, y+12, 12, 1); r('#24476f', x+4, y+3, 8, 6);
+      if (Math.floor(now / 500) % 2) r('#7fc7ff', x+5, y+4, 3, 1); r('#8f97a6', x+5, y+13, 6, 2); break;
+    default: grass(x, y);
+  }
+}
+const PAL = {
+  player:{ hair:'#2e7d4f', skin:'#f3c69f', shirt:'#f6c933', pants:'#2b2f5b', shoe:'#1b1a24' },
+  npc:{ hair:'#6b3f22', skin:'#f3c69f', shirt:'#4a88d8', pants:'#3b3b46', shoe:'#1b1a24' },
+  clerk:{ hair:'#26232f', skin:'#e8b48d', shirt:'#3fa36b', pants:'#2b2f5b', shoe:'#1b1a24' }
+};
+function person(x, y, dir, ph, c){
+  r('rgba(0,0,0,.18)', x+4, y+15, 8, 1);
+  r(c.pants, x+5, y+11, 6, 2);
+  r(c.shoe, x+5, y+13 - (ph === 1 ? 1 : 0), 2, 2); r(c.shoe, x+9, y+13 - (ph === 2 ? 1 : 0), 2, 2);
+  r(c.shirt, x+4, y+7, 8, 5);
+  if (dir === 'left' || dir === 'right') r(c.skin, dir === 'left' ? x+4 : x+10, y+9, 2, 2); else { r(c.skin, x+3, y+8, 1, 3); r(c.skin, x+12, y+8, 1, 3); }
+  r(c.skin, x+4, y+2, 8, 6);
+  if (dir === 'up') r(c.hair, x+4, y+1, 8, 6);
+  else if (dir === 'down'){ r(c.hair, x+4, y+1, 8, 3); r(c.hair, x+4, y+4, 1, 2); r(c.hair, x+11, y+4, 1, 2); r('#1b1a24', x+6, y+5, 1, 2); r('#1b1a24', x+9, y+5, 1, 2); }
+  else if (dir === 'left'){ r(c.hair, x+4, y+1, 8, 3); r(c.hair, x+8, y+4, 4, 3); r('#1b1a24', x+5, y+5, 1, 2); }
+  else { r(c.hair, x+4, y+1, 8, 3); r(c.hair, x+4, y+4, 4, 3); r('#1b1a24', x+10, y+5, 1, 2); }
+}
+function critter(x, y, dir, hop){
+  const b = '#49c6b5', d = '#2f9c8d', o = hop ? -1 : 0;
+  r('rgba(0,0,0,.18)', x+4, y+15, 8, 1);
+  r(b, x+4, y+7+o, 8, 8); r(b, x+3, y+9+o, 10, 5); r(d, x+4, y+14+o, 8, 1);
+  r('#6bbf3a', x+7, y+4+o, 2, 3); r('#6bbf3a', x+9, y+4+o, 2, 1);
+  if (dir === 'down'){ r('#171624', x+6, y+9+o, 1, 2); r('#171624', x+9, y+9+o, 1, 2); }
+  else if (dir === 'left') r('#171624', x+5, y+9+o, 1, 2);
+  else if (dir === 'right') r('#171624', x+10, y+9+o, 1, 2);
+}
+function sack(x, y, now){ r('#a0703a', x+5, y+8, 6, 6); r('#c28b4c', x+6, y+8, 4, 2); r('#f6c933', x+6, y+7, 4, 1); if (Math.floor(now / 300) % 2) r('#ffffff', x+12, y+5, 1, 1); }
+function bubble(x, y){ r('#171624', x+1, y-14, 14, 12); r('#ffffff', x+2, y-13, 12, 10); r('#171624', x+7, y-2, 2, 2);
+  r('#ef5b5b', x+5, y-11, 2, 2); r('#ef5b5b', x+9, y-11, 2, 2); r('#ef5b5b', x+5, y-10, 6, 2); r('#ef5b5b', x+6, y-8, 4, 1); r('#ef5b5b', x+7, y-7, 2, 1); }
+function pos(o, now){
+  if (!o.mv) return { x:o.x * 16, y:o.y * 16, hop:0, ph:0 };
+  const k = Math.min(1, (now - o.mv.t0) / o.mv.dur);
+  return { x:(o.mv.fx + (o.mv.tx - o.mv.fx) * k) * 16, y:(o.mv.fy + (o.mv.ty - o.mv.fy) * k) * 16,
+           hop:o.mv.jump ? -Math.round(Math.sin(Math.PI * k) * 8) : 0, ph:k < .5 ? (o.par ? 1 : 2) : 0 };
+}
+let cam = { x:0, y:0 };
+function drawWorld(now){
+  const pp = pos(P, now), cp = pos(C, now);
+  cam = { x:Math.round(pp.x - 64), y:Math.round(pp.y - 64) };
+  const tx0 = Math.floor(cam.x / 16), ty0 = Math.floor(cam.y / 16);
+  for (let ty = ty0; ty <= ty0 + 9; ty++) for (let tx = tx0; tx <= tx0 + 10; tx++) drawTile(tile(tx, ty), tx * 16 - cam.x, ty * 16 - cam.y, now);
+  if (marker){
+    const mx = marker.x * 16 - cam.x, my = marker.y * 16 - cam.y;
+    if (marker.ok){ const c = '#f6c933'; r(c, mx, my, 4, 2); r(c, mx, my, 2, 4); r(c, mx+12, my, 4, 2); r(c, mx+14, my, 2, 4); r(c, mx, my+14, 4, 2); r(c, mx, my+12, 2, 4); r(c, mx+12, my+14, 4, 2); r(c, mx+14, my+12, 2, 4); }
+    else if (now - marker.t < 700){ const c = '#ef5b5b'; for (let i = 0; i < 8; i++){ r(c, mx+4+i, my+4+i, 2, 2); r(c, mx+11-i, my+4+i, 2, 2); } }
+    else marker = null;
+  }
+  const spr = [];
+  for (const e of ents){ if (e.gone) continue; spr.push({ y:e.y * 16, f:() => e.k === 'item' ? sack(e.x*16 - cam.x, e.y*16 - cam.y, now) : person(e.x*16 - cam.x, e.y*16 - cam.y, e.dir, 0, PAL[e.k]) }); }
+  spr.push({ y:cp.y, f:() => { critter(Math.round(cp.x - cam.x), Math.round(cp.y - cam.y + cp.hop), C.dir, cp.ph !== 0); if (C.emote > now) bubble(Math.round(cp.x - cam.x), Math.round(cp.y - cam.y)); } });
+  spr.push({ y:pp.y + .5, f:() => person(Math.round(pp.x - cam.x), Math.round(pp.y - cam.y + pp.hop), P.dir, pp.ph, PAL.player) });
+  spr.sort((a, b) => a.y - b.y).forEach(s => s.f());
+}
+
+/* ---------------- Lotta ---------------- */
+const ENEMY = { n:'MUFFOLO', lv:9, hp:26, max:26, col:'#b07acc', f:'horn' };
+const B = { me:TEAM[0], en:clone(ENEMY), busy:false, flash:{ who:null, until:0 } };
+let bq = null;
+function blob(x, y, s, m, back){
+  const R = (c, a, b, w, h) => r(c, x + a*s, y + b*s, w*s, h*s), c = m.col;
+  if (m.f === 'leaf'){ R('#6bbf3a', 7, 1, 2, 3); R('#6bbf3a', 9, 1, 2, 1); }
+  if (m.f === 'horn') R('#f3e6c4', 7, 1, 2, 3);
+  if (m.f === 'fin'){ R(c, 7, 2, 2, 2); R(c, 8, 1, 1, 1); }
+  if (m.f === 'rock'){ R('#8a7650', 5, 3, 2, 2); R('#8a7650', 10, 4, 2, 1); }
+  if (m.f === 'wing'){ R('#fff7dc', 1, 8, 2, 3); R('#fff7dc', 13, 8, 2, 3); }
+  if (m.f === 'flame'){ R('#f6c933', 7, 1, 2, 3); R('#ef5b5b', 8, 0, 1, 2); }
+  R(c, 5, 4, 6, 1); R(c, 4, 5, 8, 9); R(c, 3, 7, 10, 6); R('rgba(0,0,0,.18)', 4, 13, 8, 1);
+  if (!back){ R('#171624', 6, 8, 1, 2); R('#171624', 9, 8, 1, 2); }
+}
+function drawBattle(now){
+  r('#f6f3e4', 0, 0, 160, 144);
+  r('#ddd5b5', 92, 50, 60, 5); r('#cbc29f', 98, 55, 48, 3);
+  r('#ddd5b5', 4, 92, 70, 5); r('#cbc29f', 10, 97, 58, 3);
+  const fl = B.flash.until > now && Math.floor(now / 80) % 2;
+  if (!(fl && B.flash.who === 'en') && !B.en.ko) blob(106, 22, 2, B.en, false);
+  if (!(fl && B.flash.who === 'me')) blob(14, 52, 3, B.me, true);
+}
+function renderHud(){
+  const en = B.en, me = B.me;
+  $('#battleHud').innerHTML =
+    `<div class="hud en"><div>${en.n}</div><div class="hrow"><span>Lv${en.lv}</span></div><div class="hrow"><span class="lbl">PS</span><span class="hpb"><i id="hpEn"></i></span></div></div>` +
+    `<div class="hud me"><div>${me.n}</div><div class="hrow me-row"><span>Lv${me.lv}</span></div><div class="hrow me-row"><span class="lbl">PS</span><span class="hpb"><i id="hpMe"></i></span></div><div class="num" id="numMe"></div></div>`;
+  updateHud();
+}
+function updateHud(){
+  const a = $('#hpEn'), b = $('#hpMe'); if (!a || !b) return;
+  a.style.width = (100 * B.en.hp / B.en.max) + '%'; a.className = hpCls(B.en.hp, B.en.max);
+  b.style.width = (100 * B.me.hp / B.me.max) + '%'; b.className = hpCls(B.me.hp, B.me.max);
+  $('#numMe').textContent = `${B.me.hp}/ ${B.me.max}`;
+}
+const bPrompt = () => `Cosa deve fare\n${B.me.n}?`;
+function setBText(t){ $('#textbox').hidden = false; $('#tbText').textContent = t; $('#tbMore').hidden = true; }
+function bseq(steps, done){ if (bq) clearTimeout(bq.timer); B.busy = true; renderLower(); bq = { steps, i:-1, done, timer:0 }; bnext(); }
+function bnext(){
+  if (!bq) return;
+  clearTimeout(bq.timer); bq.i++;
+  if (bq.i >= bq.steps.length){ const d = bq.done; bq = null; B.busy = false; setBText(bPrompt()); renderLower(); if (d) d(); return; }
+  const [txt, fn] = bq.steps[bq.i]; setBText(txt); if (fn) fn();
+  bq.timer = setTimeout(bnext, 1300);
+}
+function flash(who){ B.flash = { who, until:performance.now() + 560 }; }
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+function enemyTurn(){ const d = rnd(2, 5); return [[`${B.en.n} nemico usa\nSPINTONE!`, () => { B.me.hp = Math.max(1, B.me.hp - d); flash('me'); updateHud(); }]]; }
+function useMove(i){
+  if (B.busy) return; const m = B.me.mv[i]; if (!m || m[2] <= 0) return; m[2]--;
+  const nh = Math.max(0, B.en.hp - rnd(4, 9));
+  const steps = [[`${B.me.n} usa\n${m[0]}!`, () => { B.en.hp = nh; flash('en'); updateHud(); }]];
+  if (nh === 0){ steps.push([`${B.en.n} nemico\nè esausto!`, () => { B.en.ko = true; }], [`${B.me.n} guadagna\n${24 + B.en.lv * 2} Punti Esp.!`]); bseq(steps, resetBattle); }
+  else { steps.push(...enemyTurn()); bseq(steps); }
+}
+function resetBattle(){ B.en = clone(ENEMY); renderHud(); bseq([[`Appare un altro\n${B.en.n} selvatico!`]]); }
+function battleAct(id){
+  if (B.busy) return;
+  if (id === 'fuga') return bseq([['Fuga riuscita!'], ['(Demo: la lotta\nricomincia.)']], resetBattle);
+  openSheet(id, { battle:true });
+}
+
+/* ---------------- Parte inferiore ---------------- */
+function infoHTML(){
+  return `<div class="info"><div class="loc">${svg(ICON.pin, 15)}<span>PRATO DI PROVA</span><span class="money">${money.toLocaleString('it-IT')} ¤</span></div>
+    <div class="team-strip">${TEAM.map((m, i) => `<button type="button" class="cap" data-cap="${i}" aria-label="${m.n}">${creature(m, 26)}${hpBar(m.hp, m.max)}</button>`).join('')}</div></div>`;
+}
+function freeHTML(){
+  const z = cfg.joy.zone;
+  const hint = z === 'gioco' ? 'La levetta compare solo sullo schermo di gioco' : 'Appoggia il dito e trascina per muoverti';
+  return `<div class="free"><span class="hint">${hint}</span><div class="yesno" id="ynPanel" hidden><button type="button" class="yes" data-yn="1">Sì</button><button type="button" data-yn="0">No</button></div></div>`;
+}
+function barHTML(){
+  const ids = cfg.bar.buttons, n = ids.length;
+  if (!n) return '<div class="empty-bar">Nessun pulsante: aggiungili dalle regolazioni.</div>';
+  const cols = cfg.bar.rows === 2 ? Math.ceil(n / 2) : n;
+  const isz = { s:20, m:24, l:28 }[cfg.bar.size];
+  return `<div class="bar ${cfg.bar.size}" id="bar" style="grid-template-columns:repeat(${cols}, minmax(0,1fr))">${ids.map(id =>
+    `<button type="button" class="bb" data-reorder data-id="${id}" aria-label="${BTN[id].l}">${svg(BTN[id].i, isz)}${cfg.bar.labels ? `<span>${BTN[id].l}</span>` : ''}</button>`).join('')}</div>`;
+}
+function battleHTML(){
+  const bt = cfg.battle;
+  const mv = [0,1,2,3].map(i => B.me.mv[i]).map((m, i) => m
+    ? `<button type="button" class="mv" data-mv="${i}" ${B.busy || m[2] <= 0 ? 'disabled' : ''}><span class="mn">${m[0]}</span>${bt.showType || bt.showPP ? `<span class="meta">${bt.showType ? typeChip(m[1]) : '<span></span>'}${bt.showPP ? `<span>PP ${m[2]}/${m[3]}</span>` : ''}</span>` : ''}</button>`
+    : '<button type="button" class="mv" disabled><span class="mn">—</span></button>').join('');
+  const moves = `<div class="bmoves ${bt.layout}">${mv}</div>`;
+  const acts = `<div class="bacts" id="bacts">${bt.order.map(id => `<button type="button" class="ba" data-reorder data-id="${id}" ${B.busy ? 'disabled' : ''}>${svg(BACT[id].i, 20)}<span>${BACT[id].l}</span></button>`).join('')}</div>`;
+  return `<div class="bpanel">${bt.actions === 'sopra' ? acts + moves : moves + acts}</div>`;
+}
+function renderLower(){
+  const L = $('#lower');
+  if (scene === 'battle'){
+    L.innerHTML = battleHTML();
+    reorderable($('#bacts'), battleAct, ids => { cfg.battle.order = ids; saveCfg(); renderLower(); });
+    return;
+  }
+  const parts = { info:cfg.bar.info ? infoHTML() : '', free:freeHTML(), bar:barHTML() };
+  const order = cfg.bar.pos === 'basso' ? ['info','free','bar'] : ['bar','info','free'];
+  L.innerHTML = order.map(k => parts[k]).join('');
+  const bar = $('#bar');
+  if (bar) reorderable(bar, barTap, ids => { cfg.bar.buttons = ids; saveCfg(); renderLower(); renderSettings(); });
+  syncBarStates(); syncYN();
+}
+function syncBarStates(){
+  document.querySelectorAll('#bar .bb').forEach(b => {
+    const m = BTN[b.dataset.id];
+    const locked = m.ctx && cfg.bar.shop === 'contesto' && !ctxState[m.ctx];
+    b.classList.toggle('locked', !!locked);
+    b.classList.toggle('lit', !!(m.ctx && cfg.bar.shop === 'contesto' && ctxState[m.ctx]));
+  });
+}
+function barTap(id){
+  if (dlg || bq) return;
+  const m = BTN[id];
+  if (m.ctx && cfg.bar.shop === 'contesto' && !ctxState[m.ctx]){
+    toast(id === 'negozio' ? 'Il negozio si apre davanti al bancone: parla con il commesso.' : 'Il PC si usa davanti a un terminale PC.');
+    return;
+  }
+  openSheet(id);
+}
+$('#lower').addEventListener('click', e => {
+  const cap = e.target.closest('[data-cap]'); if (cap && !dlg) return openSheet('scheda', { idx:+cap.dataset.cap });
+  const yn = e.target.closest('[data-yn]'); if (yn) return answer(yn.dataset.yn === '1');
+  const mv = e.target.closest('[data-mv]'); if (mv) return useMove(+mv.dataset.mv);
+});
+$('#ynGame').addEventListener('click', e => { const yn = e.target.closest('[data-yn]'); if (yn) answer(yn.dataset.yn === '1'); });
+
+/* Riordino con pressione prolungata */
+function reorderable(container, onTap, onOrder){
+  if (!container) return;
+  container.addEventListener('pointerdown', e => {
+    const item = e.target.closest('[data-reorder]'); if (!item || item.disabled) return;
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY, pid = e.pointerId; let drag = false, cancelled = false, ghost = null, offx = 0, offy = 0;
+    const timer = setTimeout(() => {
+      drag = true;
+      const rr = item.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+      ghost = item.cloneNode(true); ghost.classList.add('ghost'); ghost.removeAttribute('data-reorder');
+      ghost.style.width = rr.width / scale + 'px'; ghost.style.height = rr.height / scale + 'px';
+      ghost.style.left = (rr.left - sr.left) / scale + 'px'; ghost.style.top = (rr.top - sr.top) / scale + 'px';
+      offx = (sx - rr.left) / scale; offy = (sy - rr.top) / scale;
+      stage.appendChild(ghost); item.classList.add('placeholder');
+    }, 320);
+    const move = ev => {
+      if (ev.pointerId !== pid) return;
+      if (!drag){ if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 12){ cancelled = true; clearTimeout(timer); } return; }
+      const sr = stage.getBoundingClientRect();
+      ghost.style.left = ((ev.clientX - sr.left) / scale - offx) + 'px'; ghost.style.top = ((ev.clientY - sr.top) / scale - offy) + 'px';
+      let best = null, bd = 1e9;
+      container.querySelectorAll('[data-reorder]').forEach(el => { if (el === item) return; const b = el.getBoundingClientRect(); const cx = b.left + b.width / 2, cy = b.top + b.height / 2; const d = Math.hypot(ev.clientX - cx, ev.clientY - cy); if (d < bd){ bd = d; best = { el, cx }; } });
+      if (best) container.insertBefore(item, ev.clientX < best.cx ? best.el : best.el.nextSibling);
+    };
+    const up = ev => {
+      if (ev.pointerId !== pid) return;
+      clearTimeout(timer); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      if (drag){ ghost.remove(); item.classList.remove('placeholder'); onOrder([...container.querySelectorAll('[data-reorder]')].map(x => x.dataset.id)); }
+      else if (!cancelled && ev.type === 'pointerup') onTap(item.dataset.id);
+    };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  });
+}
+
+/* ---------------- Menu (foglio) ---------------- */
+let SS = null;
+function openSheet(id, opts = {}){
+  path = []; pending = null; marker = null; joyDir = null;
+  SS = { id, opts, sub:null, idx:opts.idx || 0, sel:null, tab:null, qty:1, dexN:null, pick:null };
+  const sh = $('#sheet');
+  sh.style.top = (cfg.menu.style === 'intero' ? ST : GB) + 'px';
+  renderSheet(); sh.hidden = false; void sh.offsetHeight; sh.classList.add('open');
+  $('#shBody').scrollTop = 0;
+}
+function closeSheet(){ const sh = $('#sheet'); sh.classList.remove('open'); sh.style.transform = ''; SS = null; swapMode = false; setTimeout(() => { if (!SS) sh.hidden = true; }, 260); }
+$('#shClose').addEventListener('click', closeSheet);
+$('#shBack').addEventListener('click', () => { if (!SS) return; SS.sub = null; SS.pick = null; SS.dexN = null; renderSheet(); });
+
+function teamRows(){
+  return TEAM.map((m, i) => {
+    const sel = SS.sel === i;
+    let acts = '';
+    if (sel){
+      if (SS.opts.battle) acts = `<div class="acts"><button type="button" class="act" data-a="send" data-i="${i}" ${m.hp <= 0 || m === B.me ? 'disabled' : ''}>Manda in campo</button><button type="button" class="act alt" data-a="card" data-i="${i}">Scheda</button></div>`;
+      else acts = `<div class="acts"><button type="button" class="act" data-a="card" data-i="${i}">Scheda</button><button type="button" class="act alt" data-a="swap" data-i="${i}">Sposta</button></div>`;
+    }
+    return `<button type="button" class="row ${sel ? 'sel' : ''} ${swapMode && SS.sel !== i ? 'swap' : ''}" data-a="trow" data-i="${i}">${creature(m, 40)}
+      <span class="grow"><span class="name">${m.n}</span><span class="sub">Lv ${m.lv} ${m.st ? `<span class="status">${m.st}</span>` : ''}</span>${hpBar(m.hp, m.max)}</span>
+      <span class="right">${m.hp}/${m.max}</span></button>${acts}`;
+  }).join('');
+}
+function schedaHTML(i){
+  const m = TEAM[i];
+  return `<div class="chiprow">${TEAM.map((t, j) => `<button type="button" class="mchip ${j === i ? 'on' : ''}" data-a="cardpick" data-i="${j}">${creature(t, 24)}<span>${t.n}</span></button>`).join('')}</div>
+    <div class="card-top">${creature(m, 92)}<div class="grow"><span class="big">${m.n}</span><span class="sub" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;color:var(--p-dim)">Lv ${m.lv} ${m.t.map(typeChip).join('')}</span>
+      ${hpBar(m.hp, m.max)}<span style="font-variant-numeric:tabular-nums">${m.hp}/${m.max} PS ${m.st ? `<span class="status">${m.st}</span>` : ''}</span></div></div>
+    <div class="stats">${Object.entries(m.stats).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
+    <div class="sec">Mosse</div>
+    ${m.mv.map(x => `<div class="row" style="min-height:56px"><span class="grow"><span class="name">${x[0]}</span></span>${typeChip(x[1])}<span class="right">PP ${x[2]}/${x[3]}</span></div>`).join('')}
+    <p class="pnote">Scorri a destra o a sinistra per cambiare compagno.</p>`;
+}
+function bagHTML(){
+  if (SS.pick !== null){
+    const it = BAG[SS.pick];
+    return `<p class="pnote">Su chi vuoi usare ${it.n}?</p>` + TEAM.map((m, i) => `<button type="button" class="row" data-a="apply" data-i="${i}">${creature(m, 40)}<span class="grow"><span class="name">${m.n}</span>${hpBar(m.hp, m.max)}</span><span class="right">${m.hp}/${m.max}</span></button>`).join('');
+  }
+  const items = BAG.filter(b => b.key || b.q > 0);
+  return items.map(it => {
+    const i = BAG.indexOf(it), sel = SS.sel === i;
+    return `<button type="button" class="row ${sel ? 'sel' : ''}" data-a="brow" data-i="${i}"><span class="grow"><span class="name">${it.n}</span>${sel ? `<span class="sub">${it.d}</span>` : ''}</span><span class="right">${it.key ? '' : '×' + it.q}</span></button>` +
+      (sel ? `<div class="acts"><button type="button" class="act" data-a="use" data-i="${i}">Usa</button>${it.key ? '' : `<button type="button" class="act alt" data-a="toss" data-i="${i}">Getta</button>`}</div>` : '');
+  }).join('') + '<p class="pnote">Un\'unica lista, nello stesso ordine del gioco originale.</p>';
+}
+function dexHTML(){
+  if (SS.dexN){
+    const [nm, cg] = DEXK[SS.dexN];
+    return `<div class="card-top">${creature({ col:COLS[nm], f:'' }, 92)}<div class="grow"><span class="sub" style="color:var(--p-dim)">#${String(SS.dexN).padStart(3, '0')}</span><span class="big">${nm}</span><span style="color:var(--p-dim)">${cg ? 'Catturato' : 'Solo visto'}</span></div></div>
+      <div class="kv"><span>Altezza</span><b>${cg ? '0,4 m' : '—'}</b></div><div class="kv"><span>Peso</span><b>${cg ? '6,0 kg' : '—'}</b></div>
+      <p class="pnote">${cg ? 'Qui comparirà la descrizione del Pokédex, letta dal gioco.' : 'La descrizione compare solo dopo averlo catturato, come nell\'originale.'}</p>`;
+  }
+  const seen = Object.keys(DEXK).length, caught = Object.values(DEXK).filter(v => v[1]).length;
+  let h = `<div class="kv" style="padding-top:4px"><span>Visti <b>${seen}</b></span><span>Presi <b>${caught}</b></span></div>`;
+  for (let n = 1; n <= 151; n++){
+    const k = DEXK[n];
+    h += `<button type="button" class="row dexrow ${k ? '' : 'none'}" ${k ? `data-a="dex" data-n="${n}"` : 'disabled'}><span class="num">#${String(n).padStart(3, '0')}</span>${k ? creature({ col:COLS[k[0]], f:'' }, 30) : creature({}, 30, true)}<span class="grow"><span class="name">${k ? k[0] : '— — — —'}</span></span>${k && k[1] ? '<span class="caught" title="Preso"></span>' : ''}</button>`;
+  }
+  return h;
+}
+function shopHTML(){
+  const t = SS.tab || 'compra';
+  let h = `<div class="segtabs"><button type="button" class="${t === 'compra' ? 'on' : ''}" data-a="stab" data-v="compra">Compra</button><button type="button" class="${t === 'vendi' ? 'on' : ''}" data-a="stab" data-v="vendi">Vendi</button></div>
+    <div class="kv"><span>Soldi</span><b>${money.toLocaleString('it-IT')} ¤</b></div>`;
+  const list = t === 'compra' ? SHOP : BAG.filter(b => !b.key && b.q > 0);
+  list.forEach((it, i) => {
+    const sel = SS.sel === i, price = t === 'compra' ? it.p : Math.floor((it.p || 0) / 2);
+    h += `<button type="button" class="row ${sel ? 'sel' : ''}" data-a="srow" data-i="${i}"><span class="grow"><span class="name">${it.n}</span>${t === 'vendi' ? `<span class="sub">Ne hai ${it.q}</span>` : ''}</span><span class="right">${price} ¤</span></button>`;
+    if (sel){
+      const max = t === 'compra' ? 99 : it.q, tot = price * SS.qty, can = t === 'compra' ? tot <= money : true;
+      h += `<div class="stepper"><button type="button" data-a="qty" data-v="-1" aria-label="Meno">−</button><b>${SS.qty}</b><button type="button" data-a="qty" data-v="1" data-max="${max}" aria-label="Più">+</button><span class="tot">Totale ${tot} ¤</span></div>
+        <div class="acts"><button type="button" class="act" data-a="${t === 'compra' ? 'buy' : 'sell'}" data-i="${i}" ${can ? '' : 'disabled'}>${t === 'compra' ? 'Compra' : 'Vendi'}</button></div>`;
+    }
+  });
+  return h;
+}
+function pcHTML(){
+  const t = SS.tab || 'poke';
+  let h = `<div class="segtabs"><button type="button" class="${t === 'poke' ? 'on' : ''}" data-a="ptab" data-v="poke">Pokémon</button><button type="button" class="${t === 'items' ? 'on' : ''}" data-a="ptab" data-v="items">Strumenti</button></div>`;
+  if (t === 'poke'){
+    h += '<div class="sec">Box 1</div>';
+    h += BOX.length ? BOX.map((m, i) => `<div class="row">${creature(m, 40)}<span class="grow"><span class="name">${m.n}</span><span class="sub">Lv ${m.lv}</span></span><button type="button" class="act" style="flex:none;width:96px" data-a="withdraw" data-i="${i}" ${TEAM.length >= 6 ? 'disabled' : ''}>Ritira</button></div>`).join('') : '<p class="pnote">Il box è vuoto.</p>';
+    h += '<div class="sec">Squadra</div>';
+    h += TEAM.map((m, i) => `<div class="row">${creature(m, 40)}<span class="grow"><span class="name">${m.n}</span><span class="sub">Lv ${m.lv}</span></span><button type="button" class="act alt" style="flex:none;width:96px" data-a="deposit" data-i="${i}" ${TEAM.length <= 1 || i === 0 ? 'disabled' : ''}>Deposita</button></div>`).join('');
+    h += `<p class="pnote">Squadra piena (6): per ritirare devi prima depositare. ${TEAM.length >= 6 ? '' : ''}</p>`;
+  } else {
+    h += '<div class="sec">Nel PC</div>';
+    h += PCITEMS.filter(x => x.q > 0).map((x, i) => `<div class="row"><span class="grow"><span class="name">${x.n}</span></span><span class="right">×${x.q}</span><button type="button" class="act" style="flex:none;width:96px" data-a="pcwith" data-i="${i}">Ritira</button></div>`).join('') || '<p class="pnote">Nessuno strumento nel PC.</p>';
+  }
+  return h;
+}
+function trainerHTML(){
+  const icons = ['badge1','badge2','badge3','badge4','badge5','badge6','badge7','badge8'];
+  return `<div class="card-top"><span style="width:72px;height:72px;border-radius:18px;background:var(--p-panel2);display:grid;place-items:center;color:var(--p-y)">${svg(ICON.id, 40, 1.6)}</span>
+    <div class="grow"><span class="big">GIOCATORE</span><span style="color:var(--p-dim)">Allenatore</span></div></div>
+    <div class="kv"><span>Soldi</span><b>${money.toLocaleString('it-IT')} ¤</b></div>
+    <div class="kv"><span>Pokédex</span><b>${Object.values(DEXK).filter(v => v[1]).length}</b></div>
+    <div class="kv"><span>Tempo di gioco</span><b>3:42</b></div>
+    <div class="sec">Medaglie</div>
+    <div class="badges">${icons.map((ic, i) => `<div class="${i < 2 ? 'got' : ''}">${svg(ICON[ic], 30, 1.8)}</div>`).join('')}</div>`;
+}
+function saveHTML(){
+  return `<p class="pnote" style="font-size:15px;color:var(--p-text)">Salva la partita in questo punto esatto.</p>
+    <div class="acts"><button type="button" class="act" style="height:60px;font-size:17px" data-a="save">Salva adesso</button></div>
+    <div class="kv"><span>Ultimo salvataggio</span><b>${lastSave || 'nessuno'}</b></div>
+    <p class="pnote">Approvato: salvataggio ovunque. Più avanti: più slot e schermata di caricamento.</p>`;
+}
+function optHTML(){
+  const seg = (k, opts, cur, attr) => `<div class="segtabs">${opts.map(o => `<button type="button" class="${o[0] === cur ? 'on' : ''}" data-a="${attr}" data-k="${k}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>`;
+  return `<div class="sec">Opzioni del gioco</div>
+    <div class="optrow"><span>Velocità del testo</span>${seg('speed', [['veloce','Veloce'],['media','Media'],['lenta','Lenta']], cfg.dialog.speed, 'ospeed')}</div>
+    <div class="optrow"><span>Animazioni in lotta</span>${seg('anim', [['Sì','Sì'],['No','No']], OPT.anim, 'opt')}</div>
+    <div class="optrow"><span>Stile di lotta</span>${seg('stile', [['Cambio','Cambio'],['Fisso','Fisso']], OPT.stile, 'opt')}</div>
+    <div class="optrow"><span>Suono</span>${seg('suono', [['Mono','Mono'],['Stereo','Stereo']], OPT.suono, 'opt')}</div>
+    <p class="pnote">Sono le opzioni del gioco originale. Le impostazioni dell'app arriveranno in una sezione separata.</p>`;
+}
+const TITLES = { squadra:'Squadra', borsa:'Borsa', pokedex:'Pokédex', scheda:'Scheda', negozio:'Negozio', pc:'PC', allenatore:'Allenatore', salva:'Salva', opzioni:'Opzioni' };
+function renderSheet(){
+  if (!SS) return;
+  let title = TITLES[SS.id], body = '', back = false;
+  if (SS.sub === 'scheda'){ title = 'Scheda'; body = schedaHTML(SS.idx); back = true; }
+  else switch (SS.id){
+    case 'squadra': body = (swapMode ? '<p class="pnote">Tocca il compagno con cui scambiarlo.</p>' : '') + teamRows(); break;
+    case 'scheda': body = schedaHTML(SS.idx); break;
+    case 'borsa': body = bagHTML(); back = SS.pick !== null; break;
+    case 'pokedex': body = dexHTML(); back = !!SS.dexN; break;
+    case 'negozio': body = shopHTML(); break;
+    case 'pc': body = pcHTML(); break;
+    case 'allenatore': body = trainerHTML(); break;
+    case 'salva': body = saveHTML(); break;
+    case 'opzioni': body = optHTML(); break;
+  }
+  $('#shTitle').textContent = title; $('#shBack').hidden = !back; $('#shBody').innerHTML = body;
+}
+$('#shBody').addEventListener('click', e => {
+  const a = e.target.closest('[data-a]'); if (!a || !SS) return;
+  const i = +a.dataset.i, act = a.dataset.a;
+  switch (act){
+    case 'trow':
+      if (swapMode && SS.sel !== null && SS.sel !== i){ const s = SS.sel; [TEAM[s], TEAM[i]] = [TEAM[i], TEAM[s]]; swapMode = false; SS.sel = null; toast('Ordine della squadra cambiato.'); if (scene === 'explore') renderLower(); }
+      else { swapMode = false; SS.sel = SS.sel === i ? null : i; }
+      break;
+    case 'swap': swapMode = true; break;
+    case 'card': SS.sub = 'scheda'; SS.idx = i; break;
+    case 'cardpick': SS.idx = i; break;
+    case 'send': {
+      const nm = TEAM[i], old = B.me; closeSheet();
+      return bseq([[`Torna, ${old.n}!`], [`Vai, ${nm.n}!`, () => { B.me = nm; renderHud(); }], ...enemyTurn()]);
+    }
+    case 'brow': SS.sel = SS.sel === i ? null : i; break;
+    case 'use': {
+      const it = BAG[i];
+      if (it.use === 'heal' || it.use === 'cure'){ SS.pick = i; break; }
+      if (it.use === 'field' && !SS.opts.battle){ it.q--; SS.sel = null; toast(`Hai usato ${it.n}.`); break; }
+      toast('Ora non puoi usarlo.'); return;
+    }
+    case 'apply': {
+      const it = BAG[SS.pick], m = TEAM[i];
+      if (it.use === 'heal'){ if (m.hp <= 0 || m.hp >= m.max){ toast('Non avrebbe effetto.'); return; } m.hp = Math.min(m.max, m.hp + 20); }
+      if (it.use === 'cure'){ if (m.st !== 'AVV'){ toast('Non avrebbe effetto.'); return; } m.st = ''; }
+      it.q--; SS.pick = null; SS.sel = null;
+      if (SS.opts.battle){ closeSheet(); updateHud(); return bseq([[`Hai usato ${it.n}\nsu ${m.n}!`], ...enemyTurn()]); }
+      toast(`Hai usato ${it.n} su ${m.n}.`); renderLower(); break;
+    }
+    case 'toss': { const it = BAG[i]; it.q--; if (it.q <= 0) SS.sel = null; toast(`Hai gettato ${it.n}.`); break; }
+    case 'dex': SS.dexN = +a.dataset.n; break;
+    case 'stab': SS.tab = a.dataset.v; SS.sel = null; SS.qty = 1; break;
+    case 'ptab': SS.tab = a.dataset.v; break;
+    case 'srow': SS.sel = SS.sel === i ? null : i; SS.qty = 1; break;
+    case 'qty': { const v = +a.dataset.v, mx = +(a.dataset.max || 99); SS.qty = Math.max(1, Math.min(v > 0 ? mx : 99, SS.qty + v)); break; }
+    case 'buy': { const it = SHOP[i], tot = it.p * SS.qty; if (tot > money) return; money -= tot; let b = BAG.find(x => x.n === it.n); if (!b){ b = { n:it.n, q:0, d:'Strumento.', use:'none', p:it.p }; BAG.splice(BAG.findIndex(x => x.key), 0, b); } b.q += SS.qty; toast(`Hai comprato ${SS.qty} × ${it.n}.`); SS.sel = null; SS.qty = 1; renderLower(); break; }
+    case 'sell': { const list = BAG.filter(b => !b.key && b.q > 0), it = list[i]; money += Math.floor(it.p / 2) * SS.qty; it.q -= SS.qty; toast(`Hai venduto ${SS.qty} × ${it.n}.`); SS.sel = null; SS.qty = 1; renderLower(); break; }
+    case 'withdraw': if (TEAM.length < 6){ const m = BOX.splice(i, 1)[0]; TEAM.push(Object.assign({ hp:18, max:18, st:'', stats:{ATT:9,DIF:9,VEL:9,'SPEC.':9}, mv:[['SPINTA','Normale',35,35]] }, m)); toast(`${m.n} è nella squadra.`); renderLower(); } break;
+    case 'deposit': if (TEAM.length > 1 && i > 0){ const m = TEAM.splice(i, 1)[0]; BOX.push(m); toast(`${m.n} è nel Box 1.`); renderLower(); } break;
+    case 'pcwith': { const list = PCITEMS.filter(x => x.q > 0), x = list[i]; x.q--; const b = BAG.find(y => y.n === x.n); if (b) b.q++; toast(`Hai ritirato ${x.n}.`); break; }
+    case 'save': { const d = new Date(); lastSave = d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }); toast('Partita salvata.'); break; }
+    case 'ospeed': cfg.dialog.speed = a.dataset.v; saveCfg(); renderSettings(); break;
+    case 'opt': OPT[a.dataset.k] = a.dataset.v; break;
+  }
+  renderSheet();
+});
+(function sheetGestures(){
+  const body = $('#shBody'); let s = null;
+  body.addEventListener('pointerdown', e => { s = { x:e.clientX, y:e.clientY }; });
+  body.addEventListener('pointerup', e => {
+    if (!s || !SS) return; const dx = e.clientX - s.x, dy = e.clientY - s.y; s = null;
+    const onCard = SS.sub === 'scheda' || SS.id === 'scheda';
+    if (onCard && Math.abs(dx) > 60 && Math.abs(dy) < 45){ SS.idx = (SS.idx + (dx < 0 ? 1 : -1) + TEAM.length) % TEAM.length; renderSheet(); }
+  });
+  const head = $('#shHead'), sh = $('#sheet'); let h = null;
+  head.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; h = { y:e.clientY, id:e.pointerId }; head.setPointerCapture(e.pointerId); sh.style.transition = 'none'; });
+  head.addEventListener('pointermove', e => { if (!h || e.pointerId !== h.id) return; const dy = Math.max(0, (e.clientY - h.y) / scale); sh.style.transform = `translateY(${dy}px)`; });
+  const end = e => { if (!h || e.pointerId !== h.id) return; const dy = (e.clientY - h.y) / scale; h = null; sh.style.transition = ''; if (dy > 70) closeSheet(); else sh.style.transform = ''; };
+  head.addEventListener('pointerup', end); head.addEventListener('pointercancel', end);
+})();
+
+/* ---------------- Levetta e tocchi ---------------- */
+const joy = $('#joy'), jb = $('#joyBase'), jk = $('#joyKnob');
+const joyR = () => ({ S:44, M:58, L:74 }[cfg.joy.size] || 58);
+function placeJoy(ox, oy, kx, ky, dir){
+  const R = joyR(), kr = Math.round(R * .46);
+  jb.style.left = (ox - R) + 'px'; jb.style.top = (oy - R) + 'px'; jb.style.width = jb.style.height = 2 * R + 'px';
+  jk.style.width = jk.style.height = 2 * kr + 'px'; jk.style.left = (ox + kx - kr) + 'px'; jk.style.top = (oy + ky - kr) + 'px';
+  for (const d of ['up','down','left','right']) document.getElementById('ar-' + d).setAttribute('fill', d === dir ? '#f6c933' : 'rgba(255,247,220,.6)');
+}
+const toStage = e => { const b = stage.getBoundingClientRect(); return { x:(e.clientX - b.left) / scale, y:(e.clientY - b.top) / scale }; };
+let gest = null;
+stage.addEventListener('pointerdown', e => {
+  const t = e.target;
+  if (t.closest('#sheet') || t.closest('[data-reorder]') || t.closest('button')) return;
+  const p = toStage(e);
+  if (scene === 'battle'){ if (p.y >= ST && p.y < GB) bnext(); return; }
+  if (dlg){ gest = { id:e.pointerId, dlg:true }; return; }
+  if (SS){ if (p.y < GB) closeSheet(); return; }
+  const inGame = p.y >= ST && p.y < GB, z = cfg.joy.zone;
+  const joyOK = z === 'ovunque' ? (p.y >= ST && p.y < H - NAV) : z === 'sotto' ? (p.y >= GB && p.y < H - NAV) : inGame;
+  gest = { id:e.pointerId, x0:p.x, y0:p.y, t0:performance.now(), inGame, joyOK, active:false, ox:p.x, oy:p.y };
+  try { stage.setPointerCapture(e.pointerId); } catch(err){}
+  if (joyOK){ placeJoy(p.x, p.y, 0, 0, null); joy.classList.add('on'); }
+});
+stage.addEventListener('pointermove', e => {
+  if (!gest || gest.id !== e.pointerId || gest.dlg || !gest.joyOK) return;
+  const p = toStage(e), R = joyR();
+  if (Math.hypot(p.x - gest.x0, p.y - gest.y0) > 10) gest.active = true;
+  let dx = p.x - gest.ox, dy = p.y - gest.oy, dist = Math.hypot(dx, dy);
+  if (dist > R){
+    if (cfg.joy.mode === 'segue'){ gest.ox = p.x - dx / dist * R; gest.oy = p.y - dy / dist * R; }
+    dx = dx / dist * R; dy = dy / dist * R;
+  }
+  const dir = Math.hypot(dx, dy) < R * .28 ? null : (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  if (dir !== joyDir){ joyDir = dir; if (dir){ path = []; pending = null; marker = null; } }
+  placeJoy(gest.ox, gest.oy, dx, dy, dir);
+});
+function endGesture(e){
+  if (!gest || gest.id !== e.pointerId) return;
+  const g = gest; gest = null; joy.classList.remove('on'); joyDir = null;
+  if (g.dlg){ advance(); return; }
+  if (e.type !== 'pointerup') return;
+  const p = toStage(e);
+  if (!g.active && Math.hypot(p.x - g.x0, p.y - g.y0) < 12 && performance.now() - g.t0 < 450 && g.inGame) tapGame(p.x, p.y);
+}
+stage.addEventListener('pointerup', endGesture); stage.addEventListener('pointercancel', endGesture);
+function tapGame(x, y){
+  const gx = x * 160 / W, gy = (y - ST) * 144 / GH;
+  const tx = Math.floor((gx + cam.x) / 16), ty = Math.floor((gy + cam.y) / 16);
+  if (tx === P.x && ty === P.y){ if (!P.mv) interactFacing(); return; }
+  const t = targetAt(tx, ty);
+  if (t && cfg.joy.tapInteract) return planInteract(t);
+  if (cfg.joy.tapWalk){
+    const now = performance.now();
+    if (canStand(tx, ty)){ const res = bfs([{ x:tx, y:ty }]); if (res){ path = res.dirs; pending = null; marker = { x:tx, y:ty, ok:true, t:now }; return; } }
+    marker = { x:tx, y:ty, ok:false, t:now };
+  }
+}
+const KEYS = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' };
+window.addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('textarea, input')) return;
+  if (KEYS[e.key]){ e.preventDefault(); keyDir = KEYS[e.key]; return; }
+  if (e.key === 'Enter' || e.key === ' '){
+    if (e.target.closest && e.target.closest('button')) return;
+    e.preventDefault();
+    if (scene === 'battle') return bnext();
+    if (dlg) return advance();
+    if (!SS && !P.mv) interactFacing();
+  }
+  if (e.key === 'Escape' && SS) closeSheet();
+});
+window.addEventListener('keyup', e => { if (KEYS[e.key] === keyDir) keyDir = null; });
+
+/* ---------------- Ciclo ---------------- */
+function tick(now){
+  if (P.mv && now - P.mv.t0 >= P.mv.dur){ P.mv = null; updateContext(); }
+  if (C.mv && now - C.mv.t0 >= C.mv.dur) C.mv = null;
+  if (scene === 'explore' && !P.mv && !dlg && !SS){
+    const held = joyDir || keyDir;
+    if (held) tryStep(held);
+    else if (path.length){ const d = path.shift(); if (!tryStep(d)){ path = []; pending = null; } }
+    else if (pending){ P.dir = pending.face; pending = null; marker = null; interactFacing(); }
+    else if (marker && marker.ok) marker = null;
+  }
+  if (scene === 'battle') drawBattle(now); else drawWorld(now);
+  requestAnimationFrame(tick);
+}
+
+/* ---------------- Toast, orologio ---------------- */
+let toastT = 0;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2300); }
+function clock(){ $('#clock').textContent = new Date().toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }); }
+clock(); setInterval(clock, 30000);
+
+/* ---------------- Regolazioni ---------------- */
+function seg(k, label, opts){
+  const v = getK(k);
+  return `<div><div class="ctl-l" id="l-${k.replace('.', '-')}">${label}</div><div class="seg" role="radiogroup" aria-labelledby="l-${k.replace('.', '-')}">${opts.map(([val, txt]) =>
+    `<button type="button" role="radio" aria-checked="${v === val}" data-k="${k}" data-v='${JSON.stringify(val)}'>${txt}</button>`).join('')}</div></div>`;
+}
+const YN = [[true, 'Sì'], [false, 'No']];
+function renderSettings(){
+  let head = '', body = '';
+  if (tab === 'levetta'){
+    head = '<h2>Levetta e movimento</h2><p class="lead">Appoggia il dito: la levetta compare lì sotto. Trascina per camminare, lascia per fermarti. Si cammina in 4 direzioni, come nel gioco originale.</p>';
+    body = seg('joy.zone', 'Dove può comparire la levetta', [['ovunque', 'Ovunque'], ['sotto', 'Solo sotto il gioco'], ['gioco', 'Solo sul gioco']]) +
+      seg('joy.mode', 'Se il dito esce dal cerchio', [['fissa', 'La levetta resta ferma'], ['segue', 'La levetta segue il dito']]) +
+      seg('joy.size', 'Grandezza della levetta', [['S', 'Piccola'], ['M', 'Media'], ['L', 'Grande']]) +
+      seg('joy.tapInteract', 'Toccare persone e oggetti per raggiungerli e parlarci', YN) +
+      seg('joy.tapWalk', 'Toccare il terreno per camminare fin lì', YN) +
+      seg('dialog.yesno', 'Dove compaiono Sì / No', [['pannello', 'Nel pannello in basso'], ['gioco', 'Sullo schermo di gioco']]) +
+      seg('dialog.speed', 'Velocità del testo', [['veloce', 'Veloce'], ['media', 'Media'], ['lenta', 'Lenta']]) +
+      `<div><div class="ctl-l">Da provare</div><ul class="try">
+        <li>La persona vicino al sentiero ti fa una domanda (Sì / No).</li>
+        <li>Il commesso dietro il bancone apre il Negozio.</li>
+        <li>Il PC in alto a destra apre il PC.</li>
+        <li>Il cartello, la porta, il sacchetto in basso a destra.</li>
+        <li>Tocca il tuo compagno che ti segue.</li>
+        <li>Scendi verso il basso sulla sporgenza per saltarla.</li>
+        <li>Tocca il tuo personaggio: interagisci con ciò che hai davanti.</li></ul></div>`;
+  } else if (tab === 'pulsanti'){
+    head = '<h2>Pulsanti e menu</h2><p class="lead">Tocca un pulsante per aprire il suo menu. Tieni premuto un pulsante e trascinalo per spostarlo. Nei menu si scorre e si sceglie col dito.</p>';
+    body = `<div><div class="ctl-l">Pulsanti nella barra (tocca per aggiungere o togliere)</div><div class="chips">${Object.keys(BTN).map(id =>
+        `<button type="button" class="chip" aria-pressed="${cfg.bar.buttons.includes(id)}" data-chip="${id}">${svg(BTN[id].i, 18)}${BTN[id].l}</button>`).join('')}</div></div>` +
+      seg('bar.rows', 'Righe', [[1, 'Una riga'], [2, 'Due righe']]) +
+      seg('bar.labels', 'Contenuto dei pulsanti', [[true, 'Icona e nome'], [false, 'Solo icona']]) +
+      seg('bar.size', 'Grandezza dei pulsanti', [['s', 'Piccoli'], ['m', 'Medi'], ['l', 'Grandi']]) +
+      seg('bar.pos', 'Posizione della barra', [['basso', 'In fondo, sotto il pollice'], ['alto', 'Subito sotto il gioco']]) +
+      seg('bar.info', 'Riquadro con luogo e squadra', [[true, 'Mostra'], [false, 'Nascondi']]) +
+      seg('menu.style', 'Come si aprono i menu', [['foglio', 'Dal basso, il gioco resta visibile'], ['intero', 'A tutto schermo']]) +
+      seg('bar.shop', 'Negozio e PC', [['contesto', 'Solo davanti al bancone o al PC'], ['sempre', 'Sempre utilizzabili']]) +
+      `<p class="note ${cfg.bar.shop === 'sempre' ? 'warn' : ''}">Nel gioco originale il negozio e il PC si usano solo sul posto. Con «Solo davanti…» il pulsante si illumina quando sei lì. «Sempre utilizzabili» sarebbe una meccanica nuova: la inserisco solo se la approvi.</p>`;
+  } else {
+    head = '<h2>Lotta</h2><p class="lead">Tocca una mossa per usarla. Tieni premuto Squadra, Borsa o Fuga e trascinali per cambiarne l\'ordine. Tocca lo schermo di gioco per far scorrere i messaggi.</p>';
+    body = seg('battle.layout', 'Disposizione delle mosse', [['griglia', 'Griglia 2 × 2'], ['colonna', 'Una sotto l\'altra']]) +
+      seg('battle.actions', 'Squadra, Borsa, Fuga', [['sotto', 'Sotto le mosse'], ['sopra', 'Sopra le mosse']]) +
+      seg('battle.showType', 'Mostra il tipo della mossa', YN) +
+      seg('battle.showPP', 'Mostra i PP', YN) +
+      seg('menu.style', 'Come si aprono Squadra e Borsa', [['foglio', 'Dal basso'], ['intero', 'A tutto schermo']]) +
+      '<p class="note">Dell\'avversario si vede solo la barra dei PS, senza numeri, come nell\'originale.</p>';
+  }
+  $('#setHead').innerHTML = head; $('#settingsBody').innerHTML = body;
+}
+$('#settings').addEventListener('click', e => {
+  const b = e.target.closest('[data-k]');
+  if (b){ setK(b.dataset.k, JSON.parse(b.dataset.v)); saveCfg(); applyCfg(); renderSettings(); return; }
+  const c = e.target.closest('[data-chip]');
+  if (c){ const id = c.dataset.chip, arr = cfg.bar.buttons; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); saveCfg(); applyCfg(); renderSettings(); return; }
+});
+function applyCfg(){
+  if (scene === 'battle'){ renderLower(); }
+  else renderLower();
+  if (SS){ $('#sheet').style.top = (cfg.menu.style === 'intero' ? ST : GB) + 'px'; renderSheet(); }
+  syncYN();
+}
+
+/* ---------------- Schede (tab) ---------------- */
+function setTab(t){
+  tab = t;
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+  if (SS) closeSheet();
+  if (dlg){ clearInterval(dlg.iv); dlg = null; }
+  if (bq){ clearTimeout(bq.timer); bq = null; B.busy = false; }
+  path = []; pending = null; marker = null; joyDir = null;
+  scene = t === 'lotta' ? 'battle' : 'explore';
+  $('#battleHud').hidden = scene !== 'battle';
+  if (scene === 'battle'){ renderHud(); setBText(bPrompt()); }
+  else $('#textbox').hidden = true;
+  syncYN(); renderLower(); renderSettings();
+}
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+
+/* ---------------- Adattamento allo schermo ---------------- */
+const narrow = () => matchMedia('(max-width: 860px)').matches;
+function fit(){
+  const imm = holder.classList.contains('imm');
+  let aw, ah;
+  if (imm){ aw = innerWidth; ah = innerHeight; }
+  else {
+    const col = $('#stageCol'); aw = col.clientWidth;
+    const top = col.getBoundingClientRect().top + scrollY;
+    ah = Math.max(440, innerHeight - top - 18);
+  }
+  const s = Math.min(aw / W, ah / H, imm ? 3 : 1);
+  scale = s; stage.style.transform = `scale(${s})`;
+  if (imm){ stage.style.left = ((aw - W * s) / 2) + 'px'; stage.style.top = ((ah - H * s) / 2) + 'px'; }
+  else { holder.style.width = (W * s) + 'px'; holder.style.height = (H * s) + 'px'; stage.style.left = '0px'; stage.style.top = '0px'; }
+}
+window.addEventListener('resize', fit);
+$('#immBtn').addEventListener('click', () => { holder.classList.add('imm'); $('#exitImm').hidden = false; document.body.style.overflow = 'hidden'; fit(); });
+$('#exitImm').addEventListener('click', () => { holder.classList.remove('imm'); $('#exitImm').hidden = true; document.body.style.overflow = ''; fit(); });
+function toggleSettings(on){ $('#settings').classList.toggle('open', on); $('#scrim').classList.toggle('on', on); }
+$('#openSet').addEventListener('click', () => toggleSettings(true));
+$('#closeSet').addEventListener('click', () => toggleSettings(false));
+$('#scrim').addEventListener('click', () => toggleSettings(false));
+
+/* ---------------- Invio a Claude ---------------- */
+let dbP = null;
+try { dbP = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('db') : Promise.resolve(null); } catch(e){ dbP = Promise.resolve(null); }
+function summary(){
+  const j = cfg.joy, b = cfg.bar, t = cfg.battle, d = cfg.dialog;
+  const yn = v => v ? 'sì' : 'no';
+  return [
+    `Levetta: compare ${({ ovunque:'ovunque', sotto:'solo sotto il gioco', gioco:'solo sul gioco' })[j.zone]}; ${j.mode === 'fissa' ? 'resta ferma' : 'segue il dito'}; grandezza ${({ S:'piccola', M:'media', L:'grande' })[j.size]}; tocco su persone/oggetti: ${yn(j.tapInteract)}; tocco sul terreno: ${yn(j.tapWalk)}.`,
+    `Dialoghi: Sì/No ${d.yesno === 'pannello' ? 'nel pannello in basso' : 'sullo schermo di gioco'}; testo ${d.speed}.`,
+    `Barra: ${b.buttons.map(id => BTN[id].l).join(', ') || 'vuota'}; ${b.rows} ${b.rows === 1 ? 'riga' : 'righe'}; ${b.labels ? 'icona e nome' : 'solo icona'}; grandezza ${({ s:'piccoli', m:'medi', l:'grandi' })[b.size]}; posizione ${b.pos === 'basso' ? 'in fondo' : 'sotto il gioco'}; riquadro luogo/squadra: ${yn(b.info)}; Negozio/PC: ${b.shop === 'contesto' ? 'solo sul posto' : 'sempre'}.`,
+    `Menu: ${cfg.menu.style === 'foglio' ? 'dal basso' : 'a tutto schermo'}.`,
+    `Lotta: mosse ${t.layout === 'griglia' ? 'a griglia 2×2' : 'in colonna'}; azioni ${t.actions} le mosse (${t.order.map(id => BACT[id].l).join(', ')}); tipo: ${yn(t.showType)}; PP: ${yn(t.showPP)}.`
+  ].join('\n');
+}
+$('#sendBtn').addEventListener('click', async () => {
+  const st = $('#sendStatus'), btn = $('#sendBtn');
+  st.className = ''; st.textContent = 'Invio in corso…'; btn.disabled = true;
+  const note = $('#note').value.trim().slice(0, 2000);
+  let db = null; try { db = await dbP; } catch(e){}
+  const fallback = msg => { st.textContent = msg; const s = $('#summary'); s.hidden = false; s.value = summary() + (note ? '\nNote: ' + note : ''); btn.disabled = false; };
+  if (!db) return fallback('Da questa vista non riesco a inviare. Copia il riepilogo qui sotto e incollalo in chat.');
+  const payload = { scheda:tab, cfg:clone(cfg), riepilogo:summary(), nota:note, inviatoIl:new Date().toISOString() };
+  const attempt = () => db.collection('invii').add(payload);
+  try { await attempt(); }
+  catch(e){
+    if (e && e.code === 'unavailable'){ try { await new Promise(r => setTimeout(r, 700 + Math.random() * 600)); await attempt(); } catch(e2){ return fallback('Invio non riuscito. Copia il riepilogo qui sotto e incollalo in chat.'); } }
+    else return fallback('Invio non riuscito. Copia il riepilogo qui sotto e incollalo in chat.');
+  }
+  st.className = 'ok'; st.textContent = 'Inviato alle ' + new Date().toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) + '. Claude può leggerlo.'; btn.disabled = false;
+});
+$('#resetBtn').addEventListener('click', () => { cfg = clone(DEF); saveCfg(); applyCfg(); renderSettings(); $('#sendStatus').textContent = 'Predefiniti ripristinati.'; });
+
+/* ---------------- Avvio ---------------- */
+setTab('levetta');
+fit();
+setTimeout(fit, 300);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+requestAnimationFrame(tick);
+setTimeout(() => toast('Appoggia il dito e trascina per muoverti'), 600);
+})();
+</script>
