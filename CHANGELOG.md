@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-17 (5)
+- Avviata la Fase 1b: primi indirizzi di memoria della versione italiana (`docs/MEMORY_MAP_IT.md`).
+- Aggiunti gli strumenti di analisi `tools/rom-analysis/` (nessun contenuto del gioco).
+- Ambiente cloud dedicato con Android SDK/NDK installati; versioni di riferimento in DECISIONS (D-021).
+- Promemoria orario per continuare il lavoro.
+
 ## 2026-11-17 (4)
 - Laboratorio v3: gioco a tutto schermo con mappa estesa (10 × 22 caselle), squadra in alto e pulsanti in basso sovrapposti, levetta che compare ovunque (tolta la zona dedicata), lotta a tutto schermo con comandi sovrapposti allo sfondo.
 - Nuova opzione per la mappa fuori dall'inquadratura originale: visibile, attenuata, nascosta.

@@ -1,45 +1,31 @@
 # CURRENT_STATE
 
-**Ultimo aggiornamento:** 2026-11-17
+**Ultimo aggiornamento:** 2026-11-17 (sera)
 
 ## Dove siamo
-Fase 1 (analisi) completata, in attesa della conferma esplicita dell'architettura (D-001).
-In parallelo è iniziata la parte UX della Fase 2: il committente ha chiesto demo interattive.
-**Nessun codice dell'app scritto.**
+- Fase 2 UX: Laboratorio v3 (tutto schermo) accettato «per ora» dal committente.
+- Architettura A potenziata considerata approvata (D-019).
+- **Fase 1b in corso**: mappa della memoria della versione italiana (`docs/MEMORY_MAP_IT.md`).
+- Nessun codice dell'app ancora scritto.
 
-## Ultime decisioni del committente (vedi DECISIONS.md)
-- Verticale come modalità principale (D-005).
-- Levetta che compare/sparisce come movimento base (D-006).
-- Barra di pulsanti con icone in basso → menu touch a scorrimento (D-007, D-008).
-- Salvataggio ovunque approvato; più slot in futuro (D-002).
-- Telefono: CMF Phone 2 Pro (D-009).
-
-## Laboratorio UX
-- File: `docs/demo/laboratorio-giallo-touch.html` (pagina interattiva, grafica e nomi segnaposto originali).
-- Pubblicato come artifact privato: https://claude.ai/artifact/TPosCELEnL4joUJzMzHrtJ
-- Le configurazioni inviate dal committente finiscono nel database dell'artifact,
-  collezione `invii` (leggibile da Claude con ArtifactData). Al 2026-11-17: 1 invio (vedi D-012).
-- Tre demo: Levetta (mappa giocabile), Pulsanti e menu (barra riordinabile, 9 menu), Lotta.
-- Versione 2: modalità "Sposta e ridimensiona" (D-014). Le posizioni scelte vengono inviate
-  in `cfg.layout` (coordinate in dp sul telefono da 411×911 dp) e nel riepilogo testuale.
-- Versione 3: tutto schermo (D-015…D-018). Le posizioni salvate nelle versioni precedenti
-  non sono più valide e vengono ignorate (gli elementi sono cambiati).
-- In attesa: il committente prova la v3, sistema posizioni e dimensioni e invia di nuovo;
-  conferma sulla mappa extra (visibile / attenuata / nascosta).
+## Ambiente di lavoro (cloud)
+- Ambiente "Pokyellow-android" con accesso a dl.google.com.
+- Installati in `/opt/android-sdk`: cmdline-tools 23.0.0, platform-tools, platforms;android-36,
+  build-tools;36.1.0, ndk;30.0.16248370, cmake;3.31.6. (Va reinstallato se il container viene ricreato:
+  vedi script in TODO.)
+- Strumenti di analisi in una cartella temporanea: venv Python con PyBoy, copie di consultazione di
+  SameBoy e pret/pokeyellow (mai nel repository), ROM estratta dall'upload del committente.
+- **Compilazione di RGBDS negata dal sistema di permessi**: niente RGBDS per ora.
+  Serve per le boot ROM libere di SameBoy; alternative da valutare (vedi TODO).
+- **GitHub rifiuta il push** (Claude non ha accesso al repository): i commit esistono solo qui.
+  Se il container viene ricreato, il lavoro non salvato su GitHub va perso.
 
 ## Fatti verificati
-- ROM: versione italiana `POKEMON YELAPSI`, 1 MiB, MBC5+RAM+batteria, 32 KiB di salvataggio,
-  GBC+SGB, checksum validi. SHA-1 in `PROJECT.md`. Mai nel repository.
-- SameBoy: licenza Expat (MIT) tranne cartelle iOS e HexFiend; boot ROM open source incluse;
-  Android non tra le piattaforme ufficiali (compilazione NDK da verificare).
-- pret/pokeyellow documenta la versione inglese, non l'italiana.
-- Verifica sviluppatori Google: in Italia nessun effetto fino all'estensione globale prevista nel 2027.
-- Ambiente cloud: Java 21, Gradle, Node presenti; Maven Google raggiungibile;
-  dl.google.com (Android SDK) **bloccato** dalla rete.
-- GitHub: il push verso il repository viene rifiutato (Claude non ha accesso). Commit solo locali.
-- Il repository è **pubblico**; il committente vuole renderlo privato.
+- ROM italiana: `POKEMON YELAPSI`, MBC5+RAM+batteria, 32 KiB di salvataggio, GBC+SGB.
+- Indirizzi trovati: wCurMap D362, wYCoord D365, wXCoord D366, tileset D36B, altezza/larghezza mappa D36C/D36D.
+- Versioni Android/Kotlin di riferimento: vedi D-021.
 
 ## Prossimo passo
-1. Raccogliere dal Laboratorio la configurazione preferita (o le note in chat).
-2. Ottenere la conferma esplicita di D-001 e la scelta su D-010.
-3. Poi: Fase 1b (mappa memoria versione italiana) e verifica compilazione del motore con NDK.
+1. Continuare la mappa della memoria: wOverworldMap, sprite, direzione, stato dialogo/menu, lotta, squadra, borsa, soldi.
+2. Creare lo scheletro del progetto Android (Gradle, moduli `app`, `core-emu`, `bridge`) e verificare che compili.
+3. Integrare SameBoy con NDK; risolvere la questione boot ROM.

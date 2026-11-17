@@ -27,10 +27,14 @@
 | D-017 | 2026-11-17 | **Squadra in alto** (con luogo e soldi), sovrapposta alla mappa; barra dei pulsanti in basso, sovrapposta. |
 | D-018 | 2026-11-17 | **Lotta a tutto schermo:** lo sfondo della lotta riempie lo schermo, mosse e pulsanti Squadra/Borsa/Fuga stanno sopra lo sfondo. Scena e riquadro del testo sono parti dell'immagine originale, posizionate separatamente senza deformarle. |
 
+| D-019 | 2026-11-17 | Il committente ha risposto «va bene per ora, continua» alle domande aperte. **Interpretazione registrata** (correggibile dal committente): accettate le raccomandazioni → architettura A potenziata con SameBoy (D-001), Negozio/PC solo sul posto (D-010), mappa extra visibile (D-015). Si procede con analisi e prototipo. |
+| D-020 | 2026-11-17 | Promemoria orario per continuare il lavoro in autonomia; report e APK quando il committente li chiede. Creato ambiente cloud dedicato "Pokyellow-android" con accesso a dl.google.com (Android SDK/NDK). |
+| D-021 | 2026-11-17 | Versioni di riferimento verificate su repository ufficiali: AGP 9.5.1, Gradle 9.9.1, Kotlin 2.4.21, Compose BOM 2026.09.00, compileSdk/targetSdk 36, build-tools 36.1.0, NDK 30.0.16248370, CMake 3.31.6. |
+
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
 |---|---|---|---|
-| D-001 | Architettura | A potenziata: motore di emulazione (SameBoy) + ponte di lettura stato + UI nativa Compose. Spiegato cos'è SameBoy il 2026-11-17 | ⛔ attesa conferma esplicita |
+| D-001 | Architettura | A potenziata: motore di emulazione (SameBoy) + ponte di lettura stato + UI nativa Compose | ✅ vedi D-019 (da confermare se l'interpretazione è errata) |
 | D-003 | Visibilità repository | Il committente vuole renderlo privato; va fatto da GitHub (Claude non ha accesso alle impostazioni) | ⏳ a carico del committente |
 | D-004 | Versioni supportate | Solo la versione italiana fornita (riconosciuta tramite SHA-1) | proposta predefinita |
 | D-010 | Pulsanti Negozio e PC | Proposta fedele: attivi solo davanti al bancone o al PC (si illuminano). "Sempre utilizzabili" = meccanica nuova | ⛔ attesa scelta |
