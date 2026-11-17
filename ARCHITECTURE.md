@@ -85,6 +85,20 @@ storage/    salvataggi .sav, ripresa rapida, import/export
 tools/      strumenti di analisi ROM per lo sviluppo (mai inclusi nell'APK)
 ```
 
+## 7. Vista estesa a tutto schermo (richiesta D-015, da verificare nel prototipo)
+Il Game Boy produce un'immagine 160×144 (10×9 caselle). Per riempire uno schermo verticale
+senza deformare né tagliare i lati, l'app disegna da sé la mappa sopra e sotto l'inquadratura originale:
+- blocchi della mappa corrente letti dalla memoria del gioco (il gioco tiene in RAM la mappa intera con un bordo);
+- grafica delle caselle letta dalla memoria video (VRAM) o dalla ROM dell'utente sul telefono;
+- personaggi fuori inquadratura disegnati dalle loro posizioni in RAM.
+Le regole restano del gioco: la vista estesa è solo presentazione.
+Conseguenze: si vede più mappa dell'originale (opzione per attenuarla o nasconderla);
+lavoro aggiuntivo nel ponte; casi limite ai confini tra mappe e nelle schermate speciali
+(titolo, sequenze animate), dove si mostra l'immagine originale a tutta larghezza con lo sfondo riempito.
+La lotta non ha bisogno della vista estesa: lo sfondo originale è a tinta unita e viene esteso,
+scena e riquadro del testo vengono ritagliati dall'immagine originale e posizionati separatamente.
+Gli indirizzi di memoria esatti per la versione italiana vanno ricostruiti in Fase 1b.
+
 ## 6. Tecnologie
 Kotlin · Jetpack Compose · Android NDK (C) · OpenGL ES · AAudio/AudioTrack ·
 file locali con scrittura atomica (nessun database necessario al momento).

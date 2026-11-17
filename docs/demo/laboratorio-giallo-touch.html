@@ -4,8 +4,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&display=swap">
 <style>
-/* Layout: banco di prova. A sinistra il telefono in scala reale (411×911 dp, CMF Phone 2 Pro in verticale),
-   a destra le regolazioni; su telefono le regolazioni stanno in un foglio a comparsa. */
+/* Layout: banco di prova. A sinistra il telefono in scala reale (411×911 dp, CMF Phone 2 Pro in verticale)
+   con il gioco a tutto schermo e i comandi sovrapposti; a destra le regolazioni (su telefono in un foglio a comparsa). */
 :root{
   --bg:#e8ebf1; --surface:#ffffff; --fg:#1b1d2a; --muted:#565d76; --line:#d2d7e3;
   --accent:#8a6800; --accent-fill:#f6c933; --on-accent:#1b1a12; --ok:#1f7a45; --frame:#0c0c13;
@@ -15,6 +15,7 @@
   --p-ink:#171624; --p-panel:#232139; --p-panel2:#2e2b49; --p-line:#403c62;
   --p-y:#f6c933; --p-y2:#ffe07a; --p-text:#fff7dc; --p-dim:#aaa4c8;
   --p-red:#ef5b5b; --p-green:#58cf7c; --p-amber:#f2b23a; --p-paper:#fbfbf3;
+  --p-glass:rgba(23,22,36,.78); --p-glass2:rgba(40,37,64,.88);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){ --bg:#111219; --surface:#1b1d2a; --fg:#eceef6; --muted:#9ca2ba; --line:#2c2f45;
@@ -38,127 +39,95 @@ header p{ margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.45; 
 .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
 .tab{ border:1px solid var(--line); background:var(--surface); color:var(--fg); border-radius:12px; padding:9px 14px; font-weight:600; font-size:14px; min-height:42px; }
 .tab[aria-selected="true"]{ background:var(--accent-fill); border-color:var(--accent-fill); color:var(--on-accent); }
-.tools{ margin-left:auto; display:flex; gap:6px; }
+.tools{ margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
 .tool{ border:1px solid var(--line); background:transparent; color:var(--fg); border-radius:12px; padding:9px 12px; font-weight:600; font-size:14px; min-height:42px; }
+.tool[aria-pressed="true"]{ background:var(--accent-fill); border-color:var(--accent-fill); color:var(--on-accent); }
 #openSet{ display:none; }
+#editBar{ flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px; background:var(--surface); color:var(--fg);
+  border:1px solid var(--accent-fill); border-radius:16px; padding:6px; }
+#editBar span{ font-size:13px; color:var(--muted); padding:0 8px; flex:1; min-width:0; }
+#editBar button{ border:1px solid var(--line); background:transparent; color:var(--fg); border-radius:11px; padding:9px 12px; font-weight:600; font-size:14px; min-height:42px; white-space:nowrap; }
+#editBar #edDone{ background:var(--accent-fill); border-color:var(--accent-fill); color:var(--on-accent); }
+@media (max-width: 560px){ #editBar span{ display:none; } }
 
 .main{ display:grid; grid-template-columns:minmax(300px, 440px) minmax(0,1fr); gap:28px; align-items:start; }
 #stageCol{ display:flex; justify-content:center; min-width:0; }
 #stageHolder{ position:relative; }
-#stageHolder.imm{ position:fixed; inset:0; z-index:70; background:var(--p-ink); width:auto!important; height:auto!important; }
-#immTools{ position:fixed; z-index:80; top:calc(10px + env(safe-area-inset-top, 0px)); right:calc(10px + env(safe-area-inset-right, 0px)); display:flex; gap:6px; }
+#stageHolder.imm{ position:fixed; inset:0; z-index:70; background:#000; width:auto!important; height:auto!important; }
+#immTools{ position:fixed; z-index:80; top:calc(8px + env(safe-area-inset-top, 0px)); right:calc(8px + env(safe-area-inset-right, 0px)); display:flex; gap:6px; }
 #immTools button{ background:var(--p-text); color:var(--p-ink); border:0; border-radius:10px; padding:5px 11px; font-size:13px; font-weight:700; }
-#editBar{ flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px; background:var(--surface); color:var(--fg);
-  border:1px solid var(--accent-fill); border-radius:16px; padding:6px; }
-#editBar span{ font-size:13px; color:var(--muted); padding:0 8px; flex:1; min-width:0; }
 #immTools .ed-only{ display:none; }
 body.editing #immTools .ed-only{ display:inline-block; }
-.ef.small .ef-h{ width:22px; height:22px; right:-6px; bottom:auto; top:calc(50% - 11px); border-width:2px; }
-.ef.small .ef-l{ top:auto; bottom:calc(100% + 2px); left:0; }
-#editBar button{ border:1px solid var(--line); background:transparent; color:var(--fg); border-radius:11px; padding:9px 12px; font-weight:600; font-size:14px; min-height:42px; white-space:nowrap; }
-#editBar #edDone{ background:var(--accent-fill); border-color:var(--accent-fill); color:var(--on-accent); }
-.tool[aria-pressed="true"]{ background:var(--accent-fill); border-color:var(--accent-fill); color:var(--on-accent); }
-@media (max-width: 560px){ #editBar span{ display:none; } }
 
 /* ---------- Telefono ---------- */
 #stage{ position:absolute; left:0; top:0; width:411px; height:911px; transform-origin:0 0; overflow:hidden;
-  border-radius:38px; background:var(--p-ink); color:var(--p-text); box-shadow:0 0 0 9px var(--frame), 0 24px 50px rgba(0,0,0,.28);
+  border-radius:38px; background:#000; color:var(--p-text); box-shadow:0 0 0 9px var(--frame), 0 24px 50px rgba(0,0,0,.28);
   touch-action:none; user-select:none; -webkit-user-select:none; font-family:var(--font-ui); }
 #stageHolder.imm #stage{ border-radius:0; box-shadow:none; }
-.sys-status{ position:absolute; inset:0 0 auto; height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 24px;
-  font-size:13px; font-weight:600; background:var(--p-ink); z-index:5; font-variant-numeric:tabular-nums; }
-.cam{ position:absolute; left:50%; top:9px; width:16px; height:16px; margin-left:-8px; border-radius:50%; background:#04040a; box-shadow:inset 0 0 0 2px #24243a; }
-.sys-ic{ display:flex; gap:6px; align-items:center; }
-.sys-ic i{ display:block; width:16px; height:9px; border:1.5px solid var(--p-text); border-radius:2px; position:relative; }
-.sys-ic i::after{ content:""; position:absolute; inset:1px 4px 1px 1px; background:var(--p-text); border-radius:1px; }
-.sys-ic b{ display:block; width:12px; height:9px; background:linear-gradient(90deg, var(--p-text) 0 2px, transparent 2px 3px, var(--p-text) 3px 5px, transparent 5px 6px, var(--p-text) 6px 8px, transparent 8px 9px, var(--p-text) 9px); clip-path:polygon(0 100%,100% 0,100% 100%); }
-.sys-nav{ position:absolute; inset:auto 0 0; height:24px; display:grid; place-items:center; background:var(--p-ink); z-index:25; }
-.sys-nav span{ width:112px; height:4px; border-radius:2px; background:var(--p-dim); }
+.cam{ position:absolute; left:50%; top:9px; width:16px; height:16px; margin-left:-8px; border-radius:50%; background:#04040a; box-shadow:inset 0 0 0 2px #24243a; z-index:60; pointer-events:none; }
 
-#game{ --gs:1; position:absolute; top:34px; left:0; width:411px; height:370px; background:#000; overflow:hidden; z-index:3; }
-#cv{ width:100%; height:100%; display:block; image-rendering:crisp-edges; image-rendering:pixelated; }
-#textbox{ position:absolute; left:calc(6px * var(--gs)); right:calc(6px * var(--gs)); bottom:calc(6px * var(--gs)); height:calc(112px * var(--gs)); z-index:6;
-  background:var(--p-paper); color:var(--p-ink); border:3px solid var(--p-ink); border-radius:6px; box-shadow:inset 0 0 0 3px var(--p-paper), inset 0 0 0 5px var(--p-ink);
-  padding:calc(15px * var(--gs)) calc(20px * var(--gs)); font:600 calc(19px * var(--gs))/1.5 var(--font-px); white-space:pre-line; }
+#game{ position:absolute; inset:0; overflow:hidden; z-index:1; background:#000; }
+#cv{ position:absolute; left:0; top:0; width:411px; height:912px; display:block; image-rendering:crisp-edges; image-rendering:pixelated; }
+#textbox{ position:absolute; z-index:6; background:var(--p-paper); color:var(--p-ink); border:3px solid var(--p-ink); border-radius:6px;
+  box-shadow:inset 0 0 0 3px var(--p-paper), inset 0 0 0 5px var(--p-ink), 0 6px 18px rgba(0,0,0,.25);
+  padding:calc(15px * var(--ts, 1)) calc(20px * var(--ts, 1)); font:600 calc(19px * var(--ts, 1))/1.5 var(--font-px); white-space:pre-line; overflow:hidden; }
 #tbMore{ position:absolute; right:16px; bottom:10px; font-size:14px; animation:blink 1s steps(2) infinite; }
 @keyframes blink{ 50%{ opacity:0; } }
-#ynGame{ position:absolute; right:8px; bottom:calc(124px * var(--gs)); z-index:7; display:flex; flex-direction:column; gap:6px; }
-#ynGame button{ width:calc(96px * var(--gs)); height:calc(48px * var(--gs)); background:var(--p-paper); color:var(--p-ink); border:3px solid var(--p-ink); border-radius:6px; font:600 calc(19px * var(--gs)) var(--font-px); }
-#ynGame.free{ right:auto; bottom:auto; }
-#ynGame.free button{ width:100%; height:auto; flex:1; min-height:0; }
-#battleHud .hud{ position:absolute; color:var(--p-ink); font:600 calc(17px * var(--gs))/1.2 var(--font-px); }
-#battleHud .en{ left:5%; top:5%; width:48%; }
-#battleHud .me{ right:5%; top:41%; width:48%; text-align:right; }
+#ynGame{ position:absolute; z-index:7; display:flex; flex-direction:column; gap:6px; }
+#ynGame button{ flex:1; width:100%; min-height:0; background:var(--p-paper); color:var(--p-ink); border:3px solid var(--p-ink); border-radius:6px;
+  font:600 calc(19px * var(--ys, 1)) var(--font-px); box-shadow:0 4px 12px rgba(0,0,0,.25); }
+#battleHud{ position:absolute; z-index:3; }
+#bcv{ position:absolute; inset:0; width:100%; height:100%; display:block; image-rendering:crisp-edges; image-rendering:pixelated; }
+#hudBoxes{ position:absolute; inset:0; }
+.hud{ position:absolute; color:var(--p-ink); font:600 calc(17px * var(--ss, 1))/1.2 var(--font-px); }
+.hud.en{ left:5%; top:6%; width:48%; }
+.hud.me{ right:5%; top:63%; width:48%; text-align:right; }
 .hud .hrow{ display:flex; align-items:center; gap:6px; margin-top:4px; }
 .hud .me-row{ justify-content:flex-end; }
-.hud .lbl{ font-size:12px; background:var(--p-ink); color:var(--p-y); padding:0 4px; border-radius:2px; }
+.hud .lbl{ font-size:.7em; background:var(--p-ink); color:var(--p-y); padding:0 4px; border-radius:2px; }
 .hud .hpb{ flex:1; height:8px; border:2px solid var(--p-ink); border-radius:4px; background:var(--p-paper); overflow:hidden; max-width:150px; }
 .hud .hpb i{ display:block; height:100%; background:var(--p-green); transition:width .6s ease; }
 .hud .hpb i.mid{ background:var(--p-amber); } .hud .hpb i.low{ background:var(--p-red); }
 .hud .num{ margin-top:2px; font-variant-numeric:tabular-nums; }
 
-#lower{ position:absolute; top:404px; left:0; right:0; bottom:24px; display:flex; flex-direction:column; gap:10px; padding:12px 14px 10px; z-index:1;
-  background:linear-gradient(180deg, var(--p-panel) 0%, var(--p-ink) 100%); }
-#lower.freelay{ display:block; padding:0; }
-.fb{ position:absolute; display:flex; }
+/* Comandi sovrapposti al gioco */
+#lower{ position:absolute; inset:0; z-index:4; pointer-events:none; }
+.fb{ position:absolute; display:flex; pointer-events:auto; }
 .fb > *{ flex:1; min-width:0; }
-.fb .loc{ align-self:center; }
-.fb .team-strip{ height:100%; grid-auto-rows:1fr; }
-.fb .cap{ justify-content:center; }
-.fb .free{ height:100%; min-height:0; }
-.fb .bar{ height:100%; grid-auto-rows:1fr; }
-.fb .bar .bb{ height:auto; }
-.fb .bmoves{ height:100%; max-height:none; }
-.fb .bacts{ height:100%; grid-auto-rows:1fr; }
-.fb .ba{ height:auto; }
-#editLayer{ position:absolute; inset:0; z-index:50; touch-action:none; }
-.ef{ position:absolute; border:2px dashed var(--p-y); background:rgba(246,201,51,.07); border-radius:10px; cursor:move; }
-.ef.sel{ border-style:solid; background:rgba(246,201,51,.16); }
-.ef-l{ position:absolute; left:4px; top:4px; max-width:calc(100% - 44px); overflow:hidden; text-overflow:ellipsis; background:var(--p-y); color:var(--p-ink);
-  font:700 11px/1.2 var(--font-ui); padding:3px 7px; border-radius:6px; pointer-events:none; white-space:nowrap; font-variant-numeric:tabular-nums; }
-.ef-h{ position:absolute; right:2px; bottom:2px; width:30px; height:30px; border-radius:50%; background:var(--p-y); border:3px solid var(--p-ink); cursor:nwse-resize; box-shadow:0 2px 8px rgba(0,0,0,.4); }
-.ef-h::after{ content:""; position:absolute; inset:-9px; }
-.guide{ position:absolute; background:#ff4fd8; pointer-events:none; }
-.guide.v{ width:1px; top:0; bottom:0; }
-.guide.h{ height:1px; left:0; right:0; }
-.info{ display:flex; flex-direction:column; gap:8px; }
-.loc{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--p-dim); font-weight:500; letter-spacing:.03em; }
+.teambox{ flex-direction:column; gap:5px; padding:6px 8px 8px; background:var(--p-glass); border:1px solid rgba(255,247,220,.08); border-radius:16px;
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+.teambox > .loc{ flex:none; }
+.loc{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--p-dim); font-weight:500; letter-spacing:.03em; padding:0 2px; }
 .loc .money{ margin-left:auto; color:var(--p-text); font-variant-numeric:tabular-nums; }
-.team-strip{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:6px; }
-.cap{ background:var(--p-panel2); border:1px solid var(--p-line); border-radius:12px; padding:5px 5px 7px; display:flex; flex-direction:column; align-items:center; gap:3px; color:inherit; }
+.team-strip{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); grid-auto-rows:1fr; gap:6px; }
+.cap{ background:var(--p-glass2); border:1px solid var(--p-line); border-radius:12px; padding:4px 5px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:inherit; min-height:0; }
 .cap .hp{ width:100%; }
-.free{ flex:1; position:relative; display:flex; align-items:center; justify-content:center; min-height:60px; }
-.hint{ font-size:13px; color:var(--p-dim); border:1px dashed var(--p-line); padding:8px 14px; border-radius:999px; text-align:center; }
-.yesno{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:14px; background:var(--p-ink); border-radius:18px; }
-.yesno button{ width:140px; height:60px; border-radius:18px; font-size:19px; font-weight:700; border:1px solid var(--p-line); background:var(--p-panel2); color:var(--p-text); }
-.yesno button.yes{ background:var(--p-y); color:var(--p-ink); border-color:var(--p-y); }
-
-.bar{ display:grid; gap:8px; }
-.bb{ height:var(--bh, 64px); border-radius:16px; background:var(--p-panel2); border:1px solid var(--p-line); color:var(--p-y);
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:0 2px; font-size:11.5px; font-weight:600; min-width:0; touch-action:none; }
+.bar{ display:grid; gap:8px; height:100%; grid-auto-rows:1fr; }
+.bb{ border-radius:16px; background:var(--p-glass2); border:1px solid var(--p-line); color:var(--p-y); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:0 2px; font-size:11.5px; font-weight:600; min-width:0; min-height:0; touch-action:none; }
 .bb span{ color:var(--p-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-.bar.s{ --bh:52px; } .bar.m{ --bh:64px; } .bar.l{ --bh:80px; } .bar.l .bb{ font-size:13px; }
-.bb.locked{ opacity:.36; }
+.bar.l .bb{ font-size:13px; }
+.bb.locked{ opacity:.45; }
 .bb.lit{ background:var(--p-y); color:var(--p-ink); border-color:var(--p-y2); animation:glow 1.4s ease-in-out infinite; }
 .bb.lit span{ color:var(--p-ink); }
-@keyframes glow{ 50%{ box-shadow:0 0 0 5px rgba(246,201,51,.28); } }
+@keyframes glow{ 50%{ box-shadow:0 0 0 5px rgba(246,201,51,.35); } }
 .bb:active, .ba:active, .mv:active, .row:active{ transform:scale(.97); }
 .placeholder{ opacity:.25; outline:2px dashed var(--p-y); outline-offset:-2px; }
 .ghost{ position:absolute!important; z-index:40; pointer-events:none; transform:scale(1.08); box-shadow:0 12px 26px rgba(0,0,0,.5); opacity:.95; }
-.empty-bar{ text-align:center; font-size:13px; color:var(--p-dim); padding:14px; border:1px dashed var(--p-line); border-radius:16px; }
+.empty-bar{ display:grid; place-items:center; text-align:center; font-size:13px; color:var(--p-text); padding:10px; background:var(--p-glass); border:1px dashed var(--p-line); border-radius:16px; }
 
-.bpanel{ flex:1; display:flex; flex-direction:column; gap:10px; min-height:0; }
-.bmoves{ display:grid; gap:10px; flex:1; grid-auto-rows:1fr; max-height:300px; }
+.bmoves{ display:grid; gap:10px; height:100%; grid-auto-rows:1fr; }
 .bmoves.griglia{ grid-template-columns:1fr 1fr; }
-.mv{ min-height:80px; border-radius:18px; background:var(--p-panel2); border:1px solid var(--p-line); color:var(--p-text); text-align:left;
-  padding:10px 14px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
-.bmoves.colonna .mv{ min-height:58px; flex-direction:row; align-items:center; justify-content:space-between; }
+.mv{ min-height:0; border-radius:18px; background:var(--p-glass); border:1px solid rgba(255,247,220,.1); color:var(--p-text); text-align:left;
+  padding:10px 14px; display:flex; flex-direction:column; justify-content:center; gap:8px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); box-shadow:0 6px 16px rgba(0,0,0,.18); }
+.bmoves.colonna .mv{ flex-direction:row; align-items:center; justify-content:space-between; }
 .mv .mn{ font-weight:700; font-size:16px; letter-spacing:.02em; }
 .mv .meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12.5px; color:var(--p-dim); font-variant-numeric:tabular-nums; }
 .bmoves.colonna .mv .meta{ justify-content:flex-end; }
-.mv:disabled{ opacity:.45; }
-.bacts{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
-.ba{ height:58px; border-radius:16px; background:var(--p-ink); border:1px solid var(--p-line); color:var(--p-y); display:flex; align-items:center; justify-content:center; gap:8px; font-weight:700; font-size:15px; touch-action:none; }
+.mv:disabled{ opacity:.5; }
+.bacts{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); grid-auto-rows:1fr; gap:10px; height:100%; }
+.ba{ min-height:0; border-radius:16px; background:var(--p-glass); border:1px solid rgba(255,247,220,.1); color:var(--p-y); display:flex; align-items:center; justify-content:center; gap:8px;
+  font-weight:700; font-size:15px; touch-action:none; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); box-shadow:0 6px 16px rgba(0,0,0,.18); }
 .ba span{ color:var(--p-text); }
 
 .type{ display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; color:var(--p-ink); letter-spacing:.02em; }
@@ -167,14 +136,17 @@ body.editing #immTools .ed-only{ display:inline-block; }
 .hp i.mid{ background:var(--p-amber); } .hp i.low{ background:var(--p-red); }
 
 /* Foglio dei menu */
-#sheet{ position:absolute; left:0; right:0; bottom:24px; top:404px; z-index:20; background:var(--p-panel); border-radius:24px 24px 0 0;
+#sheet{ position:absolute; left:0; right:0; bottom:0; top:380px; z-index:20; background:var(--p-panel); border-radius:24px 24px 0 0;
   display:flex; flex-direction:column; transform:translateY(105%); transition:transform .24s cubic-bezier(.2,.8,.2,1); box-shadow:0 -12px 30px rgba(0,0,0,.45); }
 #sheet.open{ transform:none; }
+#sheet.full{ border-radius:0; }
+#sheet.full .sh-head{ padding-top:42px; }
+#sheet.full .grab{ display:none; }
 .sh-head{ display:flex; align-items:center; gap:10px; padding:18px 14px 10px; position:relative; touch-action:none; }
 .grab{ position:absolute; top:7px; left:50%; width:42px; height:4px; margin-left:-21px; border-radius:2px; background:var(--p-line); }
 #shTitle{ margin:0; flex:1; font-size:21px; font-weight:700; }
 .icon-btn{ width:46px; height:46px; border-radius:14px; background:var(--p-panel2); border:1px solid var(--p-line); color:var(--p-text); display:grid; place-items:center; flex:none; }
-#shBody{ flex:1; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; padding:2px 14px 22px; display:flex; flex-direction:column; gap:8px; }
+#shBody{ flex:1; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; padding:2px 14px 34px; display:flex; flex-direction:column; gap:8px; }
 .row{ display:flex; align-items:center; gap:12px; width:100%; min-height:64px; padding:10px 12px; border-radius:16px; background:var(--p-panel2);
   border:1px solid var(--p-line); color:inherit; text-align:left; }
 .row.sel{ border-color:var(--p-y); }
@@ -224,10 +196,26 @@ body.editing #immTools .ed-only{ display:inline-block; }
 .joy-base{ position:absolute; border-radius:50%; background:rgba(23,22,36,.42); border:2px solid rgba(255,247,220,.6); }
 .joy-base svg{ position:absolute; inset:0; width:100%; height:100%; }
 .joy-knob{ position:absolute; border-radius:50%; background:var(--p-y); box-shadow:0 4px 12px rgba(0,0,0,.4); }
-#toast{ position:absolute; left:50%; bottom:132px; transform:translateX(-50%); z-index:45; width:max-content; max-width:360px;
+#toast{ position:absolute; left:50%; top:126px; transform:translateX(-50%); z-index:45; width:max-content; max-width:360px;
   background:var(--p-text); color:var(--p-ink); padding:11px 15px; border-radius:14px; font-weight:600; font-size:14px; text-align:center; line-height:1.35;
-  opacity:0; transition:opacity .2s; pointer-events:none; }
+  opacity:0; transition:opacity .2s; pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.3); }
 #toast.show{ opacity:1; }
+
+/* Modalità Sposta e ridimensiona */
+#editLayer{ position:absolute; inset:0; z-index:50; touch-action:none; }
+.ef{ position:absolute; border:2px dashed var(--p-y); background:rgba(246,201,51,.08); border-radius:10px; cursor:move; }
+.ef.sel{ border-style:solid; background:rgba(246,201,51,.18); }
+.ef-l{ position:absolute; left:4px; top:4px; max-width:calc(100% - 44px); overflow:hidden; text-overflow:ellipsis; background:var(--p-y); color:var(--p-ink);
+  font:700 11px/1.2 var(--font-ui); padding:3px 7px; border-radius:6px; pointer-events:none; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.ef-h{ position:absolute; right:2px; bottom:2px; width:30px; height:30px; border-radius:50%; background:var(--p-y); border:3px solid var(--p-ink); cursor:nwse-resize; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+.ef-h::after{ content:""; position:absolute; inset:-9px; }
+.ef.small .ef-h{ width:22px; height:22px; right:-6px; bottom:auto; top:calc(50% - 11px); border-width:2px; }
+.ef.small .ef-l{ top:auto; bottom:calc(100% + 2px); left:0; }
+.band{ position:absolute; left:0; right:0; border-top:2px dashed rgba(255,79,216,.85); border-bottom:2px dashed rgba(255,79,216,.85); pointer-events:none; }
+.band span{ position:absolute; right:6px; top:4px; background:rgba(255,79,216,.9); color:#fff; font:700 10.5px var(--font-ui); padding:2px 6px; border-radius:5px; }
+.guide{ position:absolute; background:#ff4fd8; pointer-events:none; }
+.guide.v{ width:1px; top:0; bottom:0; }
+.guide.h{ height:1px; left:0; right:0; }
 
 /* ---------- Regolazioni ---------- */
 .settings{ background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:20px; display:flex; flex-direction:column; gap:18px; min-width:0; }
@@ -235,7 +223,7 @@ body.editing #immTools .ed-only{ display:inline-block; }
 .settings .lead{ margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.5; }
 .set-head{ display:flex; align-items:flex-start; gap:10px; }
 .set-head > div{ flex:1; min-width:0; }
-#closeSet{ display:none; }
+#closeSet{ display:none; border:1px solid var(--line); background:transparent; color:var(--fg); }
 #settingsBody{ display:flex; flex-direction:column; gap:16px; }
 .ctl-l{ font-size:13px; font-weight:600; color:var(--muted); margin-bottom:7px; }
 .seg{ display:flex; flex-wrap:wrap; gap:6px; }
@@ -268,7 +256,6 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
   #scrim.on{ display:block; position:fixed; inset:0; z-index:55; background:rgba(0,0,0,.35); }
   header p{ font-size:13px; }
 }
-.settings #closeSet{ border:1px solid var(--line); background:transparent; color:var(--fg); }
 @media (prefers-reduced-motion: reduce){
   #sheet, .settings, #joy, #toast, .hud .hpb i{ transition:none; }
   .bb.lit, #tbMore{ animation:none; }
@@ -278,7 +265,7 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
 <div class="page">
   <header>
     <h1>Laboratorio Giallo Touch</h1>
-    <p>Prove dei comandi in verticale, alla grandezza reale del CMF Phone 2 Pro. Muovi i pezzi, prova, poi invia la configurazione che preferisci. Grafica e nomi sono segnaposto originali: nell'app vera vedrai la grafica del gioco.</p>
+    <p>Il gioco a tutto schermo sul CMF Phone 2 Pro, con i comandi sovrapposti. Appoggia il dito ovunque per far comparire la levetta. Grafica e nomi sono segnaposto originali: nell'app vera vedrai la grafica del gioco.</p>
   </header>
   <div class="bar-top">
     <div class="tabs" role="tablist">
@@ -299,12 +286,11 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
     <div id="stageCol">
       <div id="stageHolder">
         <div id="stage" aria-label="Telefono di prova">
-          <div class="sys-status"><span id="clock">12:00</span><span class="cam"></span><span class="sys-ic"><b></b><i></i></span></div>
           <div id="game">
-            <canvas id="cv" width="160" height="144"></canvas>
-            <div id="battleHud" hidden></div>
-            <div id="ynGame" hidden><button type="button" data-yn="1">SÌ</button><button type="button" data-yn="0">NO</button></div>
+            <canvas id="cv" width="160" height="355"></canvas>
+            <div id="battleHud" hidden><canvas id="bcv" width="160" height="96"></canvas><div id="hudBoxes"></div></div>
             <div id="textbox" hidden><span id="tbText"></span><span id="tbMore" hidden>▼</span></div>
+            <div id="ynGame" hidden><button type="button" data-yn="1">SÌ</button><button type="button" data-yn="0">NO</button></div>
           </div>
           <div id="lower"></div>
           <div id="sheet" hidden>
@@ -323,7 +309,7 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
             <div class="joy-knob" id="joyKnob"></div></div>
           <div id="editLayer" hidden></div>
           <div id="toast" role="status"></div>
-          <div class="sys-nav"><span></span></div>
+          <span class="cam" aria-hidden="true"></span>
         </div>
       </div>
     </div>
@@ -334,7 +320,7 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
       <div class="send">
         <h3>Invia la configurazione</h3>
         <label for="note" class="ctl-l">Cosa vorresti cambiare? (facoltativo)</label>
-        <textarea id="note" placeholder="Es. i pulsanti li vorrei più grandi e la levetta solo in basso…"></textarea>
+        <textarea id="note" placeholder="Es. i pulsanti li vorrei più grandi…"></textarea>
         <div class="btns">
           <button class="primary" id="sendBtn" type="button">Invia a Claude</button>
           <button class="secondary" id="resetBtn" type="button">Ripristina predefiniti</button>
@@ -351,10 +337,13 @@ textarea{ width:100%; min-height:84px; resize:vertical; border-radius:12px; bord
 <script>
 (() => {
 'use strict';
-const W = 411, H = 911, ST = 34, GH = 370, GB = ST + GH, NAV = 24;
+/* Telefono: 411×911 dp. Gioco: 160 pixel di larghezza (10 caselle, come l'originale), 355 di altezza a tutto schermo. */
+const W = 411, H = 911, CW = 160, CH = 355, PX = W / CW, CAMY = 170;
+const BAND = { y:Math.round((CAMY - 64) * PX), h:Math.round(144 * PX) };   // inquadratura originale del Game Boy
 const $ = s => document.querySelector(s);
-const stage = $('#stage'), holder = $('#stageHolder'), cv = $('#cv'), ctx = cv.getContext('2d');
-ctx.imageSmoothingEnabled = false;
+const stage = $('#stage'), holder = $('#stageHolder');
+const ctx = $('#cv').getContext('2d'), bctx = $('#bcv').getContext('2d');
+ctx.imageSmoothingEnabled = false; bctx.imageSmoothingEnabled = false;
 let scale = 1;
 
 /* ---------------- Icone ---------------- */
@@ -390,35 +379,49 @@ const BACT = { squadra:{l:'Squadra', i:ICON.team}, borsa:{l:'Borsa', i:ICON.bag}
 /* ---------------- Configurazione ---------------- */
 const KEY = 'giallo-touch-lab-v1';
 const DEF = {
-  joy:{ zone:'ovunque', mode:'fissa', size:'M', tapInteract:true, tapWalk:false },
-  bar:{ buttons:['squadra','borsa','pokedex','scheda','negozio','pc'], rows:1, labels:true, size:'m', shop:'contesto', info:true, pos:'basso' },
+  joy:{ mode:'fissa', size:'M', tapInteract:true, tapWalk:false },
+  view:{ extra:'visibile' },
+  bar:{ buttons:['squadra','borsa','pokedex','scheda','negozio','pc'], rows:1, labels:true, size:'m', shop:'contesto', info:true },
   menu:{ style:'intero' },
-  dialog:{ yesno:'gioco', speed:'media' },
-  battle:{ layout:'griglia', actions:'sotto', showType:true, showPP:true, order:['squadra','borsa','fuga'] },
+  dialog:{ speed:'media' },
+  battle:{ layout:'griglia', showType:true, showPP:true, order:['squadra','borsa','fuga'] },
   layout:{ explore:null, battle:null }
 };
+const BAR_ROW = { s:52, m:64, l:80 };
+const RATIO = { dlg:120 / 399, text:120 / 399, scene:96 / 160 };
+const LKEYS = { explore:['team','bar','dlg','yn'], battle:['scene','text','moves','acts'] };
+const ELBL = { team:'Squadra', bar:'Pulsanti', dlg:'Dialoghi', yn:'Sì / No', scene:'Scena di lotta', text:'Testo di lotta', moves:'Mosse', acts:'Squadra · Borsa · Fuga' };
 const clone = o => JSON.parse(JSON.stringify(o));
 function merge(a, b){ for (const k in b){ if (!(k in a)) continue; if (b[k] && typeof b[k]==='object' && !Array.isArray(b[k]) && a[k] && typeof a[k]==='object') merge(a[k], b[k]); else a[k] = b[k]; } return a; }
 let hadLocal = false;
 function loadCfg(){ try { const s = localStorage.getItem(KEY); if (s){ hadLocal = true; return merge(clone(DEF), JSON.parse(s)); } } catch(e){} return clone(DEF); }
 function saveCfg(){ try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch(e){} }
+const barH = () => cfg.bar.rows * (BAR_ROW[cfg.bar.size] || 64) + (cfg.bar.rows - 1) * 8;
+function defLayout(sc){
+  if (sc === 'battle') return { scene:{ x:0, y:40, w:411, h:247 }, text:{ x:6, y:298, w:399, h:120 }, moves:{ x:10, y:470, w:391, h:286 }, acts:{ x:10, y:768, w:391, h:64 } };
+  const bh = barH(), by = H - 28 - bh;
+  return { team:{ x:10, y:36, w:391, h:78 }, bar:{ x:10, y:by, w:391, h:bh }, dlg:{ x:6, y:by - 130, w:399, h:120 }, yn:{ x:W - 8 - 96, y:by - 130 - 110, w:96, h:102 } };
+}
 function sanitize(){
   if (!Array.isArray(cfg.bar.buttons)) cfg.bar.buttons = clone(DEF.bar.buttons);
   cfg.bar.buttons = cfg.bar.buttons.filter((id, i, a) => BTN[id] && a.indexOf(id) === i);
+  if (![1, 2].includes(cfg.bar.rows)) cfg.bar.rows = 1;
+  if (!BAR_ROW[cfg.bar.size]) cfg.bar.size = 'm';
   const ord = Array.isArray(cfg.battle.order) ? cfg.battle.order.filter((id, i, a) => BACT[id] && a.indexOf(id) === i) : [];
   cfg.battle.order = ord.length === 3 ? ord : clone(DEF.battle.order);
   if (!cfg.layout || typeof cfg.layout !== 'object') cfg.layout = { explore:null, battle:null };
   for (const sc of ['explore', 'battle']){
     const lay = cfg.layout[sc];
     if (!lay || typeof lay !== 'object'){ cfg.layout[sc] = null; continue; }
-    const clean = {};
-    for (const k of Object.keys(lay)){
-      if (!['game','loc','team','hint','bar','yn','moves','acts'].includes(k)) continue;
-      const r = lay[k] || {}; const n = v => Math.round(Number(v)) || 0;
-      clean[k] = { x:Math.max(0, Math.min(W, n(r.x))), y:Math.max(0, Math.min(H, n(r.y))), w:Math.max(24, Math.min(W, n(r.w))), h:Math.max(20, Math.min(H, n(r.h))) };
+    const clean = {}, n = v => Math.round(Number(v)) || 0;
+    for (const k of LKEYS[sc]){
+      if (!lay[k] || typeof lay[k] !== 'object') continue;
+      const r = lay[k];
+      const c = { x:Math.max(0, Math.min(W - 24, n(r.x))), y:Math.max(0, Math.min(H - 20, n(r.y))), w:Math.max(24, Math.min(W, n(r.w))), h:Math.max(20, Math.min(H, n(r.h))) };
+      if (RATIO[k]) c.h = Math.round(c.w * RATIO[k]);
+      clean[k] = c;
     }
-    const need = sc === 'battle' ? ['game','moves','acts'] : ['game','loc','team','hint','bar','yn'];
-    cfg.layout[sc] = need.every(k => clean[k]) ? clean : null;
+    cfg.layout[sc] = LKEYS[sc].every(k => clean[k]) ? clean : null;
   }
 }
 let cfg = loadCfg();
@@ -477,6 +480,11 @@ const hpBar = (hp, max) => `<span class="hp"><i class="${hpCls(hp,max)}" style="
 /* ---------------- Mappa di prova ---------------- */
 const MAP = [
   'TTTTTTTTTTTTTTTTTTTT',
+  'TTT,,,,TTTTTT..F..TT',
+  'TT,,,,,,,TTTT......T',
+  'T..,,,,....==......T',
+  'T......F...==..F...T',
+  'TTTTTTTTTTT==TTTTTTT',
   'T..F.....====...,,,T',
   'T.RRRR...====..,,,,T',
   'T.HWWH...====..,,,,T',
@@ -493,15 +501,22 @@ const MAP = [
   'T,,,,,...........F.T',
   'T,,,,,..TT.....I...T',
   'T,,,,,..TT.........T',
+  'TTTTTTTTTTTT..TTTTTT',
+  'T......,,,,,.......T',
+  'T..F...,,,,,...TT..T',
+  'T......,,,,,...TT..T',
+  'T.........F........T',
   'TTTTTTTTTTTTTTTTTTTT'
 ];
 const MW = 20, MHt = MAP.length;
 const grid = MAP.map(r => r.split(''));
-const ents = [];
+const ents = [], COUNTERS = []; let PCPOS = { x:-9, y:-9 };
 grid.forEach((row, y) => row.forEach((ch, x) => {
   if (ch === 'N'){ ents.push({ k:'npc', x, y, dir:'down' }); row[x] = '.'; }
   if (ch === 'K'){ ents.push({ k:'clerk', x, y, dir:'down' }); row[x] = '.'; }
   if (ch === 'I'){ ents.push({ k:'item', x, y }); row[x] = '.'; }
+  if (ch === 'P') PCPOS = { x, y };
+  if (ch === 'C') COUNTERS.push({ x, y });
 }));
 const D = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 const OPP = { up:'down', down:'up', left:'right', right:'left' };
@@ -511,8 +526,8 @@ const entAt = (x, y) => ents.find(e => !e.gone && e.x === x && e.y === y);
 const canStand = (x, y) => PASS.has(tile(x, y)) && !entAt(x, y);
 const dirTo = (ax, ay, bx, by) => bx > ax ? 'right' : bx < ax ? 'left' : by > ay ? 'down' : by < ay ? 'up' : null;
 
-const P = { x:10, y:5, dir:'down', mv:null, par:0 };
-const C = { x:10, y:4, dir:'down', mv:null, par:0, emote:0 };
+const P = { x:10, y:10, dir:'down', mv:null, par:0 };
+const C = { x:10, y:9, dir:'down', mv:null, par:0, emote:0 };
 let path = [], pending = null, marker = null, joyDir = null, keyDir = null;
 let ctxState = { shop:false, pc:false };
 let tab = 'levetta', scene = 'explore';
@@ -533,8 +548,8 @@ function tryStep(dir){
   return true;
 }
 function updateContext(){
-  const shop = P.y === 11 && P.x >= 13 && P.x <= 15;
-  const pc = Math.abs(P.x - 17) + Math.abs(P.y - 5) === 1;
+  const shop = COUNTERS.some(c => P.x === c.x && P.y === c.y + 1);
+  const pc = Math.abs(P.x - PCPOS.x) + Math.abs(P.y - PCPOS.y) === 1;
   if (shop !== ctxState.shop || pc !== ctxState.pc){ ctxState = { shop, pc }; syncBarStates(); }
 }
 function bfs(goals){
@@ -571,7 +586,7 @@ function planInteract(t){
   for (const f of Object.keys(D)){
     const [dx, dy] = D[f];
     const sx = t.x - dx, sy = t.y - dy;
-    if ((canStand(sx, sy)) || (sx === P.x && sy === P.y)) goals.push({ x:sx, y:sy, face:f });
+    if (canStand(sx, sy) || (sx === P.x && sy === P.y)) goals.push({ x:sx, y:sy, face:f });
     if (tile(sx, sy) === 'C' && canStand(sx - dx, sy - dy)) goals.push({ x:sx - dx, y:sy - dy, face:f });
   }
   const r = bfs(goals);
@@ -624,21 +639,16 @@ function advance(){
   if (dlg.i < dlg.pages.length - 1){ dlg.i++; return typePage(); }
   closeDlg();
 }
-function closeDlg(){ const d = dlg; clearInterval(d.iv); dlg = null; $('#textbox').hidden = true; syncYN(); if (d.onEnd) d.onEnd(); }
+function closeDlg(){ const d = dlg; clearInterval(d.iv); dlg = null; $('#textbox').hidden = true; syncYN(); syncPreview(); if (d.onEnd) d.onEnd(); }
 function answer(yes){ if (!dlg || !dlg.waitYN) return; const q = dlg.q; dlg.q = null; dlg.waitYN = false; closeDlg(); (yes ? q.yes : q.no)(); }
-function syncYN(){
-  const show = scene === 'explore' && (editMode || !!(dlg && dlg.waitYN));
-  const panel = $('#ynPanel'), yg = $('#ynGame');
-  yg.hidden = !(show && cfg.dialog.yesno === 'gioco');
-  if (panel) panel.hidden = !(show && cfg.dialog.yesno === 'pannello');
-  if (show && cfg.dialog.yesno === 'pannello' && !panel) yg.hidden = false;
-  const lay = curLay();
-  if (lay && lay.yn && scene === 'explore'){
-    const g = G(); yg.classList.add('free');
-    yg.style.left = (lay.yn.x - g.x) + 'px'; yg.style.top = (lay.yn.y - g.y) + 'px';
-    yg.style.width = lay.yn.w + 'px'; yg.style.height = lay.yn.h + 'px';
-  } else { yg.classList.remove('free'); yg.style.left = yg.style.top = yg.style.width = yg.style.height = ''; }
+function syncYN(){ $('#ynGame').hidden = !(scene === 'explore' && (editMode || !!(dlg && dlg.waitYN))); }
+function syncPreview(){
+  if (scene !== 'explore' || dlg) return;
+  const tb = $('#textbox');
+  if (editMode){ tb.hidden = false; $('#tbText').textContent = 'Qui compaiono i\ndialoghi del gioco.'; $('#tbMore').hidden = true; }
+  else tb.hidden = true;
 }
+$('#ynGame').addEventListener('click', e => { const yn = e.target.closest('[data-yn]'); if (yn && !editMode) answer(yn.dataset.yn === '1'); });
 
 /* ---------------- Disegno ---------------- */
 const r = (c, x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
@@ -703,9 +713,9 @@ function pos(o, now){
 let cam = { x:0, y:0 };
 function drawWorld(now){
   const pp = pos(P, now), cp = pos(C, now);
-  cam = { x:Math.round(pp.x - 64), y:Math.round(pp.y - 64) };
+  cam = { x:Math.round(pp.x - 64), y:Math.round(pp.y) - CAMY };
   const tx0 = Math.floor(cam.x / 16), ty0 = Math.floor(cam.y / 16);
-  for (let ty = ty0; ty <= ty0 + 9; ty++) for (let tx = tx0; tx <= tx0 + 10; tx++) drawTile(tile(tx, ty), tx * 16 - cam.x, ty * 16 - cam.y, now);
+  for (let ty = ty0; ty <= ty0 + Math.ceil(CH / 16); ty++) for (let tx = tx0; tx <= tx0 + 10; tx++) drawTile(tile(tx, ty), tx * 16 - cam.x, ty * 16 - cam.y, now);
   if (marker){
     const mx = marker.x * 16 - cam.x, my = marker.y * 16 - cam.y;
     if (marker.ok){ const c = '#f6c933'; r(c, mx, my, 4, 2); r(c, mx, my, 2, 4); r(c, mx+12, my, 4, 2); r(c, mx+14, my, 2, 4); r(c, mx, my+14, 4, 2); r(c, mx, my+12, 2, 4); r(c, mx+12, my+14, 4, 2); r(c, mx+14, my+12, 2, 4); }
@@ -717,6 +727,10 @@ function drawWorld(now){
   spr.push({ y:cp.y, f:() => { critter(Math.round(cp.x - cam.x), Math.round(cp.y - cam.y + cp.hop), C.dir, cp.ph !== 0); if (C.emote > now) bubble(Math.round(cp.x - cam.x), Math.round(cp.y - cam.y)); } });
   spr.push({ y:pp.y + .5, f:() => person(Math.round(pp.x - cam.x), Math.round(pp.y - cam.y + pp.hop), P.dir, pp.ph, PAL.player) });
   spr.sort((a, b) => a.y - b.y).forEach(s => s.f());
+  /* parte di mappa fuori dall'inquadratura originale (sopra e sotto) */
+  const y0 = CAMY - 64, y1 = y0 + 144;
+  if (cfg.view.extra === 'attenuata'){ r('rgba(12,11,22,.5)', 0, 0, CW, y0); r('rgba(12,11,22,.5)', 0, y1, CW, CH - y1); }
+  else if (cfg.view.extra === 'nascosta'){ r('#0e0d18', 0, 0, CW, y0); r('#0e0d18', 0, y1, CW, CH - y1); }
 }
 
 /* ---------------- Lotta ---------------- */
@@ -724,7 +738,7 @@ const ENEMY = { n:'MUFFOLO', lv:9, hp:26, max:26, col:'#b07acc', f:'horn' };
 const B = { me:TEAM[0], en:clone(ENEMY), busy:false, flash:{ who:null, until:0 } };
 let bq = null;
 function blob(x, y, s, m, back){
-  const R = (c, a, b, w, h) => r(c, x + a*s, y + b*s, w*s, h*s), c = m.col;
+  const R = (c, a, b, w, h) => { bctx.fillStyle = c; bctx.fillRect(x + a*s, y + b*s, w*s, h*s); }, c = m.col;
   if (m.f === 'leaf'){ R('#6bbf3a', 7, 1, 2, 3); R('#6bbf3a', 9, 1, 2, 1); }
   if (m.f === 'horn') R('#f3e6c4', 7, 1, 2, 3);
   if (m.f === 'fin'){ R(c, 7, 2, 2, 2); R(c, 8, 1, 1, 1); }
@@ -734,17 +748,20 @@ function blob(x, y, s, m, back){
   R(c, 5, 4, 6, 1); R(c, 4, 5, 8, 9); R(c, 3, 7, 10, 6); R('rgba(0,0,0,.18)', 4, 13, 8, 1);
   if (!back){ R('#171624', 6, 8, 1, 2); R('#171624', 9, 8, 1, 2); }
 }
+const BATTLE_BG = '#f6f3e4';
 function drawBattle(now){
-  r('#f6f3e4', 0, 0, 160, 144);
-  r('#ddd5b5', 92, 50, 60, 5); r('#cbc29f', 98, 55, 48, 3);
-  r('#ddd5b5', 4, 92, 70, 5); r('#cbc29f', 10, 97, 58, 3);
+  r(BATTLE_BG, 0, 0, CW, CH);
+  const R = (c, x, y, w, h) => { bctx.fillStyle = c; bctx.fillRect(x, y, w, h); };
+  R(BATTLE_BG, 0, 0, 160, 96);
+  R('#ddd5b5', 92, 50, 60, 5); R('#cbc29f', 98, 55, 48, 3);
+  R('#ddd5b5', 4, 88, 70, 5); R('#cbc29f', 10, 93, 58, 3);
   const fl = B.flash.until > now && Math.floor(now / 80) % 2;
   if (!(fl && B.flash.who === 'en') && !B.en.ko) blob(106, 22, 2, B.en, false);
-  if (!(fl && B.flash.who === 'me')) blob(14, 52, 3, B.me, true);
+  if (!(fl && B.flash.who === 'me')) blob(14, 48, 3, B.me, true);
 }
 function renderHud(){
   const en = B.en, me = B.me;
-  $('#battleHud').innerHTML =
+  $('#hudBoxes').innerHTML =
     `<div class="hud en"><div>${en.n}</div><div class="hrow"><span>Lv${en.lv}</span></div><div class="hrow"><span class="lbl">PS</span><span class="hpb"><i id="hpEn"></i></span></div></div>` +
     `<div class="hud me"><div>${me.n}</div><div class="hrow me-row"><span>Lv${me.lv}</span></div><div class="hrow me-row"><span class="lbl">PS</span><span class="hpb"><i id="hpMe"></i></span></div><div class="num" id="numMe"></div></div>`;
   updateHud();
@@ -769,7 +786,7 @@ function flash(who){ B.flash = { who, until:performance.now() + 560 }; }
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 function enemyTurn(){ const d = rnd(2, 5); return [[`${B.en.n} nemico usa\nSPINTONE!`, () => { B.me.hp = Math.max(1, B.me.hp - d); flash('me'); updateHud(); }]]; }
 function useMove(i){
-  if (B.busy) return; const m = B.me.mv[i]; if (!m || m[2] <= 0) return; m[2]--;
+  if (B.busy || editMode) return; const m = B.me.mv[i]; if (!m || m[2] <= 0) return; m[2]--;
   const nh = Math.max(0, B.en.hp - rnd(4, 9));
   const steps = [[`${B.me.n} usa\n${m[0]}!`, () => { B.en.hp = nh; flash('en'); updateHud(); }]];
   if (nh === 0){ steps.push([`${B.en.n} nemico\nè esausto!`, () => { B.en.ko = true; }], [`${B.me.n} guadagna\n${24 + B.en.lv * 2} Punti Esp.!`]); bseq(steps, resetBattle); }
@@ -777,30 +794,26 @@ function useMove(i){
 }
 function resetBattle(){ B.en = clone(ENEMY); renderHud(); bseq([[`Appare un altro\n${B.en.n} selvatico!`]]); }
 function battleAct(id){
-  if (B.busy) return;
+  if (B.busy || editMode) return;
   if (id === 'fuga') return bseq([['Fuga riuscita!'], ['(Demo: la lotta\nricomincia.)']], resetBattle);
   openSheet(id, { battle:true });
 }
 
-/* ---------------- Parte inferiore ---------------- */
-const curLay = () => cfg.layout[scene === 'battle' ? 'battle' : 'explore'];
-const G = () => { const l = curLay(); return (l && l.game) || { x:0, y:ST, w:W, h:GH }; };
-const gBottom = () => { const g = G(); return g.y + g.h; };
-const inRect = (p, r) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
-function applyGame(){
-  const g = G(), el = $('#game');
-  el.style.left = g.x + 'px'; el.style.top = g.y + 'px'; el.style.width = g.w + 'px'; el.style.height = g.h + 'px';
-  el.style.setProperty('--gs', (g.w / W).toFixed(4));
+/* ---------------- Comandi sovrapposti ---------------- */
+const scKey = () => scene === 'battle' ? 'battle' : 'explore';
+const curLay = () => cfg.layout[scKey()] || defLayout(scKey());
+const sheetTop = () => cfg.menu.style === 'intero' ? 0 : 380;
+const place = (el, q) => { el.style.left = q.x + 'px'; el.style.top = q.y + 'px'; el.style.width = q.w + 'px'; el.style.height = q.h + 'px'; };
+function applyLayout(){
+  const lay = curLay(), tb = $('#textbox');
+  const t = scene === 'battle' ? lay.text : lay.dlg;
+  place(tb, t); tb.style.setProperty('--ts', (t.w / 399).toFixed(4));
+  if (scene === 'battle'){ const hud = $('#battleHud'); place(hud, lay.scene); hud.style.setProperty('--ss', (lay.scene.w / 411).toFixed(4)); }
+  else { const yg = $('#ynGame'); place(yg, lay.yn); yg.style.setProperty('--ys', Math.min(lay.yn.w / 96, lay.yn.h / 102).toFixed(4)); }
 }
-const locHTML = () => `<div class="loc">${svg(ICON.pin, 15)}<span>PRATO DI PROVA</span><span class="money">${money.toLocaleString('it-IT')} ¤</span></div>`;
-const teamHTML = () => `<div class="team-strip">${TEAM.map((m, i) => `<button type="button" class="cap" data-cap="${i}" aria-label="${m.n}">${creature(m, 26)}${hpBar(m.hp, m.max)}</button>`).join('')}</div>`;
-const infoHTML = () => `<div class="info">${locHTML()}${teamHTML()}</div>`;
-const fbox = (r, k, inner) => `<div class="fb" data-el="${k}" style="left:${r.x}px;top:${r.y - ST}px;width:${r.w}px;height:${r.h}px">${inner}</div>`;
-function freeHTML(){
-  const z = cfg.joy.zone;
-  const hint = z === 'gioco' ? 'La levetta compare solo sullo schermo di gioco' : 'Appoggia il dito e trascina per muoverti';
-  return `<div class="free"><span class="hint">${hint}</span><div class="yesno" id="ynPanel" hidden><button type="button" class="yes" data-yn="1">Sì</button><button type="button" data-yn="0">No</button></div></div>`;
-}
+const locHTML = () => `<div class="loc">${svg(ICON.pin, 14)}<span>PRATO DI PROVA</span><span class="money">${money.toLocaleString('it-IT')} ¤</span></div>`;
+const teamHTML = () => `<div class="team-strip">${TEAM.map((m, i) => `<button type="button" class="cap" data-cap="${i}" aria-label="${m.n}">${creature(m, 24)}${hpBar(m.hp, m.max)}</button>`).join('')}</div>`;
+const fbox = (q, k, inner, cls = '') => `<div class="fb ${cls}" data-el="${k}" style="left:${q.x}px;top:${q.y}px;width:${q.w}px;height:${q.h}px">${inner}</div>`;
 function barHTML(){
   const ids = cfg.bar.buttons, n = ids.length;
   if (!n) return '<div class="empty-bar">Nessun pulsante: aggiungili dalle regolazioni.</div>';
@@ -817,24 +830,15 @@ function movesHTML(){
   return `<div class="bmoves ${bt.layout}">${mv}</div>`;
 }
 const actsHTML = () => `<div class="bacts" id="bacts">${cfg.battle.order.map(id => `<button type="button" class="ba" data-reorder data-id="${id}" ${B.busy ? 'disabled' : ''}>${svg(BACT[id].i, 20)}<span>${BACT[id].l}</span></button>`).join('')}</div>`;
-function battleHTML(){ return `<div class="bpanel">${cfg.battle.actions === 'sopra' ? actsHTML() + movesHTML() : movesHTML() + actsHTML()}</div>`; }
 function renderLower(){
   const L = $('#lower'), lay = curLay();
-  applyGame();
-  L.classList.toggle('freelay', !!lay);
-  L.style.top = lay ? ST + 'px' : '';
+  applyLayout();
   if (scene === 'battle'){
-    L.innerHTML = lay ? fbox(lay.moves, 'moves', movesHTML()) + fbox(lay.acts, 'acts', actsHTML()) : battleHTML();
+    L.innerHTML = fbox(lay.moves, 'moves', movesHTML()) + fbox(lay.acts, 'acts', actsHTML());
     reorderable($('#bacts'), battleAct, ids => { cfg.battle.order = ids; saveCfg(); renderLower(); });
     return;
   }
-  if (lay){
-    L.innerHTML = (cfg.bar.info ? fbox(lay.loc, 'loc', locHTML()) + fbox(lay.team, 'team', teamHTML()) : '') + fbox(lay.hint, 'hint', freeHTML()) + fbox(lay.bar, 'bar', barHTML());
-  } else {
-    const parts = { info:cfg.bar.info ? infoHTML() : '', free:freeHTML(), bar:barHTML() };
-    const order = cfg.bar.pos === 'basso' ? ['info','free','bar'] : ['bar','info','free'];
-    L.innerHTML = order.map(k => parts[k]).join('');
-  }
+  L.innerHTML = (cfg.bar.info ? fbox(lay.team, 'team', locHTML() + teamHTML(), 'teambox') : '') + fbox(lay.bar, 'bar', barHTML());
   const bar = $('#bar');
   if (bar) reorderable(bar, barTap, ids => { cfg.bar.buttons = ids; saveCfg(); renderLower(); renderSettings(); });
   syncBarStates(); syncYN();
@@ -842,13 +846,12 @@ function renderLower(){
 function syncBarStates(){
   document.querySelectorAll('#bar .bb').forEach(b => {
     const m = BTN[b.dataset.id];
-    const locked = m.ctx && cfg.bar.shop === 'contesto' && !ctxState[m.ctx];
-    b.classList.toggle('locked', !!locked);
+    b.classList.toggle('locked', !!(m.ctx && cfg.bar.shop === 'contesto' && !ctxState[m.ctx]));
     b.classList.toggle('lit', !!(m.ctx && cfg.bar.shop === 'contesto' && ctxState[m.ctx]));
   });
 }
 function barTap(id){
-  if (dlg || bq) return;
+  if (dlg || bq || editMode) return;
   const m = BTN[id];
   if (m.ctx && cfg.bar.shop === 'contesto' && !ctxState[m.ctx]){
     toast(id === 'negozio' ? 'Il negozio si apre davanti al bancone: parla con il commesso.' : 'Il PC si usa davanti a un terminale PC.');
@@ -857,17 +860,16 @@ function barTap(id){
   openSheet(id);
 }
 $('#lower').addEventListener('click', e => {
+  if (editMode) return;
   const cap = e.target.closest('[data-cap]'); if (cap && !dlg) return openSheet('scheda', { idx:+cap.dataset.cap });
-  const yn = e.target.closest('[data-yn]'); if (yn) return answer(yn.dataset.yn === '1');
   const mv = e.target.closest('[data-mv]'); if (mv) return useMove(+mv.dataset.mv);
 });
-$('#ynGame').addEventListener('click', e => { const yn = e.target.closest('[data-yn]'); if (yn) answer(yn.dataset.yn === '1'); });
 
 /* Riordino con pressione prolungata */
 function reorderable(container, onTap, onOrder){
   if (!container) return;
   container.addEventListener('pointerdown', e => {
-    const item = e.target.closest('[data-reorder]'); if (!item || item.disabled) return;
+    const item = e.target.closest('[data-reorder]'); if (!item || item.disabled || editMode) return;
     e.preventDefault();
     const sx = e.clientX, sy = e.clientY, pid = e.pointerId; let drag = false, cancelled = false, ghost = null, offx = 0, offy = 0;
     const timer = setTimeout(() => {
@@ -904,7 +906,7 @@ function openSheet(id, opts = {}){
   path = []; pending = null; marker = null; joyDir = null;
   SS = { id, opts, sub:null, idx:opts.idx || 0, sel:null, tab:null, qty:1, dexN:null, pick:null };
   const sh = $('#sheet');
-  sh.style.top = (cfg.menu.style === 'intero' ? ST : gBottom()) + 'px';
+  sh.style.top = sheetTop() + 'px'; sh.classList.toggle('full', cfg.menu.style === 'intero');
   renderSheet(); sh.hidden = false; void sh.offsetHeight; sh.classList.add('open');
   $('#shBody').scrollTop = 0;
 }
@@ -986,7 +988,7 @@ function pcHTML(){
     h += BOX.length ? BOX.map((m, i) => `<div class="row">${creature(m, 40)}<span class="grow"><span class="name">${m.n}</span><span class="sub">Lv ${m.lv}</span></span><button type="button" class="act" style="flex:none;width:96px" data-a="withdraw" data-i="${i}" ${TEAM.length >= 6 ? 'disabled' : ''}>Ritira</button></div>`).join('') : '<p class="pnote">Il box è vuoto.</p>';
     h += '<div class="sec">Squadra</div>';
     h += TEAM.map((m, i) => `<div class="row">${creature(m, 40)}<span class="grow"><span class="name">${m.n}</span><span class="sub">Lv ${m.lv}</span></span><button type="button" class="act alt" style="flex:none;width:96px" data-a="deposit" data-i="${i}" ${TEAM.length <= 1 || i === 0 ? 'disabled' : ''}>Deposita</button></div>`).join('');
-    h += `<p class="pnote">Squadra piena (6): per ritirare devi prima depositare. ${TEAM.length >= 6 ? '' : ''}</p>`;
+    h += '<p class="pnote">Squadra piena (6): per ritirare devi prima depositare.</p>';
   } else {
     h += '<div class="sec">Nel PC</div>';
     h += PCITEMS.filter(x => x.q > 0).map((x, i) => `<div class="row"><span class="grow"><span class="name">${x.n}</span></span><span class="right">×${x.q}</span><button type="button" class="act" style="flex:none;width:96px" data-a="pcwith" data-i="${i}">Ritira</button></div>`).join('') || '<p class="pnote">Nessuno strumento nel PC.</p>';
@@ -1078,7 +1080,7 @@ $('#shBody').addEventListener('click', e => {
     case 'deposit': if (TEAM.length > 1 && i > 0){ const m = TEAM.splice(i, 1)[0]; BOX.push(m); toast(`${m.n} è nel Box 1.`); renderLower(); } break;
     case 'pcwith': { const list = PCITEMS.filter(x => x.q > 0), x = list[i]; x.q--; const b = BAG.find(y => y.n === x.n); if (b) b.q++; toast(`Hai ritirato ${x.n}.`); break; }
     case 'save': { const d = new Date(); lastSave = d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }); toast('Partita salvata.'); break; }
-    case 'ospeed': cfg.dialog.speed = a.dataset.v; saveCfg(); renderSettings(); break;
+    case 'ospeed': cfg.dialog.speed = a.dataset.v; saveCfg(); break;
     case 'opt': OPT[a.dataset.k] = a.dataset.v; break;
   }
   renderSheet();
@@ -1111,22 +1113,20 @@ const toStage = e => { const b = stage.getBoundingClientRect(); return { x:(e.cl
 let gest = null;
 stage.addEventListener('pointerdown', e => {
   const t = e.target;
-  if (editMode || t.closest('#sheet') || t.closest('[data-reorder]') || t.closest('button')) return;
-  const p = toStage(e), g = G();
-  if (scene === 'battle'){ if (inRect(p, g)) bnext(); return; }
+  if (editMode || t.closest('#sheet') || t.closest('[data-reorder]') || t.closest('button') || t.closest('.fb')) return;
+  const p = toStage(e);
+  if (scene === 'battle'){ bnext(); return; }
   if (dlg){ gest = { id:e.pointerId, dlg:true }; return; }
-  if (SS){ if (inRect(p, g)) closeSheet(); return; }
-  const inGame = inRect(p, g), z = cfg.joy.zone;
-  const joyOK = z === 'ovunque' ? (p.y >= ST && p.y < H - NAV) : z === 'sotto' ? (!inGame && p.y >= g.y && p.y < H - NAV) : inGame;
-  gest = { id:e.pointerId, x0:p.x, y0:p.y, t0:performance.now(), inGame, joyOK, active:false, ox:p.x, oy:p.y };
+  if (SS){ if (p.y < sheetTop()) closeSheet(); return; }
+  gest = { id:e.pointerId, x0:p.x, y0:p.y, t0:performance.now(), active:false, ox:p.x, oy:p.y };
   try { stage.setPointerCapture(e.pointerId); } catch(err){}
-  if (joyOK){ placeJoy(p.x, p.y, 0, 0, null); joy.classList.add('on'); }
+  placeJoy(p.x, p.y, 0, 0, null); joy.classList.add('on');
 });
 stage.addEventListener('pointermove', e => {
-  if (!gest || gest.id !== e.pointerId || gest.dlg || !gest.joyOK) return;
+  if (!gest || gest.id !== e.pointerId || gest.dlg) return;
   const p = toStage(e), R = joyR();
   if (Math.hypot(p.x - gest.x0, p.y - gest.y0) > 10) gest.active = true;
-  let dx = p.x - gest.ox, dy = p.y - gest.oy, dist = Math.hypot(dx, dy);
+  let dx = p.x - gest.ox, dy = p.y - gest.oy; const dist = Math.hypot(dx, dy);
   if (dist > R){
     if (cfg.joy.mode === 'segue'){ gest.ox = p.x - dx / dist * R; gest.oy = p.y - dy / dist * R; }
     dx = dx / dist * R; dy = dy / dist * R;
@@ -1141,12 +1141,11 @@ function endGesture(e){
   if (g.dlg){ advance(); return; }
   if (e.type !== 'pointerup') return;
   const p = toStage(e);
-  if (!g.active && Math.hypot(p.x - g.x0, p.y - g.y0) < 12 && performance.now() - g.t0 < 450 && g.inGame) tapGame(p.x, p.y);
+  if (!g.active && Math.hypot(p.x - g.x0, p.y - g.y0) < 12 && performance.now() - g.t0 < 450) tapGame(p.x, p.y);
 }
 stage.addEventListener('pointerup', endGesture); stage.addEventListener('pointercancel', endGesture);
 function tapGame(x, y){
-  const g = G(), gx = (x - g.x) * 160 / g.w, gy = (y - g.y) * 144 / g.h;
-  const tx = Math.floor((gx + cam.x) / 16), ty = Math.floor((gy + cam.y) / 16);
+  const tx = Math.floor((x / PX + cam.x) / 16), ty = Math.floor((y / PX + cam.y) / 16);
   if (tx === P.x && ty === P.y){ if (!P.mv) interactFacing(); return; }
   const t = targetAt(tx, ty);
   if (t && cfg.joy.tapInteract) return planInteract(t);
@@ -1165,7 +1164,7 @@ window.addEventListener('keydown', e => {
     e.preventDefault();
     if (scene === 'battle') return bnext();
     if (dlg) return advance();
-    if (!SS && !P.mv) interactFacing();
+    if (!SS && !P.mv && !editMode) interactFacing();
   }
   if (e.key === 'Escape' && SS) closeSheet();
 });
@@ -1175,7 +1174,7 @@ window.addEventListener('keyup', e => { if (KEYS[e.key] === keyDir) keyDir = nul
 function tick(now){
   if (P.mv && now - P.mv.t0 >= P.mv.dur){ P.mv = null; updateContext(); }
   if (C.mv && now - C.mv.t0 >= C.mv.dur) C.mv = null;
-  if (scene === 'explore' && !P.mv && !dlg && !SS){
+  if (scene === 'explore' && !P.mv && !dlg && !SS && !editMode){
     const held = joyDir || keyDir;
     if (held) tryStep(held);
     else if (path.length){ const d = path.shift(); if (!tryStep(d)){ path = []; pending = null; } }
@@ -1186,139 +1185,22 @@ function tick(now){
   requestAnimationFrame(tick);
 }
 
-/* ---------------- Toast, orologio ---------------- */
 let toastT = 0;
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2300); }
-function clock(){ $('#clock').textContent = new Date().toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }); }
-clock(); setInterval(clock, 30000);
-
-/* ---------------- Regolazioni ---------------- */
-function seg(k, label, opts){
-  const v = getK(k);
-  return `<div><div class="ctl-l" id="l-${k.replace('.', '-')}">${label}</div><div class="seg" role="radiogroup" aria-labelledby="l-${k.replace('.', '-')}">${opts.map(([val, txt]) =>
-    `<button type="button" role="radio" aria-checked="${v === val}" data-k="${k}" data-v='${JSON.stringify(val)}'>${txt}</button>`).join('')}</div></div>`;
-}
-const YN = [[true, 'Sì'], [false, 'No']];
-function renderSettings(){
-  let head = '', body = '';
-  if (tab === 'levetta'){
-    head = '<h2>Levetta e movimento</h2><p class="lead">Appoggia il dito: la levetta compare lì sotto. Trascina per camminare, lascia per fermarti. Si cammina in 4 direzioni, come nel gioco originale.</p>';
-    body = seg('joy.zone', 'Dove può comparire la levetta', [['ovunque', 'Ovunque'], ['sotto', 'Solo sotto il gioco'], ['gioco', 'Solo sul gioco']]) +
-      seg('joy.mode', 'Se il dito esce dal cerchio', [['fissa', 'La levetta resta ferma'], ['segue', 'La levetta segue il dito']]) +
-      seg('joy.size', 'Grandezza della levetta', [['S', 'Piccola'], ['M', 'Media'], ['L', 'Grande']]) +
-      seg('joy.tapInteract', 'Toccare persone e oggetti per raggiungerli e parlarci', YN) +
-      seg('joy.tapWalk', 'Toccare il terreno per camminare fin lì', YN) +
-      seg('dialog.yesno', 'Dove compaiono Sì / No', [['pannello', 'Nel pannello in basso'], ['gioco', 'Sullo schermo di gioco']]) +
-      '<p class="note">La velocità del testo si cambia dentro il gioco: pulsante Opzioni.</p>' + freeNote() +
-      `<div><div class="ctl-l">Da provare</div><ul class="try">
-        <li>La persona vicino al sentiero ti fa una domanda (Sì / No).</li>
-        <li>Il commesso dietro il bancone apre il Negozio.</li>
-        <li>Il PC in alto a destra apre il PC.</li>
-        <li>Il cartello, la porta, il sacchetto in basso a destra.</li>
-        <li>Tocca il tuo compagno che ti segue.</li>
-        <li>Scendi verso il basso sulla sporgenza per saltarla.</li>
-        <li>Tocca il tuo personaggio: interagisci con ciò che hai davanti.</li></ul></div>`;
-  } else if (tab === 'pulsanti'){
-    head = '<h2>Pulsanti e menu</h2><p class="lead">Tocca un pulsante per aprire il suo menu. Tieni premuto un pulsante e trascinalo per spostarlo. Nei menu si scorre e si sceglie col dito.</p>';
-    body = `<div><div class="ctl-l">Pulsanti nella barra (tocca per aggiungere o togliere)</div><div class="chips">${Object.keys(BTN).map(id =>
-        `<button type="button" class="chip" aria-pressed="${cfg.bar.buttons.includes(id)}" data-chip="${id}">${svg(BTN[id].i, 18)}${BTN[id].l}</button>`).join('')}</div></div>` +
-      seg('bar.rows', 'Righe', [[1, 'Una riga'], [2, 'Due righe']]) +
-      seg('bar.labels', 'Contenuto dei pulsanti', [[true, 'Icona e nome'], [false, 'Solo icona']]) +
-      seg('bar.size', 'Grandezza dei pulsanti', [['s', 'Piccoli'], ['m', 'Medi'], ['l', 'Grandi']]) +
-      seg('bar.pos', 'Posizione della barra', [['basso', 'In fondo, sotto il pollice'], ['alto', 'Subito sotto il gioco']]) +
-      seg('bar.info', 'Riquadro con luogo e squadra', [[true, 'Mostra'], [false, 'Nascondi']]) +
-      seg('menu.style', 'Come si aprono i menu', [['foglio', 'Dal basso, il gioco resta visibile'], ['intero', 'A tutto schermo']]) +
-      seg('bar.shop', 'Negozio e PC', [['contesto', 'Solo davanti al bancone o al PC'], ['sempre', 'Sempre utilizzabili']]) +
-      `<p class="note ${cfg.bar.shop === 'sempre' ? 'warn' : ''}">Nel gioco originale il negozio e il PC si usano solo sul posto. Con «Solo davanti…» il pulsante si illumina quando sei lì. «Sempre utilizzabili» sarebbe una meccanica nuova: la inserisco solo se la approvi.</p>` + freeNote();
-  } else {
-    head = '<h2>Lotta</h2><p class="lead">Tocca una mossa per usarla. Tieni premuto Squadra, Borsa o Fuga e trascinali per cambiarne l\'ordine. Tocca lo schermo di gioco per far scorrere i messaggi.</p>';
-    body = seg('battle.layout', 'Disposizione delle mosse', [['griglia', 'Griglia 2 × 2'], ['colonna', 'Una sotto l\'altra']]) +
-      seg('battle.actions', 'Squadra, Borsa, Fuga', [['sotto', 'Sotto le mosse'], ['sopra', 'Sopra le mosse']]) +
-      seg('battle.showType', 'Mostra il tipo della mossa', YN) +
-      seg('battle.showPP', 'Mostra i PP', YN) +
-      seg('menu.style', 'Come si aprono Squadra e Borsa', [['foglio', 'Dal basso'], ['intero', 'A tutto schermo']]) +
-      '<p class="note">Dell\'avversario si vede solo la barra dei PS, senza numeri, come nell\'originale.</p>' + freeNote();
-  }
-  $('#setHead').innerHTML = head; $('#settingsBody').innerHTML = body;
-}
-function freeNote(){
-  const on = !!curLay();
-  return `<div><div class="ctl-l">Disposizione libera</div><p class="note" style="margin:0 0 8px">${on
-    ? 'Attiva: gli elementi stanno dove li hai messi tu. «Posizione della barra» non conta più.'
-    : 'Premi «Sposta e ridimensiona» per spostare e allargare gli elementi a mano.'}</p><div class="btns">
-    <button type="button" class="secondary" data-act="edit">${editMode ? 'Modifica in corso…' : 'Sposta e ridimensiona'}</button>
-    ${on ? '<button type="button" class="secondary" data-act="unfree">Torna alla disposizione automatica</button>' : ''}</div></div>`;
-}
-$('#settings').addEventListener('click', e => {
-  const act = e.target.closest('[data-act]');
-  if (act){
-    if (act.dataset.act === 'edit'){ toggleSettings(false); setEdit(true); }
-    if (act.dataset.act === 'unfree'){ cfg.layout[scene === 'battle' ? 'battle' : 'explore'] = null; saveCfg(); if (editMode) setEdit(false); applyCfg(); renderSettings(); }
-    return;
-  }
-  const b = e.target.closest('[data-k]');
-  if (b){ setK(b.dataset.k, JSON.parse(b.dataset.v)); saveCfg(); applyCfg(); renderSettings(); return; }
-  const c = e.target.closest('[data-chip]');
-  if (c){ const id = c.dataset.chip, arr = cfg.bar.buttons; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); saveCfg(); applyCfg(); renderSettings(); return; }
-});
-function applyCfg(){
-  if (scene === 'battle'){ renderLower(); }
-  else renderLower();
-  if (SS){ $('#sheet').style.top = (cfg.menu.style === 'intero' ? ST : gBottom()) + 'px'; renderSheet(); }
-  syncYN(); renderEdit();
-}
-
-/* ---------------- Schede (tab) ---------------- */
-function setTab(t){
-  tab = t;
-  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
-  if (SS) closeSheet();
-  if (dlg){ clearInterval(dlg.iv); dlg = null; }
-  if (bq){ clearTimeout(bq.timer); bq = null; B.busy = false; }
-  path = []; pending = null; marker = null; joyDir = null;
-  scene = t === 'lotta' ? 'battle' : 'explore';
-  $('#battleHud').hidden = scene !== 'battle';
-  if (scene === 'battle'){ renderHud(); setBText(bPrompt()); }
-  else $('#textbox').hidden = true;
-  renderLower();
-  if (editMode){ ensureLayout(); saveCfg(); renderLower(); }
-  syncYN(); renderEdit(); renderSettings();
-}
-document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 
 /* ---------------- Sposta e ridimensiona ---------------- */
 let editMode = false, edSel = null, ed = null, edRaf = 0;
 const undo = [];
-const EKEYS = { explore:['game','loc','team','hint','bar','yn'], battle:['game','moves','acts'] };
-const ELBL = { game:'Schermo di gioco', loc:'Luogo', team:'Squadra', hint:'Zona levetta', bar:'Pulsanti', yn:'Sì / No', moves:'Mosse', acts:'Squadra · Borsa · Fuga' };
-function measure(sel){
-  const el = document.querySelector('#stage ' + sel); if (!el) return null;
-  const b = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
-  if (!b.width || !b.height) return null;
-  return { x:Math.round((b.left - s.left) / scale), y:Math.round((b.top - s.top) / scale), w:Math.round(b.width / scale), h:Math.round(b.height / scale) };
-}
-function ensureLayout(){
-  const k = scene === 'battle' ? 'battle' : 'explore';
-  if (cfg.layout[k]) return cfg.layout[k];
-  const g = { x:0, y:ST, w:W, h:GH };
-  let lay;
-  if (k === 'battle') lay = { game:g, moves:measure('.bmoves') || { x:14, y:560, w:383, h:220 }, acts:measure('.bacts') || { x:14, y:820, w:383, h:58 } };
-  else lay = { game:g, loc:measure('.loc') || { x:14, y:416, w:383, h:20 }, team:measure('.team-strip') || { x:14, y:444, w:383, h:52 },
-    hint:measure('.free') || { x:14, y:506, w:383, h:290 }, bar:measure('#bar') || measure('.empty-bar') || { x:14, y:810, w:383, h:64 },
-    yn:{ x:W - 8 - 96, y:ST + GH - 124 - 102, w:96, h:102 } };
-  cfg.layout[k] = lay; return lay;
-}
-function visibleKeys(){
-  const lay = curLay(); if (!lay) return [];
-  return EKEYS[scene === 'battle' ? 'battle' : 'explore'].filter(k => lay[k] && !((k === 'loc' || k === 'team') && !cfg.bar.info) && !(k === 'yn' && cfg.dialog.yesno !== 'gioco'));
-}
+function ensureLayout(){ const k = scKey(); if (!cfg.layout[k]) cfg.layout[k] = defLayout(k); return cfg.layout[k]; }
+function visibleKeys(){ return LKEYS[scKey()].filter(k => !(k === 'team' && !cfg.bar.info)); }
 function renderEdit(guides){
   const layer = $('#editLayer');
   if (!editMode){ layer.hidden = true; layer.innerHTML = ''; return; }
-  const lay = curLay(); if (!lay){ layer.hidden = true; return; }
+  const lay = curLay();
   layer.hidden = false;
-  layer.innerHTML = visibleKeys().map(k => { const r = lay[k];
-    return `<div class="ef ${edSel === k ? 'sel' : ''} ${r.h < 44 ? 'small' : ''}" data-ef="${k}" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px"><span class="ef-l">${ELBL[k]} · ${r.w}×${r.h}</span><span class="ef-h" data-h="1"></span></div>`;
+  const band = scene === 'explore' ? `<div class="band" style="top:${BAND.y}px;height:${BAND.h}px"><span>Inquadratura del Game Boy originale</span></div>` : '';
+  layer.innerHTML = band + visibleKeys().map(k => { const q = lay[k];
+    return `<div class="ef ${edSel === k ? 'sel' : ''} ${q.h < 44 ? 'small' : ''}" data-ef="${k}" style="left:${q.x}px;top:${q.y}px;width:${q.w}px;height:${q.h}px"><span class="ef-l">${ELBL[k]} · ${q.w}×${q.h}</span><span class="ef-h" data-h="1"></span></div>`;
   }).join('') + (guides || []).map(g => g.v !== undefined ? `<div class="guide v" style="left:${g.v}px"></div>` : `<div class="guide h" style="top:${g.h}px"></div>`).join('');
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1327,7 +1209,6 @@ function snap(points, lines){
   for (const p of points) for (const l of lines){ const d = l - p; if (Math.abs(d) <= 6 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, line:l }; }
   return best;
 }
-function clampIn(r, g){ r.w = Math.min(r.w, g.w); r.h = Math.min(r.h, g.h); r.x = clamp(r.x, g.x, g.x + g.w - r.w); r.y = clamp(r.y, g.y, g.y + g.h - r.h); return r; }
 function setEdit(on){
   editMode = on; edSel = null; ed = null;
   if (on){
@@ -1340,46 +1221,43 @@ function setEdit(on){
   document.body.classList.toggle('editing', on);
   $('#editBtn').setAttribute('aria-pressed', String(on));
   $('#immEdit').textContent = on ? 'Fine' : 'Sposta';
-  fit(); syncYN(); renderEdit(); renderSettings();
+  fit(); syncYN(); syncPreview(); renderEdit(); renderSettings();
 }
 const editLayer = $('#editLayer');
 editLayer.addEventListener('pointerdown', e => {
   e.preventDefault(); e.stopPropagation();
   const f = e.target.closest('[data-ef]');
   if (!f){ edSel = null; renderEdit(); return; }
-  const k = f.dataset.ef, lay = curLay();
+  const k = f.dataset.ef, lay = ensureLayout();
   undo.push(JSON.stringify(cfg.layout)); if (undo.length > 60) undo.shift();
   edSel = k;
-  ed = { id:e.pointerId, k, mode:e.target.closest('[data-h]') ? 'size' : 'move', sx:e.clientX, sy:e.clientY, r0:{ ...lay[k] }, yn0:lay.yn ? { ...lay.yn } : null };
+  ed = { id:e.pointerId, k, mode:e.target.closest('[data-h]') ? 'size' : 'move', sx:e.clientX, sy:e.clientY, r0:{ ...lay[k] } };
   try { editLayer.setPointerCapture(e.pointerId); } catch(err){}
   renderEdit();
 });
 editLayer.addEventListener('pointermove', e => {
   if (!ed || e.pointerId !== ed.id) return;
-  const lay = curLay(), k = ed.k, r0 = ed.r0, dx = (e.clientX - ed.sx) / scale, dy = (e.clientY - ed.sy) / scale;
-  const top = ST, bot = H - NAV, guides = [];
-  const others = visibleKeys().filter(o => o !== k && !(k === 'game' && o === 'yn') && !(k === 'yn' && o === 'game')).map(o => lay[o]);
-  const xs = [0, W, W / 2], ys = [top, bot];
-  others.forEach(o => { xs.push(o.x, o.x + o.w); ys.push(o.y, o.y + o.h); });
-  let r = { ...r0 };
+  const lay = ensureLayout(), k = ed.k, r0 = ed.r0, dx = (e.clientX - ed.sx) / scale, dy = (e.clientY - ed.sy) / scale, guides = [];
+  const xs = [0, W, W / 2], ys = [0, H];
+  if (scene === 'explore') ys.push(BAND.y, BAND.y + BAND.h);
+  visibleKeys().filter(o => o !== k).forEach(o => { const q = lay[o]; xs.push(q.x, q.x + q.w); ys.push(q.y, q.y + q.h); });
+  let q = { ...r0 };
   if (ed.mode === 'move'){
-    r.x = r0.x + dx; r.y = r0.y + dy;
-    const sx = snap([r.x, r.x + r.w / 2, r.x + r.w], xs); if (sx){ r.x += sx.d; guides.push({ v:sx.line }); }
-    const sy = snap([r.y, r.y + r.h], ys); if (sy){ r.y += sy.d; guides.push({ h:sy.line }); }
-    r.x = clamp(r.x, 0, W - r.w); r.y = clamp(r.y, top, bot - r.h);
-  } else if (k === 'game'){
-    r.w = clamp(r0.w + Math.max(dx, dy / .9), 200, W - r.x); r.h = r.w * .9;
-    if (r.y + r.h > bot){ r.h = bot - r.y; r.w = r.h / .9; }
+    q.x = r0.x + dx; q.y = r0.y + dy;
+    const sx = snap([q.x, q.x + q.w / 2, q.x + q.w], xs); if (sx){ q.x += sx.d; guides.push({ v:sx.line }); }
+    const sy = snap([q.y, q.y + q.h], ys); if (sy){ q.y += sy.d; guides.push({ h:sy.line }); }
+    q.x = clamp(q.x, 0, W - q.w); q.y = clamp(q.y, 0, H - q.h);
+  } else if (RATIO[k]){
+    const ratio = RATIO[k];
+    q.w = clamp(r0.w + Math.max(dx, dy / ratio), 200, W - q.x); q.h = q.w * ratio;
+    if (q.y + q.h > H){ q.h = H - q.y; q.w = q.h / ratio; }
   } else {
-    r.w = r0.w + dx; r.h = r0.h + dy;
-    const sx = snap([r.x + r.w], xs); if (sx){ r.w += sx.d; guides.push({ v:sx.line }); }
-    const sy = snap([r.y + r.h], ys); if (sy){ r.h += sy.d; guides.push({ h:sy.line }); }
-    r.w = clamp(r.w, 40, W - r.x); r.h = clamp(r.h, 24, bot - r.y);
+    q.w = r0.w + dx; q.h = r0.h + dy;
+    const sx = snap([q.x + q.w], xs); if (sx){ q.w += sx.d; guides.push({ v:sx.line }); }
+    const sy = snap([q.y + q.h], ys); if (sy){ q.h += sy.d; guides.push({ h:sy.line }); }
+    q.w = clamp(q.w, 40, W - q.x); q.h = clamp(q.h, 24, H - q.y);
   }
-  r = { x:Math.round(r.x), y:Math.round(r.y), w:Math.round(r.w), h:Math.round(r.h) };
-  if (k === 'yn') clampIn(r, lay.game);
-  lay[k] = r;
-  if (k === 'game' && lay.yn && ed.yn0){ lay.yn = clampIn({ ...ed.yn0, x:ed.yn0.x + (r.x - r0.x), y:ed.yn0.y + (r.y - r0.y) }, r); }
+  lay[k] = { x:Math.round(q.x), y:Math.round(q.y), w:Math.round(q.w), h:Math.round(q.h) };
   cancelAnimationFrame(edRaf);
   edRaf = requestAnimationFrame(() => { renderLower(); renderEdit(guides); });
 });
@@ -1396,12 +1274,102 @@ $('#edUndo').addEventListener('click', undoLast);
 $('#immUndo').addEventListener('click', undoLast);
 $('#edReset').addEventListener('click', () => {
   undo.push(JSON.stringify(cfg.layout));
-  cfg.layout[scene === 'battle' ? 'battle' : 'explore'] = null; renderLower();
-  ensureLayout(); saveCfg(); renderLower(); renderEdit(); toast('Disposizione ripristinata.');
+  cfg.layout[scKey()] = defLayout(scKey()); saveCfg(); renderLower(); renderEdit(); toast('Disposizione ripristinata.');
 });
 
+/* ---------------- Regolazioni ---------------- */
+function seg(k, label, opts){
+  const v = getK(k), id = 'l-' + k.replace('.', '-');
+  return `<div><div class="ctl-l" id="${id}">${label}</div><div class="seg" role="radiogroup" aria-labelledby="${id}">${opts.map(([val, txt]) =>
+    `<button type="button" role="radio" aria-checked="${v === val}" data-k="${k}" data-v='${JSON.stringify(val)}'>${txt}</button>`).join('')}</div></div>`;
+}
+const YN = [[true, 'Sì'], [false, 'No']];
+function freeNote(){
+  const on = !!cfg.layout[scKey()];
+  return `<div><div class="ctl-l">Posizioni e grandezze</div><p class="note" style="margin:0 0 8px">Premi «Sposta e ridimensiona» per spostare e allargare a mano ogni elemento.</p><div class="btns">
+    <button type="button" class="secondary" data-act="edit">${editMode ? 'Modifica in corso…' : 'Sposta e ridimensiona'}</button>
+    ${on ? '<button type="button" class="secondary" data-act="unfree">Torna alle posizioni iniziali</button>' : ''}</div></div>`;
+}
+function renderSettings(){
+  let head = '', body = '';
+  if (tab === 'levetta'){
+    head = '<h2>Levetta e movimento</h2><p class="lead">Appoggia il dito in qualsiasi punto: la levetta compare lì sotto. Trascina per camminare, alza il dito e sparisce. Si cammina in 4 direzioni, come nel gioco originale.</p>';
+    body = seg('joy.mode', 'Se il dito esce dal cerchio', [['fissa', 'La levetta resta ferma'], ['segue', 'La levetta segue il dito']]) +
+      seg('joy.size', 'Grandezza della levetta', [['S', 'Piccola'], ['M', 'Media'], ['L', 'Grande']]) +
+      seg('joy.tapInteract', 'Toccare persone e oggetti per raggiungerli e parlarci', YN) +
+      seg('joy.tapWalk', 'Toccare il terreno per camminare fin lì', YN) +
+      seg('view.extra', 'Mappa sopra e sotto l\'inquadratura originale', [['visibile', 'Visibile'], ['attenuata', 'Attenuata'], ['nascosta', 'Nascosta']]) +
+      '<p class="note">Il Game Boy mostrava 10 × 9 caselle. A tutto schermo si vedono 10 × 22 caselle: la larghezza è la stessa, in più c\'è mappa sopra e sotto. «Attenuata» la scurisce, «Nascosta» la copre e lascia solo l\'inquadratura originale.</p>' +
+      '<p class="note">La velocità del testo si cambia dentro il gioco: pulsante Opzioni.</p>' + freeNote() +
+      `<div><div class="ctl-l">Da provare</div><ul class="try">
+        <li>La persona vicino al sentiero ti fa una domanda (Sì / No).</li>
+        <li>Il commesso dietro il bancone apre il Negozio.</li>
+        <li>Il PC a destra apre il PC.</li>
+        <li>Il cartello, la porta, il sacchetto in basso.</li>
+        <li>Tocca il tuo compagno che ti segue.</li>
+        <li>Scendi verso il basso sulla sporgenza per saltarla.</li>
+        <li>Tocca il tuo personaggio: interagisci con ciò che hai davanti.</li></ul></div>`;
+  } else if (tab === 'pulsanti'){
+    head = '<h2>Pulsanti e menu</h2><p class="lead">Tocca un pulsante per aprire il suo menu. Tieni premuto un pulsante e trascinalo per cambiarne l\'ordine. Nei menu si scorre e si sceglie col dito.</p>';
+    body = `<div><div class="ctl-l">Pulsanti nella barra (tocca per aggiungere o togliere)</div><div class="chips">${Object.keys(BTN).map(id =>
+        `<button type="button" class="chip" aria-pressed="${cfg.bar.buttons.includes(id)}" data-chip="${id}">${svg(BTN[id].i, 18)}${BTN[id].l}</button>`).join('')}</div></div>` +
+      seg('bar.rows', 'Righe', [[1, 'Una riga'], [2, 'Due righe']]) +
+      seg('bar.labels', 'Contenuto dei pulsanti', [[true, 'Icona e nome'], [false, 'Solo icona']]) +
+      seg('bar.size', 'Grandezza dei pulsanti', [['s', 'Piccoli'], ['m', 'Medi'], ['l', 'Grandi']]) +
+      seg('bar.info', 'Squadra in alto', [[true, 'Mostra'], [false, 'Nascondi']]) +
+      seg('menu.style', 'Come si aprono i menu', [['intero', 'A tutto schermo'], ['foglio', 'Dal basso']]) +
+      seg('bar.shop', 'Negozio e PC', [['contesto', 'Solo davanti al bancone o al PC'], ['sempre', 'Sempre utilizzabili']]) +
+      `<p class="note ${cfg.bar.shop === 'sempre' ? 'warn' : ''}">Nel gioco originale il negozio e il PC si usano solo sul posto. Con «Solo davanti…» il pulsante si illumina quando sei lì. «Sempre utilizzabili» sarebbe una meccanica nuova: la inserisco solo se la approvi.</p>` + freeNote();
+  } else {
+    head = '<h2>Lotta</h2><p class="lead">La lotta occupa tutto lo schermo e i comandi stanno sopra lo sfondo. Tocca una mossa per usarla. Tieni premuto Squadra, Borsa o Fuga per cambiarne l\'ordine. Tocca lo sfondo per far scorrere i messaggi.</p>';
+    body = seg('battle.layout', 'Disposizione delle mosse', [['griglia', 'Griglia 2 × 2'], ['colonna', 'Una sotto l\'altra']]) +
+      seg('battle.showType', 'Mostra il tipo della mossa', YN) +
+      seg('battle.showPP', 'Mostra i PP', YN) +
+      seg('menu.style', 'Come si aprono Squadra e Borsa', [['intero', 'A tutto schermo'], ['foglio', 'Dal basso']]) +
+      '<p class="note">Dell\'avversario si vede solo la barra dei PS, senza numeri, come nell\'originale.</p>' + freeNote();
+  }
+  $('#setHead').innerHTML = head; $('#settingsBody').innerHTML = body;
+}
+$('#settings').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]');
+  if (act){
+    if (act.dataset.act === 'edit'){ toggleSettings(false); setEdit(true); }
+    if (act.dataset.act === 'unfree'){ cfg.layout[scKey()] = null; saveCfg(); if (editMode) setEdit(false); applyCfg(); renderSettings(); }
+    return;
+  }
+  const b = e.target.closest('[data-k]');
+  if (b){
+    const k = b.dataset.k; setK(k, JSON.parse(b.dataset.v));
+    if ((k === 'bar.rows' || k === 'bar.size') && cfg.layout.explore){ const bar = cfg.layout.explore.bar, nh = barH(); bar.y = clamp(bar.y + bar.h - nh, 0, H - nh); bar.h = nh; }
+    saveCfg(); applyCfg(); renderSettings(); return;
+  }
+  const c = e.target.closest('[data-chip]');
+  if (c){ const id = c.dataset.chip, arr = cfg.bar.buttons; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); saveCfg(); applyCfg(); renderSettings(); }
+});
+function applyCfg(){
+  renderLower();
+  if (SS){ const sh = $('#sheet'); sh.style.top = sheetTop() + 'px'; sh.classList.toggle('full', cfg.menu.style === 'intero'); renderSheet(); }
+  syncYN(); syncPreview(); renderEdit();
+}
+
+/* ---------------- Schede (tab) ---------------- */
+function setTab(t){
+  tab = t;
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+  if (SS) closeSheet();
+  if (dlg){ clearInterval(dlg.iv); dlg = null; }
+  if (bq){ clearTimeout(bq.timer); bq = null; B.busy = false; }
+  path = []; pending = null; marker = null; joyDir = null;
+  scene = t === 'lotta' ? 'battle' : 'explore';
+  $('#battleHud').hidden = scene !== 'battle';
+  if (scene === 'battle'){ renderHud(); setBText(bPrompt()); }
+  else $('#textbox').hidden = true;
+  if (editMode){ ensureLayout(); saveCfg(); }
+  renderLower(); syncYN(); syncPreview(); renderEdit(); renderSettings();
+}
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+
 /* ---------------- Adattamento allo schermo ---------------- */
-const narrow = () => matchMedia('(max-width: 860px)').matches;
 function fit(){
   const imm = holder.classList.contains('imm');
   let aw, ah;
@@ -1428,17 +1396,17 @@ $('#scrim').addEventListener('click', () => toggleSettings(false));
 let dbP = null;
 try { dbP = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('db') : Promise.resolve(null); } catch(e){ dbP = Promise.resolve(null); }
 function summary(){
-  const j = cfg.joy, b = cfg.bar, t = cfg.battle, d = cfg.dialog;
+  const j = cfg.joy, b = cfg.bar, t = cfg.battle;
   const yn = v => v ? 'sì' : 'no';
+  const lays = sc => { const l = cfg.layout[sc]; return l ? Object.entries(l).map(([k, q]) => `${ELBL[k]} ${q.x},${q.y} ${q.w}×${q.h}`).join('; ') : 'posizioni iniziali'; };
   return [
-    `Levetta: compare ${({ ovunque:'ovunque', sotto:'solo sotto il gioco', gioco:'solo sul gioco' })[j.zone]}; ${j.mode === 'fissa' ? 'resta ferma' : 'segue il dito'}; grandezza ${({ S:'piccola', M:'media', L:'grande' })[j.size]}; tocco su persone/oggetti: ${yn(j.tapInteract)}; tocco sul terreno: ${yn(j.tapWalk)}.`,
-    `Dialoghi: Sì/No ${d.yesno === 'pannello' ? 'nel pannello in basso' : 'sullo schermo di gioco'}.`,
-    `Barra: ${b.buttons.map(id => BTN[id].l).join(', ') || 'vuota'}; ${b.rows} ${b.rows === 1 ? 'riga' : 'righe'}; ${b.labels ? 'icona e nome' : 'solo icona'}; grandezza ${({ s:'piccoli', m:'medi', l:'grandi' })[b.size]}; posizione ${b.pos === 'basso' ? 'in fondo' : 'sotto il gioco'}; riquadro luogo/squadra: ${yn(b.info)}; Negozio/PC: ${b.shop === 'contesto' ? 'solo sul posto' : 'sempre'}.`,
+    `Levetta: compare ovunque; ${j.mode === 'fissa' ? 'resta ferma' : 'segue il dito'}; grandezza ${({ S:'piccola', M:'media', L:'grande' })[j.size]}; tocco su persone/oggetti: ${yn(j.tapInteract)}; tocco sul terreno: ${yn(j.tapWalk)}.`,
+    `Mappa fuori dall'inquadratura originale: ${cfg.view.extra}.`,
+    `Barra: ${b.buttons.map(id => BTN[id].l).join(', ') || 'vuota'}; ${b.rows} ${b.rows === 1 ? 'riga' : 'righe'}; ${b.labels ? 'icona e nome' : 'solo icona'}; grandezza ${({ s:'piccoli', m:'medi', l:'grandi' })[b.size]}; squadra in alto: ${yn(b.info)}; Negozio/PC: ${b.shop === 'contesto' ? 'solo sul posto' : 'sempre'}.`,
     `Menu: ${cfg.menu.style === 'foglio' ? 'dal basso' : 'a tutto schermo'}.`,
-    `Disposizione libera: esplorazione ${cfg.layout.explore ? 'sì' : 'no'}, lotta ${cfg.layout.battle ? 'sì' : 'no'}.` +
-      (cfg.layout.explore ? ' Esplorazione (dp, x,y largh×alt): ' + Object.entries(cfg.layout.explore).map(([k, r]) => `${ELBL[k]} ${r.x},${r.y} ${r.w}×${r.h}`).join('; ') + '.' : '') +
-      (cfg.layout.battle ? ' Lotta: ' + Object.entries(cfg.layout.battle).map(([k, r]) => `${ELBL[k]} ${r.x},${r.y} ${r.w}×${r.h}`).join('; ') + '.' : ''),
-    `Lotta: mosse ${t.layout === 'griglia' ? 'a griglia 2×2' : 'in colonna'}; azioni ${t.actions} le mosse (${t.order.map(id => BACT[id].l).join(', ')}); tipo: ${yn(t.showType)}; PP: ${yn(t.showPP)}.`
+    `Lotta: mosse ${t.layout === 'griglia' ? 'a griglia 2×2' : 'in colonna'}; ordine ${t.order.map(id => BACT[id].l).join(', ')}; tipo: ${yn(t.showType)}; PP: ${yn(t.showPP)}.`,
+    `Posizioni esplorazione (dp x,y largh×alt): ${lays('explore')}.`,
+    `Posizioni lotta: ${lays('battle')}.`
   ].join('\n');
 }
 $('#sendBtn').addEventListener('click', async () => {
@@ -1452,7 +1420,7 @@ $('#sendBtn').addEventListener('click', async () => {
   const attempt = () => db.collection('invii').add(payload);
   try { await attempt(); }
   catch(e){
-    if (e && e.code === 'unavailable'){ try { await new Promise(r => setTimeout(r, 700 + Math.random() * 600)); await attempt(); } catch(e2){ return fallback('Invio non riuscito. Copia il riepilogo qui sotto e incollalo in chat.'); } }
+    if (e && e.code === 'unavailable'){ try { await new Promise(res => setTimeout(res, 700 + Math.random() * 600)); await attempt(); } catch(e2){ return fallback('Invio non riuscito. Copia il riepilogo qui sotto e incollalo in chat.'); } }
     else return fallback('Invio non riuscito. Copia il riepilogo qui sotto e incollalo in chat.');
   }
   st.className = 'ok'; st.textContent = 'Inviato alle ' + new Date().toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) + '. Claude può leggerlo.'; btn.disabled = false;
@@ -1467,7 +1435,6 @@ dbP.then(async db => {
     const d = q.docs[0].data();
     if (!d || !d.cfg || typeof d.cfg !== 'object') return;
     cfg = merge(clone(DEF), d.cfg); sanitize(); saveCfg(); applyCfg(); renderSettings();
-    toast('Ho ripreso la tua ultima configurazione inviata.');
   } catch(e){}
 }).catch(() => {});
 
@@ -1477,6 +1444,5 @@ fit();
 setTimeout(fit, 300);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 requestAnimationFrame(tick);
-setTimeout(() => toast('Appoggia il dito e trascina per muoverti'), 600);
 })();
 </script>

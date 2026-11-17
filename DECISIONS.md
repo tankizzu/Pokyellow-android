@@ -22,6 +22,11 @@
 | D-013 | 2026-11-17 | **La velocità del testo si regola nelle impostazioni del gioco** (menu Opzioni), non è un comando a parte. |
 | D-014 | 2026-11-17 | Il committente vuole **spostare e ridimensionare liberamente** gli elementi dell'interfaccia: aggiunta la modalità "Sposta e ridimensiona" al Laboratorio. Lo schermo di gioco mantiene sempre le proporzioni 10:9; testo dei dialoghi e informazioni di lotta fanno parte dell'immagine del gioco e si spostano con essa. |
 
+| D-015 | 2026-11-17 | **Gioco a tutto schermo in verticale.** La larghezza resta di 10 caselle come l'originale; sopra e sotto si vede più mappa (circa 10 × 22 caselle invece di 10 × 9). Richiede la "vista estesa" (vedi ARCHITECTURE.md §7). Il committente può scegliere se la mappa extra è visibile, attenuata o nascosta. |
+| D-016 | 2026-11-17 | **Levetta ovunque:** compare in qualsiasi punto si appoggi il dito. Eliminata la zona dedicata ("Appoggia il dito…"). |
+| D-017 | 2026-11-17 | **Squadra in alto** (con luogo e soldi), sovrapposta alla mappa; barra dei pulsanti in basso, sovrapposta. |
+| D-018 | 2026-11-17 | **Lotta a tutto schermo:** lo sfondo della lotta riempie lo schermo, mosse e pulsanti Squadra/Borsa/Fuga stanno sopra lo sfondo. Scena e riquadro del testo sono parti dell'immagine originale, posizionate separatamente senza deformarle. |
+
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
 |---|---|---|---|

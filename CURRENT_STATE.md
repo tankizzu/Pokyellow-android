@@ -22,7 +22,10 @@ In parallelo è iniziata la parte UX della Fase 2: il committente ha chiesto dem
 - Tre demo: Levetta (mappa giocabile), Pulsanti e menu (barra riordinabile, 9 menu), Lotta.
 - Versione 2: modalità "Sposta e ridimensiona" (D-014). Le posizioni scelte vengono inviate
   in `cfg.layout` (coordinate in dp sul telefono da 411×911 dp) e nel riepilogo testuale.
-- In attesa: il committente sistema posizioni e dimensioni e invia di nuovo.
+- Versione 3: tutto schermo (D-015…D-018). Le posizioni salvate nelle versioni precedenti
+  non sono più valide e vengono ignorate (gli elementi sono cambiati).
+- In attesa: il committente prova la v3, sistema posizioni e dimensioni e invia di nuovo;
+  conferma sulla mappa extra (visibile / attenuata / nascosta).
 
 ## Fatti verificati
 - ROM: versione italiana `POKEMON YELAPSI`, 1 MiB, MBC5+RAM+batteria, 32 KiB di salvataggio,

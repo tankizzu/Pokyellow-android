@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-17 (4)
+- Laboratorio v3: gioco a tutto schermo con mappa estesa (10 × 22 caselle), squadra in alto e pulsanti in basso sovrapposti, levetta che compare ovunque (tolta la zona dedicata), lotta a tutto schermo con comandi sovrapposti allo sfondo.
+- Nuova opzione per la mappa fuori dall'inquadratura originale: visibile, attenuata, nascosta.
+- "Sposta e ridimensiona" aggiornata ai nuovi elementi (squadra, pulsanti, dialoghi, Sì/No; scena, testo, mosse, azioni in lotta) con l'inquadratura originale evidenziata.
+- ARCHITECTURE.md §7: vista estesa.
+
 ## 2026-11-17 (3)
 - Laboratorio: nuova modalità "Sposta e ridimensiona" (riquadri trascinabili, cerchio per ridimensionare, allineamento automatico ai bordi, Annulla, Ripristina), per esplorazione e lotta.
 - Predefiniti aggiornati alla configurazione inviata dal committente (menu a tutto schermo, Sì/No sul gioco).
