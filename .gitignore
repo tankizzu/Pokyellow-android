@@ -1,0 +1,32 @@
+# ── Protezione contenuti protetti: la ROM e i dati derivati NON devono mai entrare nel repository ──
+*.gb
+*.gbc
+*.sgb
+*.zip
+*.7z
+*.sav
+*.srm
+*.rtc
+*.state
+*.ss[0-9]
+rom/
+roms/
+extracted/
+
+# ── Android / Gradle ──
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+.idea/
+*.iml
+.cxx/
+.externalNativeBuild/
+captures/
+
+# ── Sistema ──
+.DS_Store
+Thumbs.db
