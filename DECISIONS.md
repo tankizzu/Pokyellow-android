@@ -31,6 +31,10 @@
 | D-020 | 2026-11-17 | Promemoria orario per continuare il lavoro in autonomia; report e APK quando il committente li chiede. Creato ambiente cloud dedicato "Pokyellow-android" con accesso a dl.google.com (Android SDK/NDK). |
 | D-021 | 2026-11-17 | Versioni di riferimento verificate su repository ufficiali: AGP 9.5.1, Gradle 9.9.1, Kotlin 2.4.21, Compose BOM 2026.09.00, compileSdk/targetSdk 36, build-tools 36.1.0, NDK 30.0.16248370, CMake 3.31.6. |
 
+| D-022 | 2026-11-17 | **Programma di avvio proprio** al posto delle boot ROM di SameBoy (RGBDS non compilabile qui): porta la console nello stato post-avvio di un Game Boy Color e passa al gioco. Verificato su computer. |
+| D-023 | 2026-11-17 | **compileSdk 37** (richiesto da Compose 1.12), **targetSdk 36**, minSdk 26, solo arm64-v8a per ora. |
+| D-024 | 2026-11-17 | **Prototipo 0.1 per le prime prove** su richiesta del committente: comandi provvisori dichiarati (tocco = A, indietro = B, Menu/Select/Salva). Menu nativi, squadra in alto, vista estesa e lotta sovrapposta arrivano con il "ponte" verso il gioco. |
+
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
 |---|---|---|---|

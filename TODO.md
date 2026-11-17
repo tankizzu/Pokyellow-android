@@ -12,12 +12,21 @@
 - [ ] Squadra, borsa, soldi, stato a piedi/bici/surf
 
 ## Fase 3 – Prototipo
-- [ ] Scheletro Gradle (AGP 9.5.1, Gradle 9.9.1, Kotlin 2.4.21, Compose BOM 2026.09.00, SDK 36)
-- [ ] Modulo `core-emu`: SameBoy via NDK 30 + JNI (verificare compilazione)
-- [ ] Boot ROM: valutare avvio senza boot ROM (stato post-avvio) oppure boot ROM libere di SameBoy compilate con RGBDS
+- [x] Scheletro Gradle (AGP 9.5.1, Gradle 9.9.1, Kotlin 2.4.21, Compose BOM 2026.09.00, compileSdk 37)
+- [x] SameBoy via NDK 30 + JNI (per ora dentro il modulo `app`; separare in `core-emu` quando cresce)
+- [x] Programma di avvio proprio (D-022)
+- [x] App 0.1: scelta ROM, gioco in verticale, levetta, tocco = A, indietro = B, Menu/Select/Salva, salvataggi
+- [x] APK di debug consegnato (0.1.0-prototipo)
+- [ ] Riscontro del committente sull'APK 0.1
 - [ ] Modulo `bridge`: lettura stato, pathfinding, esecutore comandi (Kotlin, test su JVM)
-- [ ] App: scelta ROM dal telefono, gioco a tutto schermo, levetta, tocchi, barra pulsanti
-- [ ] APK di debug da installare
+- [ ] Squadra in alto con dati reali; tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi
+
+## Prova del motore su computer
+```
+SB=third_party/SameBoy/Core; D=(-D_GNU_SOURCE -D_USE_MATH_DEFINES -DGB_DISABLE_TIMEKEEPING -DGB_DISABLE_REWIND -DGB_DISABLE_DEBUGGER -DGB_DISABLE_CHEATS -DGB_DISABLE_CHEAT_SEARCH '-DGB_VERSION="1.0.5"' '-DGB_COPYRIGHT_YEAR="2026"')
+# compilare ogni file del motore con -DGB_INTERNAL, poi boot_rom.c e tools/native-test/harness.c senza, e collegare con -lm
+./harness ROM CARTELLA_USCITA   # immagini PPM solo in una cartella temporanea
+```
 
 ## Ambiente: ripristino SDK se il container viene ricreato
 ```

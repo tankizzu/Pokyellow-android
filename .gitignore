@@ -30,3 +30,6 @@ captures/
 # ── Sistema ──
 .DS_Store
 Thumbs.db
+
+# Kotlin / Gradle locali
+.kotlin/

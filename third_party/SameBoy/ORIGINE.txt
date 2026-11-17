@@ -1,0 +1,1 @@
+Origine: https://github.com/LIJI32/SameBoy commit ea667ad79aa28409f034b1fd6da7304e1844750d (versione 1.0.5). Licenza Expat/MIT (vedi LICENSE). Copiata solo la cartella Core, senza modifiche.

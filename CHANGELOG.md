@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-17 (6) – Prototipo 0.1 (APK di prova)
+- Progetto Android: Gradle 9.9.1, AGP 9.5.1, Kotlin 2.4.21, Compose BOM 2026.09.00, compileSdk 37 (richiesto da Compose 1.12), targetSdk 36, minSdk 26, NDK 30, solo arm64-v8a.
+- Motore SameBoy 1.0.5 copiato in `third_party/SameBoy` (MIT) e compilato con l'NDK (`libgbcore.so`).
+- Programma di avvio originale scritto per il progetto (`app/src/main/cpp/boot_rom.c`): niente RGBDS, niente codice Nintendo.
+- App: scelta del file del gioco dal telefono con controllo dell'impronta, gioco in verticale con pixel nitidi, levetta che compare ovunque, tocco = A, gesto indietro = B, pulsanti Menu (START), Select, Salva.
+- Salvataggi: punto esatto salvato all'uscita e ripreso all'avvio, salvataggio del gioco ogni 20 s se cambiato, scritture atomiche con copia di riserva.
+- Prova su computer (`tools/native-test/harness.c`): il gioco parte, audio alla velocità giusta, salvataggio/ripristino dello stato corretto.
+
 ## 2026-11-17 (5)
 - Avviata la Fase 1b: primi indirizzi di memoria della versione italiana (`docs/MEMORY_MAP_IT.md`).
 - Aggiunti gli strumenti di analisi `tools/rom-analysis/` (nessun contenuto del gioco).
