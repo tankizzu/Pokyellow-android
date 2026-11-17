@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 23:16 UTC)
+- Nuovo "ponte" verso il gioco (`app/src/main/java/it/giallotouch/bridge/`): indirizzi della versione italiana, decodifica dei nomi, lettura di squadra (nome, livello, PS, stato), soldi, mappa e posizione. Solo lettura, mai scrittura nella memoria del gioco.
+- Il motore copia la memoria a blocchi (`nativeReadRange`); la partita aggiorna lo stato 4 volte al secondo.
+- Squadra in alto nell'app con i dati veri (nome, livello, barra PS, pallino rosso se ha uno stato alterato). Compare solo quando la squadra ha almeno un membro.
+- 4 test automatici del ponte: tutti superati. APK di debug ricompilato.
+
 ## 2026-11-17 (6) – Prototipo 0.1 (APK di prova)
 - Progetto Android: Gradle 9.9.1, AGP 9.5.1, Kotlin 2.4.21, Compose BOM 2026.09.00, compileSdk 37 (richiesto da Compose 1.12), targetSdk 36, minSdk 26, NDK 30, solo arm64-v8a.
 - Motore SameBoy 1.0.5 copiato in `third_party/SameBoy` (MIT) e compilato con l'NDK (`libgbcore.so`).

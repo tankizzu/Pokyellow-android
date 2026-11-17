@@ -35,6 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.style.TextOverflow
+import it.giallotouch.bridge.PartyMember
+import it.giallotouch.bridge.Status
 import it.giallotouch.emu.GameSession
 import it.giallotouch.emu.NativeCore
 import kotlinx.coroutines.delay
@@ -72,6 +78,13 @@ fun GameScreen(session: GameSession) {
     }
     LaunchedEffect(Unit) {
         if (session.resumedFromState) message = "Partita ripresa da dove l'avevi lasciata"
+    }
+    var snapshot by remember { mutableStateOf(session.latestSnapshot.get()) }
+    LaunchedEffect(session) {
+        while (true) {
+            snapshot = session.latestSnapshot.get()
+            delay(250)
+        }
     }
 
     BackHandler { tapped = NativeCore.KEY_B }
@@ -133,6 +146,17 @@ fun GameScreen(session: GameSession) {
             }
         }
 
+        // Squadra in alto, con i dati letti dalla memoria del gioco.
+        if (snapshot.party.isNotEmpty()) {
+            TeamStrip(
+                snapshot.party,
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(start = 10.dp, end = 10.dp, top = 30.dp)
+            )
+        }
+
         // Barra in basso (prototipo): i menu nativi arriveranno con il "ponte" verso il gioco.
         Row(
             Modifier
@@ -161,6 +185,63 @@ fun GameScreen(session: GameSession) {
                 Text(it, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun TeamStrip(party: List<PartyMember>, modifier: Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .background(Color(0xC7171624), RoundedCornerShape(16.dp))
+            .padding(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        for (i in 0 until 6) {
+            val m = party.getOrNull(i)
+            Column(
+                Modifier
+                    .weight(1f)
+                    .height(58.dp)
+                    .background(if (m != null) Glass else Color(0x40282540), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 5.dp, vertical = 5.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (m != null) {
+                    Text(m.name, color = Cream, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Clip)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Lv${m.level}", color = Color(0xFFAAA4C8), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        if (m.status != Status.NONE) {
+                            Box(Modifier.padding(start = 4.dp).size(7.dp).background(Color(0xFFEF5B5B), CircleShape))
+                        }
+                    }
+                    HpBar(m.hp, m.maxHp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HpBar(hp: Int, max: Int) {
+    val fraction = if (max > 0) hp.toFloat() / max else 0f
+    val color = when {
+        fraction > 0.5f -> Color(0xFF58CF7C)
+        fraction > 0.2f -> Color(0xFFF2B23A)
+        else -> Color(0xFFEF5B5B)
+    }
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(5.dp)
+            .background(Color(0xFF0F0E19), RoundedCornerShape(3.dp))
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                .height(5.dp)
+                .background(color, RoundedCornerShape(3.dp))
+        )
     }
 }
 

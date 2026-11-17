@@ -18,8 +18,10 @@
 - [x] App 0.1: scelta ROM, gioco in verticale, levetta, tocco = A, indietro = B, Menu/Select/Salva, salvataggi
 - [x] APK di debug consegnato (0.1.0-prototipo)
 - [ ] Riscontro del committente sull'APK 0.1
-- [ ] Modulo `bridge`: lettura stato, pathfinding, esecutore comandi (Kotlin, test su JVM)
-- [ ] Squadra in alto con dati reali; tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi
+- [x] Ponte (`bridge`): lettura di squadra, soldi, mappa, posizione con test su JVM
+- [x] Squadra in alto con dati reali (da verificare su partita vera con un compagno in squadra)
+- [ ] Ponte: pathfinding ed esecutore comandi a circuito chiuso
+- [ ] Tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi
 
 ## Prova del motore su computer
 ```

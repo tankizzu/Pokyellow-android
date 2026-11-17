@@ -5,6 +5,9 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.os.SystemClock
 import android.util.Log
+import it.giallotouch.bridge.GameSnapshot
+import it.giallotouch.bridge.GameStateReader
+import it.giallotouch.bridge.MemoryMapIt
 import it.giallotouch.storage.SaveStorage
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
@@ -28,6 +31,10 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
     /** Ultimo fotogramma completo (160×144 ARGB), letto dalla vista del gioco. */
     val latestFrame = AtomicReference(IntArray(NativeCore.WIDTH * NativeCore.HEIGHT))
     @Volatile var onFrame: (() -> Unit)? = null
+
+    /** Ultimo stato letto dalla memoria del gioco (squadra, soldi, posizione), aggiornato 4 volte al secondo. */
+    val latestSnapshot = AtomicReference(GameSnapshot.EMPTY)
+    private val stateBlock = ByteArray(GameStateReader.BLOCK_SIZE)
 
     /** true se all'avvio è stata ripresa la partita dal punto esatto in cui era stata lasciata. */
     var resumedFromState = false
@@ -127,6 +134,7 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
                 onFrame?.invoke()
                 frames++
                 if (frames % AUTOSAVE_FRAMES == 0L) runCatching { saveBatteryIfChanged() }
+                if (frames % SNAPSHOT_FRAMES == 0L) readSnapshot()
                 if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
                     // La scrittura si blocca quando il buffer è pieno: tiene il gioco alla velocità giusta.
                     track.write(audio, 0, count)
@@ -143,6 +151,14 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
             audioTrack = null
             NativeCore.nativeDestroy(handle)
         }
+    }
+
+    private fun readSnapshot() {
+        runCatching {
+            NativeCore.nativeReadRange(handle, MemoryMapIt.BLOCK_START, stateBlock)
+            val snapshot = GameStateReader.read(stateBlock)
+            if (snapshot != latestSnapshot.get()) latestSnapshot.set(snapshot)
+        }.onFailure { Log.e(TAG, "Lettura stato non riuscita", it) }
     }
 
     private fun createAudioTrack(): AudioTrack? = runCatching {
@@ -173,5 +189,6 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
         /** Il Game Boy disegna circa 59,73 fotogrammi al secondo. */
         private const val FRAME_NANOS = 16_742_706L
         private const val AUTOSAVE_FRAMES = 60L * 20
+        private const val SNAPSHOT_FRAMES = 15L
     }
 }

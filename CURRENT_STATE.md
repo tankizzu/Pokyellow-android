@@ -30,8 +30,12 @@
 - Prova del motore su computer: vedi `tools/native-test/harness.c` (comandi in TODO).
 - **GitHub rifiuta il push**: i commit esistono solo qui.
 
+## Ultimo lavoro (promemoria 23:16 UTC)
+- Ponte di sola lettura + squadra in alto con dati veri; 4 test superati; APK ricompilato (non ancora consegnato).
+
 ## Prossimo passo
-1. Continuare la mappa della memoria (wOverworldMap, sprite, dialoghi/menu, lotta, squadra, borsa).
-2. Modulo "ponte" in Kotlin che legge lo stato dal motore (`nativeReadMemory`) con test.
-3. Prima funzione costruita sul ponte: squadra in alto con i dati reali, poi tocco su persone/oggetti.
+1. Verificare la lettura della squadra su una partita vera: nell'emulatore di prova ottenere il primo compagno
+   e confrontare i valori letti con quelli mostrati dal gioco.
+2. Trovare dove inizia lo spostamento di +5 byte (zona CC2B–D15B) e le variabili wJoyIgnore, wIsInBattle, wTextBoxID.
+3. Tocco su persone/oggetti con percorso automatico: servono collisioni (tabelle nella ROM) e posizioni degli sprite.
 4. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.

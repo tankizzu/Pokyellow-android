@@ -147,6 +147,23 @@ Java_it_giallotouch_emu_NativeCore_nativeReadMemory(JNIEnv *env, jclass cls, jlo
     return GB_safe_read_memory(as_core(handle)->gb, (uint16_t)address);
 }
 
+/* Copia un intervallo della memoria del gioco (senza effetti collaterali) per il "ponte" verso l'app. */
+JNIEXPORT void JNICALL
+Java_it_giallotouch_emu_NativeCore_nativeReadRange(JNIEnv *env, jclass cls, jlong handle, jint address, jbyteArray out) {
+    (void)cls;
+    Core *core = as_core(handle);
+    jsize len = (*env)->GetArrayLength(env, out);
+    if (len <= 0) return;
+    if (len > 0x10000) len = 0x10000;
+    uint8_t *tmp = malloc((size_t)len);
+    if (!tmp) return;
+    for (jsize i = 0; i < len; i++) {
+        tmp[i] = GB_safe_read_memory(core->gb, (uint16_t)(address + i));
+    }
+    (*env)->SetByteArrayRegion(env, out, 0, len, (const jbyte *)tmp);
+    free(tmp);
+}
+
 JNIEXPORT void JNICALL
 Java_it_giallotouch_emu_NativeCore_nativeDestroy(JNIEnv *env, jclass cls, jlong handle) {
     (void)env; (void)cls;
