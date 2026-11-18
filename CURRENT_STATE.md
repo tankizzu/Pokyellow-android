@@ -41,6 +41,13 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 2. Poi: negozio secondo il mockup (il primo negozio si apre dopo aver consegnato il Pacco a Oak: serve una partita di
    prova più avanti), PC.
 
+## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
+- PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
+  scelta per specie a 0x72961), verificati sulla scheda di Pikachu.
+- Partita automatica nel banco di prova (ZzScenarioTest): dalla lotta col rivale verso Smeraldopoli per costruire
+  partite di prova più avanti (negozio, più Pokémon). Primo giro fermo in cima alla Strada 1: corretto, di nuovo in corso.
+- Pokémon KO in lotta: lista SQUADRA dell'app quando il gioco chiede chi mandare in campo (da verificare con 2 Pokémon).
+
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.
 - Build: `ANDROID_HOME=/opt/android-sdk ./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`.

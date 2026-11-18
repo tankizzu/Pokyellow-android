@@ -75,6 +75,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Lotta a tutto schermo: true quando la schermata di lotta va mostrata divisa (scena + riquadro del testo). */
     @Volatile var battleSplit = false
         private set
+    /** In lotta il gioco chiede quale Pokémon mandare in campo (dopo un KO). */
+    @Volatile var battlePartyAsked = false
+        private set
     /** In lotta è aperto un menu del gioco diverso da quello di lotta (squadra, borsa…). */
     @Volatile var battleGameMenu = false
         private set
@@ -645,8 +648,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // i riquadri di lotta dell'app spariscono (D-049).
                 battleGameMenu = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && !battleMenuShown &&
                     frameTiles.any { (it.toInt() and 0xFF) == 0xED }
+                // Il gioco chiede un Pokémon (dopo un KO): l'app mostra la sua lista SQUADRA sopra la lotta (D-054).
+                battlePartyAsked = battleGameMenu && !battleExecutor.busy &&
+                    BattleMenus.read(frameVars, frameTiles, 0).kind == BattleMenus.Kind.PARTY
                 // Mentre l'app guida i menu di lotta del gioco si continua a mostrare la lotta (immagine di prima).
-                if (battleExecutor.busy) { battleGameMenu = false; battleSplit = true }
+                if (battleExecutor.busy || battlePartyAsked) { battleGameMenu = false; battleSplit = true }
                 if (battleGameMenu) battleSplit = false
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
                 pcMenuShown = ItemMenus.read(frameVars, frameTiles, 0).kind == ItemMenus.Kind.PC_MENU && closingFrames == 0

@@ -150,6 +150,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var pcOpen by remember { mutableStateOf(false) }       // STRUMENTI PC dell'app (D-055)
     var battleMenu by remember { mutableStateOf(false) }   // menu di lotta del gioco sullo schermo (si può scegliere)
     var battleGameMenu by remember { mutableStateOf(false) }   // in lotta: squadra/borsa del gioco aperte
+    var battlePartyAsked by remember { mutableStateOf(false) } // in lotta: il gioco chiede un Pokémon (KO)
     var battleList by remember { mutableStateOf(0) }       // in lotta: 1 = SQUADRA, 2 = BORSA dell'app (D-050)
     var battleBusy by remember { mutableStateOf(false) }
     var pendingBattlePick by remember { mutableStateOf(false) }
@@ -192,6 +193,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             if (session.pcMenuShown && !pcOpen) pcOpen = true
             battleMenu = session.battleMenuShown
             battleGameMenu = session.battleGameMenu
+            battlePartyAsked = session.battlePartyAsked
             battleBusy = session.battleBusy
             session.tileSheet.get()?.let { if (it !== sheet) sheet = it }
             if (itemRequested && !session.itemBusy) {
@@ -386,7 +388,15 @@ fun GameScreen(session: GameSession, settings: Settings) {
         val battleMon = snapshot.battleMon
         // Finita l'azione nel menu del gioco (o finita la lotta) le liste si chiudono.
         LaunchedEffect(battleBusy, snapshot.inBattle) { if (!battleBusy && (battleList != 0 && pendingBattlePick || !snapshot.inBattle)) { battleList = 0; pendingBattlePick = false } }
-        if (snapshot.inBattle && battleList != 0 && sheet != null && !battleGameMenu) {
+        if (snapshot.inBattle && battlePartyAsked && battleList == 0 && sheet != null) {
+            // Pokémon KO: il gioco chiede chi mandare in campo; lista SQUADRA dell'app, senza INDIETRO (D-054).
+            val party = snapshot.party
+            GameBattleListPanel(
+                sheet = sheet!!, party = party, bag = null, romData = session.romData, busy = battleBusy,
+                onPick = { i -> if (party.getOrNull(i)?.hp ?: 0 > 0) session.battleAction(BattleAction.Switch(i)) },
+                onBack = { },
+            )
+        } else if (snapshot.inBattle && battleList != 0 && sheet != null && !battleGameMenu) {
             val party = snapshot.party
             val active = battleMon?.let { bm -> party.indexOfFirst { it.species == bm.species && it.level == bm.level && it.hp == bm.hp } }?.takeIf { it >= 0 } ?: 0
             GameBattleListPanel(
