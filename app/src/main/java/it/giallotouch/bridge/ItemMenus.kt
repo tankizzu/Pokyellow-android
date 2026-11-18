@@ -19,7 +19,7 @@ object ItemMenus {
     private const val MORE = 0xEE
     private val STRUM = intArrayOf(0x92, 0x93, 0x91, 0x94, 0x8C)   // "STRUM" nel menu START
 
-    enum class Kind { START_MENU, ITEM_LIST, USE_TOSS, QUANTITY, YES_NO, TEXT_WAIT, PARTY, PC_MENU, SHOP_MENU, SHOP_QTY, OTHER }
+    enum class Kind { START_MENU, ITEM_LIST, USE_TOSS, QUANTITY, YES_NO, TEXT_WAIT, PARTY, PARTY_SUB, PC_MENU, SHOP_MENU, SHOP_QTY, OTHER }
 
     data class Screen(
         val kind: Kind,
@@ -80,6 +80,11 @@ object ItemMenus {
         if (topY == 2 && topX == 1 && maxItem == 3 && watched == 0x03 && t(0, 0) == 0x79 && t(17, 0) == 0x7B && t(17, 9) == 0x7E) {
             (0..3).firstOrNull { t(1, 2 + 2 * it) == CURSOR }?.let { return Screen(Kind.PC_MENU, cursor = it) }
         }
+        // Sottomenu del Pokémon fuori dalla lotta (D-057): [mosse da usare fuori], STAT., ORDINA, ESCI; X = 0x0C,
+        // tasti 0x03, cursore ▶ in (12, Y + 2c). value = numero dell'ultima voce (ORDINA = value − 1).
+        if (topX == 0x0C && watched == 0x03 && maxItem in 2..6 && t(11, topY - 1) == 0x79) {
+            (0..maxItem).firstOrNull { topY + 2 * it < 18 && t(12, topY + 2 * it) == CURSOR }?.let { return Screen(Kind.PARTY_SUB, cursor = it, value = maxItem) }
+        }
         // Menu squadra "su chi usarlo?": Y = 1, X = 0, tasti 0x03, cursore ▶ in (0, 1 + 2i) (come in lotta).
         if (topY == 1 && topX == 0 && watched == 0x03) {
             (0..5).firstOrNull { t(0, 1 + 2 * it) == CURSOR }?.let { return Screen(Kind.PARTY, cursor = it) }
@@ -117,6 +122,9 @@ sealed interface ItemAction {
 
     /** Negozio (D-056): vende [quantity] pezzi dello strumento [slot] della borsa. */
     data class ShopSell(override val slot: Int, override val name: String, val quantity: Int) : ItemAction
+
+    /** Squadra (D-057): scambia il Pokémon in posizione [slot] con quello in posizione [to] (menu POKéMON → ORDINA). */
+    data class PartySwap(override val slot: Int, val to: Int) : ItemAction { override val name = "" }
 
     /** Sposta lo strumento [slot] al posto [to], come nel gioco: SELECT sul primo, SELECT sul secondo (scambio). */
     data class Swap(override val slot: Int, override val name: String, val to: Int) : ItemAction
@@ -268,7 +276,13 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
     }
 
     private fun decide(a: ItemAction, s: ItemMenus.Screen, freeRoam: Boolean): Int = if (a is ItemAction.ShopBuy || a is ItemAction.ShopSell) decideShop(a, s) else if (a is ItemAction.PcWithdraw || a is ItemAction.PcDeposit) decidePc(a, s) else when (s.kind) {
-        ItemMenus.Kind.START_MENU -> if (a is ItemAction.OpenTrainer) when {
+        ItemMenus.Kind.START_MENU -> if (a is ItemAction.PartySwap) when {
+            tossed -> Keys.B
+            s.value < 1 -> 0
+            s.cursor < s.value - 1 -> Keys.DOWN
+            s.cursor > s.value - 1 -> Keys.UP
+            else -> Keys.A
+        } else if (a is ItemAction.OpenTrainer) when {
             s.value < 0 -> 0
             s.cursor < s.value + 1 -> Keys.DOWN
             s.cursor > s.value + 1 -> Keys.UP
@@ -297,8 +311,21 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
                 else -> { if (a is ItemAction.Use) { if (a.target == null) useChosen = true else awaitingTarget = true }; Keys.A }
             }
         }
+        ItemMenus.Kind.PARTY_SUB -> if (a is ItemAction.PartySwap && !firstSelected) when {
+            s.cursor < s.value - 1 -> Keys.DOWN
+            s.cursor > s.value - 1 -> Keys.UP
+            else -> { firstSelected = true; Keys.A }    // ORDINA
+        } else Keys.B
         ItemMenus.Kind.PC_MENU, ItemMenus.Kind.SHOP_MENU, ItemMenus.Kind.SHOP_QTY -> 0
-        ItemMenus.Kind.PARTY -> {
+        ItemMenus.Kind.PARTY -> if (a is ItemAction.PartySwap) when {
+            tossed -> Keys.B
+            !firstSelected && s.cursor < a.slot -> Keys.DOWN
+            !firstSelected && s.cursor > a.slot -> Keys.UP
+            !firstSelected -> Keys.A                    // apre il sottomenu del Pokémon
+            s.cursor < a.to -> Keys.DOWN
+            s.cursor > a.to -> Keys.UP
+            else -> { tossed = true; Keys.A }           // scambio fatto
+        } else {
             val t = (a as? ItemAction.Use)?.target
             when {
                 t == null || !awaitingTarget -> 0

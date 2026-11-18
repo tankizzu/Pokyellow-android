@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-18 – spostare i Pokémon (D-057), partita con due Pokémon
+- Partita automatica, terza tappa: Poké Ball comprate, Rattata catturato (squadra di due).
+- SQUADRA: SELECT o trascinamento scambiano i Pokémon nel gioco (verificato).
+
 ## 2026-11-18 – negozio (D-056), partite di prova costruite giocando
 - Negozio nello stile dell'app: verificato al Pokémon Market di Smeraldopoli (Poké Ball comprata e rivenduta, soldi
   giusti, uscita). Colori veri delle immagini dei Pokémon. Pokémon KO in lotta: lista SQUADRA (da provare con 2).

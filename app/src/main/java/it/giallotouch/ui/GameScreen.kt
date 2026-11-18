@@ -532,7 +532,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             else GameTeamScreen(
                 sheet = sheet!!, party = snapshot.party, romData = session.romData,
                 onOpen = { teamSelected = it },
-                onSwap = { _, _ -> message = "Spostare i Pokémon arriverà presto" },
+                onSwap = { f, t -> itemRequested = true; session.itemAction(ItemAction.PartySwap(f, t)) },
                 onClose = { teamOpen = false },
             )
         } else if (teamOpen && !snapshot.inBattle) {

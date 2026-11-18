@@ -884,3 +884,34 @@ class AppShopTest : AppScreensHarness() {
     }
 }
 
+
+/**
+ * SQUADRA con due Pokémon (D-057, partita costruita giocando): SELECT, primo, secondo → scambio nel menu del gioco;
+ * poi tenere premuto e trascinare → di nuovo scambiati. I menu del gioco non si vedono.
+ */
+class AppPartySwapTest : AppScreensHarness() {
+    @Test fun spostaSquadra() {
+        val s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue(waitFor(10_000) { s.latestSnapshot.get().freeRoam && s.latestSnapshot.get().party.size == 2 })
+        val names0 = s.latestSnapshot.get().party.map { it.name }
+        tapTile(10f, rows() - 2f); pump(800)
+        tapTile(4f, 30f)                                  // POKéMON
+        assertTrue("squadra", shotUntil("45-squadra-due") { b -> boxAt(b, 10, 39, 10, 4) })
+        tapTile(15f, 41f)                                 // SELECT
+        tapTile(4f, 9.5f)                                 // primo
+        tapTile(4f, 14.5f)                                // secondo
+        assertTrue("scambiati", waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().party.map { it.name } == names0.reversed() })
+        shot("46-squadra-scambiata")
+        // tenere premuto sul primo e trascinare sul secondo
+        val tp = 8 * unit
+        val t = SystemClock.uptimeMillis()
+        root.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 4 * tp, 9.5f * tp, 0))
+        pump(900)
+        for (k in 1..10) { root.dispatchTouchEvent(MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_MOVE, 4 * tp, (9.5f + 0.5f * k) * tp, 0)); pump(40) }
+        root.dispatchTouchEvent(MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, 4 * tp, 14.5f * tp, 0))
+        assertTrue("di nuovo come prima", waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().party.map { it.name } == names0 })
+        shot("47-squadra-trascinata")
+    }
+}
