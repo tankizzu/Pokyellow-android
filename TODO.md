@@ -39,7 +39,7 @@
 - [x] Scheda allenatore, START e lotta dal mockup (D-045), verificati col banco di prova
 - [ ] **Prossimo passo**: Squadra nello stile del gioco con spostamento (tenere premuto + SELECT, menu POKéMON del gioco); Pokédex e messaggi
 - [x] In lotta il menu LOTTA/PKMN/STRUM./FUGA del gioco è coperto da un riquadro vuoto (doppione delle azioni dell'app)
-- [ ] Prova sul gioco vero dello scambio di strumenti (serve uno stato con almeno 2 strumenti)
+- [ ] Prova sul gioco vero dello scambio di strumenti: pronta `RealGameSwapTest` (`-Pgiallo.state.items=STATO`), manca uno stato con almeno 2 strumenti (es. dopo aver ricevuto il Pacco di Oak a Smeraldopoli)
 - [ ] Usa con scelta del compagno nell'app (pozioni, cure); Squadra: "Sposta"
 - [ ] Copia di sicurezza dei salvataggi (esporta/importa) prima di eventuali reinstallazioni
 - [ ] Pokédex: scheda della specie (descrizione, altezza, peso) dalla ROM, solo per le specie prese
