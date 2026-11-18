@@ -7,7 +7,7 @@ import org.junit.Test
 class SaveSlotsTest {
     @Test
     fun schedaAndataERitorno() {
-        val info = SlotInfo(1_763_450_000_000, "Ro sa!", 3175, 2, listOf("PIKACHU" to 7, "PID|GEY" to 4))
+        val info = SlotInfo(1_763_450_000_000, "Ro sa!", 3175, 2, listOf("PIKACHU" to 7, "PID|GEY" to 4), playMinutes = 75)
         val back = SlotInfo.decode(info.encode())
         assertEquals(info.copy(party = listOf("PIKACHU" to 7, "PID GEY" to 4)), back)
     }

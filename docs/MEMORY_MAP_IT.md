@@ -110,6 +110,9 @@ Sprite (C100 + 16·n): +0 immagine, +2 indice immagine (0xFF = non disegnato), +
 (0 giù, 4 su, 8 sinistra, 12 destra). C200 + 16·n: +4 Y mappa (+4), +5 X mappa (+4), +7 erba (0x80), +0x0E grafica (base).
 Tile della grafica: (base − 1) × 12 (0x7C per base 0x0C); ferma giù 0–3, su 4–7, sinistra 8–11, destra = sinistra ribaltata.
 
+## Tempo di gioco (verificato facendo passare 1 minuto)
+DA45 ore, DA46 limite raggiunto, DA47 minuti, DA48 secondi, DA49 fotogrammi.
+
 ## Borsa e Pokédex (verificati sul gioco vero)
 | Cosa | Indirizzo | Note |
 |---|---|---|

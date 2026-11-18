@@ -12,6 +12,7 @@ import it.giallotouch.bridge.ItemActionExecutor
 import it.giallotouch.bridge.ItemMenus
 import it.giallotouch.bridge.CommandExecutor
 import it.giallotouch.bridge.MenuReader
+import it.giallotouch.bridge.MenuKind
 import it.giallotouch.bridge.GameSnapshot
 import it.giallotouch.bridge.GameStateReader
 import it.giallotouch.bridge.FreeRoam
@@ -72,6 +73,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var battleSplit = false
         private set
     private val frameTiles = ByteArray(MenuReader.SCREEN_SIZE)
+    private val frameVars = ByteArray(MenuReader.MENU_VARS_SIZE)
+
+    /** Menu iniziale del gioco sullo schermo: numero di voci del gioco (2 o 3), 0 se non c'è (D-040). */
+    @Volatile var mainMenuItems = 0
+        private set
+    /** Cursore ▶ del menu iniziale ridisegnato (indice nelle voci dell'app), mosso dalla levetta. */
+    @Volatile var startMenuCursor = 0
 
     /** Ultimo stato letto dalla memoria del gioco (squadra, soldi, posizione), aggiornato 4 volte al secondo. */
     val latestSnapshot = AtomicReference(GameSnapshot.EMPTY)
@@ -298,6 +306,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 money = snap.money,
                 badges = Integer.bitCount(NativeCore.nativeReadMemory(handle, MemoryMapIt.BADGES)),
                 party = snap.party.map { it.name to it.level },
+                playMinutes = NativeCore.nativeReadMemory(handle, MemoryMapIt.PLAY_TIME_HOURS) * 60 +
+                    NativeCore.nativeReadMemory(handle, MemoryMapIt.PLAY_TIME_MINUTES),
             )
             storage.writeAtomic(files.info, info.encode().toByteArray(Charsets.UTF_8))
             runCatching { storage.writeAtomic(files.thumbnail, thumbnailPng()) }
@@ -355,8 +365,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 NativeCore.nativeSetKeys(handle, currentKeys())
                 val count = NativeCore.nativeRunFrame(handle, back, audio)
                 back = latestFrame.getAndSet(back)
-                battleSplit = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 &&
-                    run { NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles); BattleLayout.textBoxAtBottom(frameTiles) }
+                // Ogni fotogramma: schermata di lotta divisa e menu iniziale ridisegnato (in sincronia con l'immagine).
+                NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles)
+                NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, frameVars)
+                battleSplit = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && BattleLayout.textBoxAtBottom(frameTiles)
+                mainMenuItems = MenuReader.read(frameVars, frameTiles).let { if (it.kind == MenuKind.MAIN_MENU) it.items else 0 }
                 val eh = extendedHeight
                 if (eh > NativeCore.HEIGHT) {
                     val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop) == 1

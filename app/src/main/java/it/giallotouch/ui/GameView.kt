@@ -8,6 +8,8 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.view.View
 import it.giallotouch.bridge.BattleLayout
+import it.giallotouch.bridge.StartMenuLayout
+import it.giallotouch.bridge.TileCanvas
 import it.giallotouch.emu.GameSession
 import it.giallotouch.emu.NativeCore
 import kotlin.math.roundToInt
@@ -90,5 +92,26 @@ class GameView(context: Context) : View(context) {
         val top = (height - h) / 2
         dst.set(0, top, w, top + h)
         canvas.drawBitmap(frameBitmap, null, dst, paint)
+        drawStartMenu(canvas, s, top, w)
+    }
+
+    /** Menu iniziale ridisegnato con i tile del gioco (D-040), nello stesso fotogramma: copre il menu originale. */
+    private var menuBitmap: Bitmap? = null
+    private var menuKey: Triple<IntArray, Int, Int>? = null
+    private fun drawStartMenu(canvas: Canvas, s: GameSession, frameTop: Int, w: Int) {
+        val items = s.mainMenuItems
+        val sheet = s.tileSheet.get() ?: return
+        if (items <= 0) return
+        val cursor = s.startMenuCursor
+        if (menuKey?.first !== sheet || menuKey?.second != items || menuKey?.third != cursor) {
+            val c = TileCanvas(StartMenuLayout.WIDTH, StartMenuLayout.height(items), sheet)
+            StartMenuLayout.draw(c, items, cursor)
+            menuBitmap = Bitmap.createBitmap(c.pixels, c.width, c.height, Bitmap.Config.ARGB_8888)
+            menuKey = Triple(sheet, items, cursor)
+        }
+        val b = menuBitmap ?: return
+        val unit = w.toFloat() / NativeCore.WIDTH
+        dst.set(0, frameTop, (b.width * unit).toInt(), frameTop + (b.height * unit).toInt())
+        canvas.drawBitmap(b, null, dst, paint)
     }
 }

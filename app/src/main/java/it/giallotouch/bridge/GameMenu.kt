@@ -75,6 +75,10 @@ sealed interface GameCommand {
     data class Answer(val yes: Boolean) : GameCommand {
         override val battleOnly: Boolean get() = false
     }
+    /** Voce [index] del menu iniziale del gioco (con salvataggio: 0 CONTINUA, 1 NUOVO GIOCO, 2 OPZIONI). */
+    data class MainMenu(val index: Int) : GameCommand {
+        override val battleOnly: Boolean get() = false
+    }
 }
 
 /** Bit dei tasti (stesso ordine del motore). */
@@ -133,7 +137,14 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
 
         /** Prossimo tasto da premere per avvicinarsi al comando; null = aspettare (testo in corso). */
         fun decide(cmd: GameCommand, menu: MenuState): Decision? = when (menu.kind) {
-            MenuKind.NONE, MenuKind.MAIN_MENU -> null
+            MenuKind.NONE -> null
+            MenuKind.MAIN_MENU -> if (cmd is GameCommand.MainMenu) {
+                when {
+                    menu.item < cmd.index -> Decision(Keys.DOWN)
+                    menu.item > cmd.index -> Decision(Keys.UP)
+                    else -> Decision(Keys.A, done = true)
+                }
+            } else null
             MenuKind.YES_NO -> if (cmd is GameCommand.Answer) {
                 val target = if (cmd.yes) 0 else 1
                 when {
@@ -143,6 +154,7 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
                 }
             } else null
             MenuKind.BATTLE_MOVES -> when (cmd) {
+                is GameCommand.MainMenu -> null
                 is GameCommand.Fight -> when {
                     menu.item < cmd.moveIndex -> Decision(Keys.DOWN)
                     menu.item > cmd.moveIndex -> Decision(Keys.UP)
@@ -150,7 +162,7 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
                 }
                 else -> Decision(Keys.B)
             }
-            MenuKind.BATTLE_MAIN -> if (cmd is GameCommand.Answer) null else {
+            MenuKind.BATTLE_MAIN -> if (cmd is GameCommand.Answer || cmd is GameCommand.MainMenu) null else {
                 val (column, item) = when (cmd) {
                     is GameCommand.Fight -> 0 to 0
                     GameCommand.Item -> 0 to 1

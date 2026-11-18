@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-18 – menu iniziale ridisegnato con il tocco e il cursore (D-040, D-041)
+- Il menu iniziale del gioco viene ridisegnato con i tile del gioco nello stesso fotogramma dell'immagine (nessun
+  lampeggio del menu originale): riquadro 18×14 con CONTINUA, CARICA PARTITA, OPZIONI, NUOVO GIOCO come nel mockup.
+- Due modi per scegliere: **tocco diretto** sulla voce, oppure **cursore ▶** mosso con la levetta e confermato con un
+  tocco fuori dalle voci. CONTINUA/NUOVO GIOCO/OPZIONI vengono scelti nel menu vero del gioco dall'esecutore.
+- Il tempo di gioco (DA45/DA47) viene salvato con i salvataggi dell'app.
+- 63 test superati.
+
 ## 2026-11-18 – pulsanti di gioco come nel mockup del committente (D-040)
 - MENU in basso al centro, disegnato con i tile del gioco; aperto mostra in alto la **squadra completa in piccolo**
   (nome, livello, barra della vita con i colori del gioco e PS, barra dell'esperienza) e sotto il riquadro

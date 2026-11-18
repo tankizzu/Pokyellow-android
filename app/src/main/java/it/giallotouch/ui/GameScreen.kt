@@ -49,6 +49,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
 import it.giallotouch.bridge.GameCommand
 import it.giallotouch.bridge.ItemAction
+import it.giallotouch.bridge.StartMenuLayout
 import it.giallotouch.bridge.TextAssist
 import it.giallotouch.storage.Settings
 import it.giallotouch.storage.SlotEntry
@@ -81,6 +82,7 @@ internal val Cream = Color(0xFFFFF7DC)
 @Composable
 fun GameScreen(session: GameSession, settings: Settings) {
     var held by remember { mutableStateOf(0) }       // direzione tenuta dalla levetta
+    var startCursor by remember { mutableStateOf(0) }   // cursore ▶ del menu iniziale ridisegnato (D-040)
     var pressedSince by remember { mutableStateOf<Long?>(null) }  // dito appoggiato (per il testo più veloce)
     var autoText by remember { mutableStateOf(settings.autoTextSpeed) }
     var tapped by remember { mutableStateOf(0) }     // tasti premuti brevemente (A, B, START, SELECT)
@@ -90,7 +92,17 @@ fun GameScreen(session: GameSession, settings: Settings) {
     val density = LocalDensity.current
     val radius = with(density) { 58.dp.toPx() }
 
-    LaunchedEffect(held, tapped) { session.setKeys(held or tapped) }
+    LaunchedEffect(held, tapped) {
+        val items = session.mainMenuItems
+        if (items > 0 && held != 0) {
+            // Menu iniziale ridisegnato: su/giù spostano il cursore ▶ nell'ordine delle voci sullo schermo.
+            val n = StartMenuLayout.entries(items).size
+            if (held == NativeCore.KEY_DOWN) startCursor = (startCursor + 1) % n
+            if (held == NativeCore.KEY_UP) startCursor = (startCursor + n - 1) % n
+            session.setKeys(tapped)
+        } else session.setKeys(held or tapped)
+    }
+    LaunchedEffect(startCursor) { session.startMenuCursor = startCursor }
     LaunchedEffect(autoText) { session.autoTextSpeed = autoText; settings.autoTextSpeed = autoText }
     // Dito tenuto premuto per più di 0,3 s: durante i testi il gioco scorre più veloce.
     LaunchedEffect(pressedSince) {
@@ -114,13 +126,23 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var itemRequested by remember { mutableStateOf(false) }  // Usa/Getta in corso nel menu del gioco
     var panelOpen by remember { mutableStateOf(false) }   // pulsanti del pulsante laterale visibili
     var optionsOpen by remember { mutableStateOf(false) }   // OPZIONI nello stile del gioco
+    fun startMenuChoose(entry: StartMenuLayout.Entry, items: Int) {
+        startCursor = StartMenuLayout.entries(items).indexOf(entry).coerceAtLeast(0)
+        val game = StartMenuLayout.gameIndex(entry, items)
+        if (game == null) { slots = session.savedSlots(); loadOpen = true } else session.command(GameCommand.MainMenu(game))
+    }
     var sheet by remember { mutableStateOf<IntArray?>(null) }   // tile del gioco per le aggiunte "come il gioco"
     var teamSelected by remember { mutableStateOf<Int?>(null) }  // scheda aperta (null = elenco)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
     var namingDismissed by remember { mutableStateOf(false) }
     LaunchedEffect(session) {
+        var lastMainMenu = 0
         while (true) {
+            // All'apertura del menu iniziale il cursore ▶ parte dalla prima voce.
+            val mm = session.mainMenuItems
+            if (mm > 0 && lastMainMenu == 0) startCursor = 0
+            lastMainMenu = mm
             snapshot = session.latestSnapshot.get()
             commandBusy = session.commandBusy
             inGame = session.inGame
@@ -175,7 +197,18 @@ fun GameScreen(session: GameSession, settings: Settings) {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
-                                if (!moved && change.uptimeMillis - t0 < 350) {
+                                if (!moved && change.uptimeMillis - t0 < 350 && session.mainMenuItems > 0) {
+                                    val items = session.mainMenuItems
+                                    val w = size.width.toFloat()
+                                    val unit = w / NativeCore.WIDTH
+                                    val top = (size.height - w * NativeCore.HEIGHT / NativeCore.WIDTH) / 2f
+                                    val p = change.position
+                                    val row = kotlin.math.floor((p.y - top) / (8 * unit)).toInt()
+                                    val col = (p.x / (8 * unit)).toInt()
+                                    val entry = StartMenuLayout.entryAt(row, col, items)
+                                        ?: StartMenuLayout.entries(items).getOrNull(startCursor)
+                                    if (entry != null) startMenuChoose(entry, items)
+                                } else if (!moved && change.uptimeMillis - t0 < 350) {
                                     // Tocco veloce: se si cammina liberamente e si tocca la mappa, il personaggio
                                     // raggiunge quel punto (o la persona/oggetto e ci parla); altrimenti è il tasto A.
                                     val s = snapshot
@@ -324,29 +357,6 @@ fun GameScreen(session: GameSession, settings: Settings) {
             }
         }
 
-        // Menu iniziale del gioco (NUOVO GIOCO, OPZIONI, ev. CONTINUA): sotto il riquadro la voce "Carica partita" (D-034).
-        if (snapshot.menu.kind == MenuKind.MAIN_MENU && !loadOpen) {
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                val imageTop = (maxHeight - maxWidth * 0.9f) / 2
-                val tile = maxWidth / 20
-                val boxRows = 2 * (snapshot.menu.items - 1) + 4
-                Box(
-                    Modifier
-                        .padding(top = imageTop + tile * boxRows + 10.dp, start = tile * 0.5f)
-                        .width(tile * 14)
-                        .height(48.dp)
-                        .background(Cream, RoundedCornerShape(12.dp))
-                        .border(3.dp, Ink, RoundedCornerShape(12.dp))
-                        .clickable {
-                            slots = session.savedSlots()
-                            loadOpen = true
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("CARICA PARTITA", color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                }
-            }
-        }
         if (loadOpen) {
             LoadScreen(
                 entries = slots,

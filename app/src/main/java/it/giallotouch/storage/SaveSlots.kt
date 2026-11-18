@@ -25,6 +25,8 @@ data class SlotInfo(
     val badges: Int = 0,
     /** Squadra come coppie (nome, livello). */
     val party: List<Pair<String, Int>> = emptyList(),
+    /** Tempo di gioco in minuti (−1 se sconosciuto, salvataggi delle versioni precedenti). */
+    val playMinutes: Int = -1,
 ) {
     fun encode(): String {
         val p = Properties()
@@ -33,6 +35,7 @@ data class SlotInfo(
         p["money"] = money.toString()
         p["badges"] = badges.toString()
         p["party"] = party.joinToString("|") { "${it.first.replace("|", " ")}:${it.second}" }
+        p["playMinutes"] = playMinutes.toString()
         return StringWriter().also { p.store(it, null) }.toString()
     }
 
@@ -49,6 +52,7 @@ data class SlotInfo(
                 money = p.getProperty("money")?.toIntOrNull() ?: 0,
                 badges = p.getProperty("badges")?.toIntOrNull() ?: 0,
                 party = party,
+                playMinutes = p.getProperty("playMinutes")?.toIntOrNull() ?: -1,
             )
         }.getOrNull()
     }

@@ -64,6 +64,9 @@ object MemoryMapIt {
     const val NUM_POKEDEX = 151
     const val PLAYER_MONEY = 0xD34B
     const val OPTIONS = 0xD359
+    /** Tempo di gioco: ore DA45, (limite DA46), minuti DA47, secondi DA48, fotogrammi DA49. Verificato facendo passare 1 minuto. */
+    const val PLAY_TIME_HOURS = 0xDA45
+    const val PLAY_TIME_MINUTES = 0xDA47
     /** Medaglie ottenute: un bit per medaglia (US wObtainedBadges + 5). */
     const val BADGES = 0xD35A
     const val CUR_MAP = 0xD362

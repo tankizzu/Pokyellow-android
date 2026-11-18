@@ -147,3 +147,20 @@ class MainMenuTest {
         org.junit.Assert.assertEquals(MenuKind.NONE, MenuReader.read(v3, t3).kind)
     }
 }
+
+class StartMenuLayoutTest {
+    @org.junit.Test
+    fun vociEPosizioni() {
+        val e = StartMenuLayout.entries(3)
+        org.junit.Assert.assertEquals(listOf("CONTINUA", "CARICA PARTITA", "OPZIONI", "NUOVO GIOCO"), e.map { it.label })
+        org.junit.Assert.assertEquals(14, StartMenuLayout.height(3))   // riquadro 18×14 come nel mockup
+        org.junit.Assert.assertEquals(StartMenuLayout.Entry.OPZIONI, StartMenuLayout.entryAt(8, 3, 3))
+        org.junit.Assert.assertEquals(null, StartMenuLayout.entryAt(13, 3, 3))
+        org.junit.Assert.assertEquals(1, StartMenuLayout.gameIndex(StartMenuLayout.Entry.NUOVO, 3))
+        org.junit.Assert.assertEquals(0, StartMenuLayout.gameIndex(StartMenuLayout.Entry.NUOVO, 2))
+        // il comando scende fino alla voce e preme A
+        val d = CommandExecutor.decide(GameCommand.MainMenu(2), MenuState(MenuKind.MAIN_MENU, item = 0, items = 3))
+        org.junit.Assert.assertEquals(Keys.DOWN, d?.key)
+        org.junit.Assert.assertEquals(Keys.A, CommandExecutor.decide(GameCommand.MainMenu(2), MenuState(MenuKind.MAIN_MENU, item = 2, items = 3))?.key)
+    }
+}
