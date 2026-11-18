@@ -50,6 +50,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
   Pacco consegnato a Oak, negozio aperto (partite pokedex, shop).
 - Negozio dell'app (D-056) fatto e verificato: comprare e vendere con cursore a scorrimento.
 - Terza tappa: 7 Poké Ball, Rattata catturato (partita two: Pikachu + Rattata). Spostare i Pokémon (D-057) verificato.
+- Cambio Pokémon in lotta dalla lista SQUADRA (D-050) verificato con due Pokémon.
 - Pokémon KO in lotta: lista SQUADRA dell'app quando il gioco chiede chi mandare in campo (da verificare con 2 Pokémon).
 
 ## Ambiente di lavoro (cloud)

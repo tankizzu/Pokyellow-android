@@ -915,3 +915,34 @@ class AppPartySwapTest : AppScreensHarness() {
         shot("47-squadra-trascinata")
     }
 }
+
+/** Cambio Pokémon in lotta (D-050) con due Pokémon: SQUADRA → secondo → in campo il secondo. */
+class AppBattleSwitchTest : AppScreensHarness() {
+    @Test fun cambioInLotta() {
+        val s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue(waitFor(10_000) { s.latestSnapshot.get().freeRoam && s.latestSnapshot.get().party.size == 2 })
+        val rnd = java.util.Random(5)
+        var walks = 0
+        while (!s.latestSnapshot.get().inBattle && walks++ < 30) {
+            val g = s.mapGridForTest() ?: break
+            val p = s.positionForTest()
+            val free = (0 until g.width).flatMap { x -> (6 until g.height - 4).map { y -> x to y } }.filter { g.isFree(it.first, it.second) && g.path(p.second, p.third, setOf(it)) != null }
+            val t = free[rnd.nextInt(free.size)]
+            s.walkPathForTest(t.first, t.second)
+            waitFor(30_000) { s.latestSnapshot.get().inBattle || s.positionForTest().let { it.second == t.first && it.third == t.second } }
+        }
+        assertTrue("lotta", waitFor(10_000) { s.latestSnapshot.get().inBattle })
+        var k = 0
+        while (!(s.battleMenuShown && !s.commandBusy) && k++ < 30) tapTile(10f, 2f)
+        val first = s.latestSnapshot.get().battleMon!!.species
+        val second = s.latestSnapshot.get().party.first { it.species != first }
+        tapTile(3f, it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f)          // SQUADRA
+        assertTrue("lista squadra", shotUntil("48-lotta-squadra-due") { b -> boxAt(b, 0, 23, 20, 16) })
+        val idx = s.latestSnapshot.get().party.indexOf(second)
+        tapTile(6f, 25.5f + 4 * idx)
+        assertTrue("in campo il secondo", waitFor(40_000) { s.latestSnapshot.get().battleMon?.species == second.species })
+        shot("49-lotta-cambio")
+    }
+}
