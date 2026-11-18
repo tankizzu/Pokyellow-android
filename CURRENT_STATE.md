@@ -3,6 +3,7 @@
 **Ultimo aggiornamento:** 2026-11-17 (notte)
 
 ## Dove siamo
+- **APK 0.2.0-prototipo consegnato il 2026-11-18** con il resoconto (squadra in alto, comandi di lotta, Sì/No, tocco su persone/oggetti).
 - **Prototipo 0.1 compilato e consegnato al committente** per le prime prove sul CMF Phone 2 Pro.
   Il gioco gira con SameBoy; comandi provvisori (vedi D-024).
 - Fase 1b (memoria versione italiana) iniziata: `docs/MEMORY_MAP_IT.md`.
