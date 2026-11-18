@@ -59,6 +59,13 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 | wLastMap | D369 | 🟡 | |
 | wCurMapTileset | D36B | 🟡 | |
 | wCurMapHeight / wCurMapWidth | D36C / D36D | ✅ | in blocchi; confermati con i dati della mappa |
+| wNumSigns / wSignCoords | D4B4 / D4B5 | ✅ | numero di cartelli, poi coppie (Y, X); verificato con i 4 cartelli del paese iniziale |
+| wTilesetBank | D52F | ✅ | banco ROM del set di tile |
+| wTilesetBlocksPtr | D530 | ✅ | blocchi da 16 tile |
+| wTilesetGfxPtr | D532 | 🟡 | |
+| wTilesetCollisionPtr | D534 | ✅ | lista dei tile calpestabili nel **banco 1** della ROM, chiusa da 0xFF |
+| wTilesetTalkingOverTiles | D536 (3) | 🟡 | tile "bancone" |
+| wGrassTile | D539 | 🟡 | 0x52 all'esterno |
 
 ## Da trovare
 | Variabile | Uso | Stato |
@@ -87,6 +94,11 @@ Le variabili restano in memoria anche a menu chiuso: il menu è attivo solo se c
 | Nomi dei tipi | puntatori a 0x27D63 (banco 0x09) | ✅ | 27 puntatori (tipi 0x00–0x1A) verso nomi chiusi da 0x50 |
 
 Caratteri accentati trovati: 0xBE = À, 0xC6 = É.
+
+## Passi calpestabili (come li calcola il gioco)
+Passo (x, y) → blocco `wOverworldMap[(y/2 + 3) × (larghezza + 6) + x/2 + 3]` → tile in basso a sinistra del
+quadrato 2×2: `blocchi[blocco × 16 + ((y%2)×2 + 1) × 4 + (x%2)×2]` → calpestabile se è nella lista dei tile
+calpestabili. Verificato sulla camera e sul paese iniziale confrontando con i passi provati nel gioco.
 
 ## Sequenza di prova riproducibile (motore SameBoy, `tools/native-test/runner.c`)
 Nuova partita con nomi predefiniti → camera → scendere → uscire → nord fino all'erba alta (scena di Oak)

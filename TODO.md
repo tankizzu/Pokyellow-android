@@ -21,7 +21,8 @@
 - [x] Ponte (`bridge`): lettura di squadra, soldi, mappa, posizione con test su JVM
 - [x] Squadra in alto con dati reali (da verificare su partita vera con un compagno in squadra)
 - [x] Esecutore comandi a circuito chiuso per la lotta (provato sul gioco vero)
-- [ ] Ponte: pathfinding e tocco su persone/oggetti
+- [x] Ponte: pathfinding e tocco su persone, oggetti, cartelli, banconi
+- [ ] Tocco sui PC; sporgenze, acqua (Surf) e dislivelli nel percorso
 - [x] Sì/No nativi nelle domande del gioco
 - [x] Tipo e PP massimi delle mosse dalla ROM
 - [ ] Tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi

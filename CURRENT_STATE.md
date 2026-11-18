@@ -33,10 +33,11 @@
 ## Ultimo lavoro (promemoria 23:16 UTC)
 - Ponte di sola lettura + squadra in alto con dati veri; 4 test superati; APK ricompilato (non ancora consegnato).
 
-## Ultimo lavoro (promemoria 04:16 UTC)
-- Pulsanti di lotta con tipo e PP massimi dalla ROM; 20 test superati; APK ricompilato (non ancora consegnato).
+## Ultimo lavoro (promemoria 05:16 UTC)
+- Tocco su persone, oggetti, cartelli e banconi con percorso automatico e interazione; 28 test superati (4 sul gioco vero).
+- APK ricompilato con squadra in alto, comandi di lotta, Sì/No e tocco per parlare (non ancora consegnato).
 
 ## Prossimo passo
-1. Tocco su persone e oggetti con percorso automatico: collisioni del set di tile corrente (tabelle nella ROM),
-   posizioni degli sprite (C100/C200), percorso sulla griglia e passi eseguiti a circuito chiuso.
+1. Prova sul gioco vero del tocco su una persona (camminata + dialogo che si apre) e dei PC
+   (i PC non sono cartelli: oggi si raggiungono con la levetta e si tocca il proprio personaggio).
 2. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.

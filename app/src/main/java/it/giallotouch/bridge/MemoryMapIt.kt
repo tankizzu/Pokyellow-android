@@ -43,6 +43,16 @@ object MemoryMapIt {
     const val CUR_MAP_TILESET = 0xD36B
     const val CUR_MAP_HEIGHT = 0xD36C
     const val CUR_MAP_WIDTH = 0xD36D
+    /** Set di tile della mappa corrente: banco ROM, puntatore ai blocchi (16 tile ciascuno), puntatore alla
+     *  lista dei tile calpestabili (nel banco 1, chiusa da 0xFF). */
+    const val TILESET_BANK = 0xD52F
+    const val TILESET_BLOCKS_PTR = 0xD530
+    const val TILESET_COLLISION_PTR = 0xD534
+    /** Tile "bancone": si può parlare attraverso (fino a 3 valori, 0xFF = nessuno). */
+    const val TILESET_TALKING_OVER_TILES = 0xD536
+    /** Cartelli della mappa corrente: numero, poi coppie (Y, X) in passi. */
+    const val NUM_SIGNS = 0xD4B4
+    const val SIGN_COORDS = 0xD4B5
 
     const val PARTY_LENGTH = 6
     const val PARTY_STRUCT_LENGTH = 44

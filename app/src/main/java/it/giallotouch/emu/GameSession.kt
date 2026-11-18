@@ -10,6 +10,9 @@ import it.giallotouch.bridge.CommandExecutor
 import it.giallotouch.bridge.MenuReader
 import it.giallotouch.bridge.GameSnapshot
 import it.giallotouch.bridge.GameStateReader
+import it.giallotouch.bridge.FreeRoam
+import it.giallotouch.bridge.MapGrid
+import it.giallotouch.bridge.WalkExecutor
 import it.giallotouch.bridge.MemoryMapIt
 import it.giallotouch.bridge.RomData
 import it.giallotouch.storage.SaveStorage
@@ -22,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference
  * Una partita in corso: un thread dedicato fa avanzare il gioco un fotogramma alla volta,
  * manda l'audio all'altoparlante (che fa anche da orologio) e pubblica l'immagine.
  */
-class GameSession(private val storage: SaveStorage, rom: ByteArray) {
+class GameSession(private val storage: SaveStorage, private val rom: ByteArray) {
 
     private val handle: Long = NativeCore.nativeCreate(SAMPLE_RATE)
     private val tasks = ConcurrentLinkedQueue<Runnable>()
@@ -79,7 +82,44 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
         tasks.add(Runnable { executor.start(cmd) })
     }
 
+    /** Camminata automatica verso un passo toccato sullo schermo (con eventuale interazione all'arrivo). */
+    private val walker = WalkExecutor()
+
+    /** Chiede di raggiungere il passo (x, y) della mappa; se è una persona o un oggetto, ci si parla. */
+    fun walkTo(x: Int, y: Int) {
+        tasks.add(Runnable { planWalk(x, y) })
+    }
+
+    private fun readBytes(address: Int, n: Int): ByteArray = ByteArray(n).also { NativeCore.nativeReadRange(handle, address, it) }
+
+    private fun planWalk(tx: Int, ty: Int) {
+        val grid = MapGrid.build(::readBytes, rom) ?: return
+        val px = NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD)
+        val py = NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD)
+        if (grid.isInteractive(tx, ty)) {
+            val spots = grid.interactionSpots(tx, ty)
+            val path = grid.path(px, py, spots.keys) ?: return
+            var end = px to py
+            for (d in path) end = end.first + d.dx to end.second + d.dy
+            walker.start(path, spots[end])
+        } else if (TAP_WALKS_TO_GROUND && grid.isFree(tx, ty)) {
+            grid.path(px, py, setOf(tx to ty))?.let { walker.start(it, null) }
+        }
+    }
+
     private fun currentKeys(): Int {
+        if (walker.busy) {
+            if (userKeys != 0) walker.cancel() else {
+                val pos = WalkExecutor.Position(
+                    NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP),
+                    NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD),
+                    NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD),
+                )
+                val gameBusy = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) != 0 ||
+                    NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0
+                return walker.step(pos, gameBusy)
+            }
+        }
         if (!executor.busy) {
             commandBusy = false
             return userKeys
@@ -194,7 +234,10 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
             NativeCore.nativeReadRange(handle, MemoryMapIt.BLOCK_START, stateBlock)
             NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
             NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
-            val snapshot = GameStateReader.read(stateBlock).copy(menu = MenuReader.read(menuVars, tileMap))
+            val base = GameStateReader.read(stateBlock)
+            val joyIgnore = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE)
+            val freeRoam = joyIgnore == 0 && !base.inBattle && FreeRoam.screenIsMap(tileMap)
+            val snapshot = base.copy(menu = MenuReader.read(menuVars, tileMap), freeRoam = freeRoam)
             if (snapshot != latestSnapshot.get()) latestSnapshot.set(snapshot)
         }.onFailure { Log.e(TAG, "Lettura stato non riuscita", it) }
     }
@@ -228,5 +271,7 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
         private const val FRAME_NANOS = 16_742_706L
         private const val AUTOSAVE_FRAMES = 60L * 20
         private const val SNAPSHOT_FRAMES = 15L
+        /** Scelta del committente nel Laboratorio (D-012): toccare il terreno NON fa camminare. */
+        private const val TAP_WALKS_TO_GROUND = false
     }
 }

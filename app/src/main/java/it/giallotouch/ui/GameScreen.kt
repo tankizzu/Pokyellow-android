@@ -122,7 +122,20 @@ fun GameScreen(session: GameSession) {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
-                                if (!moved && change.uptimeMillis - t0 < 350) tapped = NativeCore.KEY_A
+                                if (!moved && change.uptimeMillis - t0 < 350) {
+                                    // Tocco veloce: se si cammina liberamente e si tocca la mappa, il personaggio
+                                    // raggiunge quel punto (o la persona/oggetto e ci parla); altrimenti è il tasto A.
+                                    val s = snapshot
+                                    val w = size.width.toFloat()
+                                    val h = w * NativeCore.HEIGHT / NativeCore.WIDTH
+                                    val top = (size.height - h) / 2f
+                                    val p = change.position
+                                    if (s.freeRoam && p.y >= top && p.y < top + h) {
+                                        val tx = s.x + (p.x / (w / 10f)).toInt() - 4
+                                        val ty = s.y + ((p.y - top) / (h / 9f)).toInt() - 4
+                                        if (tx == s.x && ty == s.y) tapped = NativeCore.KEY_A else session.walkTo(tx, ty)
+                                    } else tapped = NativeCore.KEY_A
+                                }
                                 break
                             }
                             var d = change.position - start

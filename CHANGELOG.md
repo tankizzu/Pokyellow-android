@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 05:16 UTC)
+- Trovati set di tile corrente (D52F–D539), lista dei tile calpestabili nella ROM (banco 1) e cartelli (D4B4).
+- Nuova griglia dei passi calpestabili (`MapGrid`), percorso più breve, posti da cui parlare (anche attraverso i banconi).
+- Nuovo esecutore di camminata a circuito chiuso (`WalkExecutor`): un passo alla volta, si ferma se il gioco prende il controllo, se un passo non riesce o se si usa la levetta.
+- App: toccare una persona, un oggetto a terra, un cartello o un bancone porta lì e fa parlare/esaminare. Toccare il terreno non fa camminare (scelta del Laboratorio, D-012); toccare il proprio personaggio = tasto A. Fuori dal movimento libero (testi, menu, lotta) il tocco resta il tasto A.
+- Test: 28 superati, di cui 4 sul gioco vero (camminata fino al passo scelto nel paese iniziale).
+
 ## 2026-11-18 (promemoria 04:16 UTC)
 - Trovati nella ROM italiana i dati delle mosse (0x38000: tipo e PP massimi) e i nomi dei tipi (puntatori a 0x27D63).
 - Pulsanti di lotta completi: nome della mossa, tipo con colore e PP attuali/massimi, tutto letto dalla ROM dell'utente all'avvio.

@@ -14,6 +14,8 @@ data class GameSnapshot(
     val battleMon: BattleMon? = null,
     /** Menu attivo sullo schermo (lotta, domanda Sì/No), se riconosciuto. */
     val menu: MenuState = MenuState.NONE,
+    /** true quando il giocatore cammina liberamente: nessuna scena, lotta, testo o menu. */
+    val freeRoam: Boolean = false,
 ) {
     val inBattle: Boolean get() = battleType != 0
 
