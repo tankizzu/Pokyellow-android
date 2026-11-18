@@ -312,12 +312,11 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     TileImage(
                         sheet!!, w, 5, unit, key = Triple(word.toList(), yn.item, k),
                         modifier = Modifier
-                            .offset { IntOffset(((if (k == 0) 2 else 11) * tilePx).toInt(), (36 * tilePx).toInt()) }
+                            .offset { IntOffset(((if (k == 0) 2 else 12) * tilePx).toInt(), (37 * tilePx).toInt()) }
                             .pointerInput(answer, commandBusy) { detectTapGestures { if (!commandBusy) session.command(GameCommand.Answer(answer)) } }
                     ) {
                         box(0, 0, w - 1, 4)
                         word.forEachIndexed { i, t -> tile(t, 2 + i, 2) }
-                        if (yn.item == k) tile(TileCanvas.CURSOR, 1, 2)
                     }
                 }
             }

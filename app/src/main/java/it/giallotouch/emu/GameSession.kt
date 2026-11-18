@@ -89,8 +89,22 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var yesNo: YesNo? = null
         private set
 
-    private val frameMask = YesNoMask()
-    private val extMask = YesNoMask()
+    private val frameMask = BoxMask()
+    private val extMask = BoxMask()
+
+    /**
+     * Dialogo del gioco (riquadro in basso, righe 12–17) mentre si cammina: l'app lo mostra più in alto (D-048).
+     * [dialogStrip]: i pixel del riquadro (160×48) dell'ultimo fotogramma, null se non c'è un dialogo.
+     */
+    @Volatile var dialogStrip: IntArray? = null
+        private set
+    private var stripA = IntArray(NativeCore.WIDTH * 48)
+    private var stripB = IntArray(NativeCore.WIDTH * 48)
+
+    private fun dialogAtBottom(t: ByteArray): Boolean {
+        fun tile(x: Int, y: Int) = t[y * 20 + x].toInt() and 0xFF
+        return tile(0, 12) == 0x79 && tile(19, 12) == 0x7B && tile(0, 17) == 0x7D && tile(19, 17) == 0x7E
+    }
 
     private fun yesNoInfo(vars: ByteArray, tiles: ByteArray, item: Int): YesNo? {
         fun t(x: Int, y: Int) = if (x in 0 until 20 && y in 0 until 18) tiles[y * 20 + x].toInt() and 0xFF else -1
@@ -366,6 +380,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         check(ok) { "salvataggio non leggibile" }
         lastBattery?.let { storage.writeAtomic(storage.batteryBeforeLoadFile, it) }
         walker.cancel(); executor.cancel(); nameExecutor.cancel(); itemExecutor.cancel()
+        frameMask.reset(); extMask.reset()   // le immagini di prima appartengono a un'altra partita
         inGame = true
         readSnapshot()
     }
@@ -451,12 +466,26 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
                 namingShown = NamingReader.looksLikeNaming(frameTiles)
                 val yn = yesNo?.takeIf { !battleSplit && !trainerCardShown }
-                frameMask.apply(back, NativeCore.HEIGHT, 0, yn)
+                var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
+                    NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
+                // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
+                val onScreen = dialog || yn != null
+                if (dialog && !frameMask.ready) dialog = false
+                if (dialog) {
+                    System.arraycopy(back, 96 * NativeCore.WIDTH, stripA, 0, stripA.size)
+                    dialogStrip = stripA
+                    val t = stripA; stripA = stripB; stripB = t
+                } else dialogStrip = null
+                val boxes = buildList {
+                    if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
+                    if (dialog) add(BoxMask.Box(0, 12, 19, 17))
+                }
+                frameMask.apply(back, NativeCore.HEIGHT, 0, boxes, boxesOnScreen = onScreen)
                 back = latestFrame.getAndSet(back)
                 val eh = extendedHeight
                 if (eh > NativeCore.HEIGHT) {
                     val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop) == 1
-                    if (active) extMask.apply(extBack.pixels, eh, extendedFrameTop, yn, frameMask.older)
+                    if (active) extMask.apply(extBack.pixels, eh, extendedFrameTop, boxes, frameMask.older, boxesOnScreen = onScreen)
                     extBack.height = eh
                     extBack.active = active
                     extendedActive = active

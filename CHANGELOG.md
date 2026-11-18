@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-18 – dialoghi in alto (D-048)
+- Il riquadro del dialogo compare alla riga 9; SÌ e NO in due riquadri in basso (2,37) e (12,37), senza cursore.
+- Verificato col banco di prova: dialogo col Professore in alto, mappa al posto del riquadro originale (73 prove).
+
 ## 2026-11-18 – 0.6.0-prototipo consegnata
 - Contiene D-046 e D-047; verificata col banco di prova dell'interfaccia (73 prove) prima della consegna.
 

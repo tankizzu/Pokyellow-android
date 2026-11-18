@@ -75,6 +75,7 @@ class GameRenderer(private val session: GameSession) {
             val top = (height - h) / 2   // la mappa estesa copre lo schermo; l'inquadratura dentro è già spostata dal motore
             dst.set(0, top, w, top + h)
             canvas.drawBitmap(eb, null, dst, paint)
+            drawDialog(canvas, s, w)
             return
         }
         val frame = s.latestFrame.get()
@@ -125,6 +126,22 @@ class GameRenderer(private val session: GameSession) {
         dst.set(0, top, w, top + h)
         canvas.drawBitmap(frameBitmap, null, dst, paint)
         drawStartMenu(canvas, s, top, w)
+        drawDialog(canvas, s, w)
+    }
+
+    /** Dialogo del gioco più in alto, alla riga [DIALOG_ROW] dello schermo (D-048). */
+    private val dialogBitmap = Bitmap.createBitmap(NativeCore.WIDTH, 48, Bitmap.Config.ARGB_8888)
+    private fun drawDialog(canvas: Canvas, s: GameSession, w: Int) {
+        val strip = s.dialogStrip ?: return
+        dialogBitmap.setPixels(strip, 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, 48)
+        val row = w / 20f
+        dst.set(0, (DIALOG_ROW * row).toInt(), w, (DIALOG_ROW * row + 6 * row).toInt())
+        canvas.drawBitmap(dialogBitmap, null, dst, paint)
+    }
+
+    companion object {
+        /** Riga dello schermo (caselle da 8 pixel del gioco) del riquadro del dialogo, scelta dal committente. */
+        const val DIALOG_ROW = 9
     }
 
     /** Riquadro del testo vuoto (20×6 caselle) al posto del menu di lotta del gioco: le azioni sono nei riquadri dell'app. */

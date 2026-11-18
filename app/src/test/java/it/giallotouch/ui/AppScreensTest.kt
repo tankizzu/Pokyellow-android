@@ -178,7 +178,7 @@ abstract class AppScreensHarness {
         pump(800)
         tapTile(1f, rows() - 12f)
         assertTrue("dialogo avviato col tocco nel vuoto", waitFor(10_000) { !s.latestSnapshot.get().freeRoam })
-        assertTrue("START nascosto nel dialogo", shotUntil("05b-dialogo") { !boxAt(it, 7, rows() - 4, 7, 4) })
+        assertTrue("START nascosto e dialogo in alto (riga 9)", shotUntil("05b-dialogo") { !boxAt(it, 7, rows() - 4, 7, 4) && boxAt(it, 0, 9, 20, 6) })
         var k = 0
         while (!s.latestSnapshot.get().freeRoam && k++ < 20) press(s, NativeCore.KEY_B)
         waitFor(5_000) { s.latestSnapshot.get().freeRoam }
@@ -252,14 +252,15 @@ abstract class AppScreensHarness {
 
     /** Domanda Sì/No del gioco: due riquadri dell'app sotto il dialogo (D-046). */
     fun siNo() {
-        // Si parte dal dialogo prima della domanda: l'app deve aver visto la mappa senza il riquadro Sì/No del gioco.
+        // Partita caricata a dialogo già aperto: il dialogo resta al suo posto (non c'è un'immagine della mappa senza),
+        // le risposte compaiono comunque nei riquadri dell'app.
         val s = start(auto = "giallo.state.text") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         var k = 0
         while (s.yesNo == null && k++ < 30) { press(s, NativeCore.KEY_A); pump(600) }
         assertTrue("domanda Sì/No", waitFor(20_000) { s.yesNo != null })
-        assertTrue("riquadri SI e NO", shotUntil("19-si-no") { boxAt(it, 2, 36, 6, 5) && boxAt(it, 11, 36, 6, 5) })
+        assertTrue("riquadri SI e NO", shotUntil("19-si-no") { boxAt(it, 2, 37, 6, 5) && boxAt(it, 12, 37, 6, 5) })
     }
 
     /** La schermata del nome nello stile del gioco, sopra la tastiera del telefono. */
