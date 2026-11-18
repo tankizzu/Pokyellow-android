@@ -1,14 +1,20 @@
 # CHANGELOG
 
-## 2026-11-18 – 0.3.0-prototipo (gioco a tutto schermo)
+## 2026-11-18 – 0.3.0-prototipo (gioco a tutto schermo e tastiera del telefono)
 - **Vista estesa**: in esplorazione la mappa riempie tutto lo schermo verticale (circa 10 × 22 caselle invece di 10 × 9).
   Sopra e sotto l'inquadratura originale l'app disegna la mappa con i tile e i colori del gioco presi dalla memoria video;
   al centro resta l'immagine originale esatta (testi, menu, personaggio).
 - Allineamento al pixel anche a metà passo: l'app confronta la memoria video con la mappa in RAM e trova lo scorrimento.
 - Si spegne da sola (si vede l'immagine 10:9) in lotta, nei menu a tutto schermo, nelle transizioni e quando non è sicura.
 - Il tocco su persone e cartelli funziona anche nella parte di mappa aggiunta.
-- Nuovo comando `ext` nell'esecutore di prova; 40 test superati (2 nuovi sul gioco vero: centro identico al fotogramma, spenta in lotta).
+- Nuovo comando `ext` nell'esecutore di prova; 2 nuovi test sul gioco vero (centro identico al fotogramma, spenta in lotta).
+- **Tastiera del telefono per i nomi** (D-029): quando il gioco chiede un nome (giocatore, rivale, soprannome)
+  la sua tastiera viene coperta da un campo di testo con la tastiera del telefono. Alla conferma l'app scrive il nome
+  nel gioco muovendo il cursore sulla griglia originale (circuito chiuso: cancella con B, maiuscole/minuscole con SELECT,
+  conferma con START). Accenti tolti, solo i caratteri che il gioco ha; massimo 7 o 10 lettere come nel gioco.
+  Se qualcosa non torna, la tastiera del gioco torna visibile con un avviso.
 - Limite noto: i personaggi fuori dall'inquadratura originale non sono ancora disegnati.
+- 46 test superati (14 sul gioco vero): "Ro sa!" scritto come nome del giocatore in ~2 s, un soprannome di 9 caratteri in ~3 s.
 
 ## 2026-11-18 – 0.2.2-prototipo
 - Pulsante "Testo auto" nella barra in basso: No → Lento → Medio → Veloce (salvato sul telefono). Quando il gioco aspetta un tocco (▼) preme A da solo dopo la pausa scelta.

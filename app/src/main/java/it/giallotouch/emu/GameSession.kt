@@ -14,6 +14,9 @@ import it.giallotouch.bridge.FreeRoam
 import it.giallotouch.bridge.MapGrid
 import it.giallotouch.bridge.WalkExecutor
 import it.giallotouch.bridge.MemoryMapIt
+import it.giallotouch.bridge.NameCodec
+import it.giallotouch.bridge.NameExecutor
+import it.giallotouch.bridge.NamingReader
 import it.giallotouch.bridge.RomData
 import it.giallotouch.bridge.TextAssist
 import it.giallotouch.storage.SaveStorage
@@ -98,6 +101,31 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         tasks.add(Runnable { executor.start(cmd) })
     }
 
+    /** Scrittura di un nome nella schermata dei nomi del gioco (tastiera del telefono, D-029). */
+    private val nameExecutor = NameExecutor()
+    private val nameBuffer = ByteArray(NamingReader.NAME_BUFFER_SIZE)
+    @Volatile var nameBusy = false
+        private set
+    /** Esito dell'ultimo nome scritto: null finché lavora, true se il gioco l'ha accettato. */
+    @Volatile var nameResult: Boolean? = null
+        private set
+
+    /** Chiede di scrivere [text] nella schermata dei nomi aperta; i caratteri non disponibili vengono scartati. */
+    fun enterName(text: String) {
+        val codes = NameCodec.encode(NameCodec.sanitize(text, 10)) ?: return
+        if (codes.isEmpty()) return
+        nameBusy = true
+        nameResult = null
+        tasks.add(Runnable { nameExecutor.start(codes) })
+    }
+
+    private fun readNaming() = run {
+        NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
+        NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+        NativeCore.nativeReadRange(handle, NamingReader.NAME_BUFFER, nameBuffer)
+        NamingReader.read(menuVars, tileMap, nameBuffer)
+    }
+
     /** Camminata automatica verso un passo toccato sullo schermo (con eventuale interazione all'arrivo). */
     private val walker = WalkExecutor()
 
@@ -124,6 +152,14 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
 
     private fun currentKeys(): Int {
+        if (nameExecutor.busy) {
+            val keys = nameExecutor.step(readNaming())
+            if (!nameExecutor.busy) {
+                nameResult = nameExecutor.result == NameExecutor.Result.DONE
+                nameBusy = false
+            }
+            return keys
+        }
         if (walker.busy) {
             if (userKeys != 0) walker.cancel() else {
                 val pos = WalkExecutor.Position(
@@ -259,12 +295,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private fun readSnapshot() {
         runCatching {
             NativeCore.nativeReadRange(handle, MemoryMapIt.BLOCK_START, stateBlock)
-            NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
-            NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+            val naming = readNaming()
             val base = GameStateReader.read(stateBlock)
             val joyIgnore = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE)
             val freeRoam = joyIgnore == 0 && !base.inBattle && FreeRoam.screenIsMap(tileMap)
-            val snapshot = base.copy(menu = MenuReader.read(menuVars, tileMap), freeRoam = freeRoam)
+            val snapshot = base.copy(menu = MenuReader.read(menuVars, tileMap), freeRoam = freeRoam, naming = naming)
             if (snapshot != latestSnapshot.get()) latestSnapshot.set(snapshot)
         }.onFailure { Log.e(TAG, "Lettura stato non riuscita", it) }
     }

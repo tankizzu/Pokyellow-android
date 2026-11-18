@@ -16,6 +16,8 @@ data class GameSnapshot(
     val menu: MenuState = MenuState.NONE,
     /** true quando il giocatore cammina liberamente: nessuna scena, lotta, testo o menu. */
     val freeRoam: Boolean = false,
+    /** Schermata dei nomi del gioco, se è aperta (per mostrare la tastiera del telefono). */
+    val naming: NamingScreen? = null,
 ) {
     val inBattle: Boolean get() = battleType != 0
 

@@ -86,6 +86,21 @@ Testo in attesa di un tocco: freccia ▼ (0xEE) nell'angolo in basso a destra de
 
 Le variabili restano in memoria anche a menu chiuso: il menu è attivo solo se c'è il cursore sullo schermo.
 
+## Schermata dei nomi (verificata sul gioco vero)
+| Cosa | Indirizzo / posizione | Note |
+|---|---|---|
+| Nome in corso | CF4F | codici del gioco, terminato da 0x50 (US: wStringBuffer) |
+| Lunghezza del nome | CEE9 | aggiornata a ogni ridisegno |
+| Minuscole attive | CEEB | 0 = maiuscole, 1 = minuscole (SELECT o riga 6) |
+| Colonna del cursore | CC25 | X = 1, 3, …, 17 |
+| Riga del cursore | ▶ (0xED) nella colonna X, righe 5, 7, …, 15 | CC26 vale 0 quasi sempre: il gioco lo usa per animare l'icona |
+| Variabili del menu | CC24 = 3, CC28 = 7, CC29 = 0xFF | firma della schermata |
+| Riquadro | (0,4)–(19,14): angoli 0x79 0x7B 0x7D 0x7E | |
+| Trattini | da (10,3): 0x76, alzato 0x77 | 7 = giocatore/rivale, 10 = soprannome |
+| Griglia | lettera (riga r 1–5, colonna X) in (X+1, 3+2r) | A–Z 0x80–0x99, a–z 0xA0–0xB9, spazio 0x7F, × 0xF1, ( ) : ; [ ] 0x9A–0x9F, PK 0xE1, MN 0xE2, - 0xE3, ? 0xE6, ! 0xE7, ♂ 0xEF, ♀ 0xF5, / 0xF3, . 0xF2, , 0xF4, FINE 0xF0 |
+| Titolo | riga 1 ("NOME TUO?", nome della creatura) + inizio riga 3 | |
+Tasti: A aggiunge la lettera, B cancella l'ultima, SELECT cambia maiuscole/minuscole, START conferma.
+
 ## Tabelle nella ROM (lette a ogni avvio dalla ROM dell'utente, mai copiate nell'app)
 | Tabella | Offset nella ROM | Stato | Note |
 |---|---|---|---|

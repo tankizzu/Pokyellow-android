@@ -24,8 +24,8 @@
 - [ ] Tocco sui PC; sporgenze, acqua (Surf) e dislivelli nel percorso
 - [x] Testo automatico a 3 velocità (D-028) e testo veloce tenendo premuto (D-030)
 - [x] **Gioco a tutto schermo (D-026/D-027)**: vista estesa in esplorazione (0.3.0)
-- [ ] Vista estesa: personaggi fuori inquadratura; lotta a tutto schermo; opzione mappa attenuata/nascosta
-- [ ] **Tastiera del telefono per i nomi (D-029) – prossimo passo**
+- [ ] **Vista estesa: personaggi fuori inquadratura – prossimo passo**; lotta a tutto schermo; opzione mappa attenuata/nascosta
+- [x] Tastiera del telefono per i nomi (D-029, D-032) – da provare sul telefono
 - [x] Sì/No nativi nelle domande del gioco
 - [x] Tipo e PP massimi delle mosse dalla ROM
 - [ ] Lotta sovrapposta a tutto schermo; menu nativi (Squadra, Borsa, Pokédex, Scheda, Negozio, PC)
@@ -43,6 +43,8 @@ SB=third_party/SameBoy/Core; D=(-D_GNU_SOURCE -D_USE_MATH_DEFINES -DGB_DISABLE_T
    collegati con `clang -shared ... -lm -o CARTELLA/libgbcore.so`.
 2. Preparare uno stato salvato al menu di lotta con `tools/native-test/runner.c` (sequenza in docs/MEMORY_MAP_IT.md).
 3. `./gradlew testDebugUnitTest -Pgiallo.rom=ROM -Pgiallo.state=STATO_MENU_LOTTA -Pgiallo.state.yesno=STATO_DOMANDA -Pgiallo.hostlib=CARTELLA`
+   (altri stati facoltativi: giallo.state.text = domanda del soprannome, giallo.state.pallet = paese iniziale,
+   giallo.state.naming = schermata "NOME TUO?" di una nuova partita)
 
 ## Ambiente: ripristino SDK se il container viene ricreato
 ```

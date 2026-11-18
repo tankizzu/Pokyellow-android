@@ -94,13 +94,25 @@ fun GameScreen(session: GameSession, settings: Settings) {
     }
     var snapshot by remember { mutableStateOf(session.latestSnapshot.get()) }
     var commandBusy by remember { mutableStateOf(false) }
+    // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
+    var nameRequested by remember { mutableStateOf(false) }
+    var namingDismissed by remember { mutableStateOf(false) }
     LaunchedEffect(session) {
         while (true) {
             snapshot = session.latestSnapshot.get()
             commandBusy = session.commandBusy
+            if (nameRequested && !session.nameBusy) {
+                nameRequested = false
+                if (session.nameResult == false) {
+                    namingDismissed = true
+                    message = "Non sono riuscito a scrivere il nome: usa la tastiera del gioco"
+                }
+            }
             delay(100)
         }
     }
+    val namingOpen = snapshot.naming != null
+    LaunchedEffect(namingOpen) { if (!namingOpen) namingDismissed = false }
 
     BackHandler { tapped = NativeCore.KEY_B }
 
@@ -242,6 +254,15 @@ fun GameScreen(session: GameSession, settings: Settings) {
             AutoTextButton(autoText, Modifier.weight(1f)) { autoText = (autoText + 1) % 4 }
             BarButton("Salva", Modifier.weight(1f)) {
                 message = if (session.saveNow()) "Partita salvata in questo punto" else "Salvataggio non riuscito"
+            }
+        }
+
+        // Schermata dei nomi del gioco: coperta dalla tastiera del telefono.
+        val naming = snapshot.naming
+        if (naming != null && !namingDismissed) {
+            NameEntryOverlay(naming, busy = nameRequested) { name ->
+                nameRequested = true
+                session.enterName(name)
             }
         }
 
