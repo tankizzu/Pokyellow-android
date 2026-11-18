@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -829,3 +830,120 @@ fun GamePcScreen(
         ) { box(0, 0, 9, 3); textAt("DEPOSITA", 8, 12) }
     }
 }
+
+/**
+ * Negozio (D-056, mockup del committente). [mode]: 0 = scelta sopra la mappa (COMPRA / VENDI / ESCI, soldi in alto),
+ * 1 = COMPRA (lista con prezzi), 2 = VENDI (borsa con ricavo). Scelto un articolo, la quantità si regola col cursore a
+ * scorrimento (riquadro 13×4 in basso) e si conferma con OK.
+ */
+@Composable
+fun GameShopScreen(
+    sheet: IntArray,
+    mode: Int,
+    money: Int,
+    shopItems: List<Int>,
+    bag: List<it.giallotouch.bridge.BagItem>,
+    romData: RomData,
+    busy: Boolean,
+    onMode: (Int) -> Unit,
+    onBuy: (Int, Int) -> Unit,
+    onSell: (Int, Int) -> Unit,
+    onExit: () -> Unit,
+) {
+    var chosen by remember(mode) { mutableStateOf<Int?>(null) }
+    var qty by remember(mode, chosen) { mutableStateOf(1) }
+    BackHandler { if (busy) Unit else if (chosen != null) chosen = null else if (mode != 0) onMode(0) else onExit() }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        if (mode == 0) {
+            TileImage(sheet, 9, 4, unit, key = Pair("soldi", money), modifier = Modifier.offset { IntOffset((11 * tilePx).toInt(), (2 * tilePx).toInt()) }) {
+                box(0, 0, 8, 3); text("SOLDI", 1, 1); val m = "$money"; text(m, 8 - m.length, 2)
+            }
+            for ((c, r, w, label, act) in listOf(
+                Quint(1, 33, 9, "COMPRA", { onMode(1) }), Quint(10, 33, 9, "VENDI", { onMode(2) }), Quint(5, 38, 10, "ESCI", onExit))) {
+                TileImage(
+                    sheet, w, 4, unit, key = label,
+                    modifier = Modifier.offset { IntOffset((c * tilePx).toInt(), (r * tilePx).toInt()) }
+                        .pointerInput(busy) { detectTapGestures { if (!busy) act() } }
+                ) { box(0, 0, w - 1, 3); text(label, (w - label.length) / 2, 2) }
+            }
+            return@BoxWithConstraints
+        }
+        val selling = mode == 2
+        val entries: List<Triple<Int, Int, Int>> = if (selling)
+            bag.map { Triple(it.id, it.quantity, (romData.itemPrice(it.id) ?: 0) / 2) }
+        else shopItems.map { Triple(it, 0, romData.itemPrice(it) ?: 0) }
+        val sel = chosen
+        Box(Modifier.fillMaxSize().background(paperOf(sheet)))
+        TileImage(
+            sheet, 20, 39, unit, key = listOf(entries, money, sel, qty, busy, mode),
+            modifier = Modifier.pointerInput(entries, busy, sel) {
+                detectTapGestures { pos ->
+                    if (busy || sel != null) return@detectTapGestures
+                    val row = (pos.y / tilePx).toInt()
+                    val i = (row - 14 + 1) / 3
+                    if (row in 13..37 && i in entries.indices) {
+                        val e = entries[i]
+                        if (selling && (e.third == 0 || it.giallotouch.bridge.Items.isKeyItem(e.first))) return@detectTapGestures
+                        chosen = i; qty = 1
+                    }
+                }
+            }
+        ) {
+            box(0, 3, 19, 5); val title = if (selling) "VENDI" else "COMPRA"; text(title, (20 - title.length) / 2, 4)
+            box(0, 7, 19, 11); text("SOLDI", 2, 9); val m = "$money"; text(m, 18 - m.length, 9)
+            val listBottom = if (sel != null) 29 else 37
+            box(0, 12, 19, listBottom)
+            if (entries.isEmpty()) text("VUOTO", 2, 14)
+            entries.forEachIndexed { i, (id, q, price) ->
+                val r = 14 + 3 * i
+                if (r > listBottom - 1) return@forEachIndexed
+                text(romData.itemName(id).take(11), 2, r)
+                if (selling) { val qs = "×$q"; text(qs, 13 - qs.length + 1, r) }
+                val ps = "$price"; text(ps, 19 - ps.length, r)
+                if (sel == i) tile(TileCanvas.CURSOR, 1, r)
+            }
+            if (sel != null) {
+                val (id, _, price) = entries[sel]
+                box(0, 30, 19, 38)
+                text(romData.itemName(id).take(12), 2, 32)
+                text("×", 2, 34); text("%02d".format(qty), 4, 34)
+                val tot = "${price * qty}"; text(tot, 18 - tot.length, 34)
+                if (busy) text("...", 16, 32)
+            }
+        }
+        if (sel == null) {
+            BackBox(sheet, unit, 5, 39, textX = 8) { if (!busy) onMode(0) }
+        } else {
+            val (id, owned, price) = entries[sel]
+            val max = if (selling) owned.coerceIn(1, 99) else (if (price > 0) (money / price) else 99).coerceIn(1, 99)
+            // cursore a scorrimento: trascinando (o toccando) si sceglie la quantità da 1 a [max]
+            TileImage(
+                sheet, 13, 4, unit, key = Triple(qty, max, sel),
+                modifier = Modifier.offset { IntOffset(0, (39 * tilePx).toInt()) }
+                    .pointerInput(max, busy) {
+                        fun set(x: Float) { if (!busy) qty = (1 + ((x / (13 * tilePx) - 0.1f) / 0.8f * (max - 1)).toInt()).coerceIn(1, max) }
+                        detectTapGestures { set(it.x) }
+                    }
+                    .pointerInput(max, busy) {
+                        detectHorizontalDragGestures { change, _ -> if (!busy) qty = (1 + ((change.position.x / (13 * tilePx) - 0.1f) / 0.8f * (max - 1)).toInt()).coerceIn(1, max) }
+                    }
+            ) {
+                box(0, 0, 12, 3)
+                val x0 = 12; val x1 = 13 * 8 - 12
+                fill(x0, 15, x1 - x0, 2, ink)
+                val kx = if (max <= 1) x0 else x0 + (x1 - x0) * (qty - 1) / (max - 1)
+                fill(kx - 3, 11, 6, 10, ink)
+            }
+            TileImage(
+                sheet, 7, 4, unit, key = Pair("ok", busy),
+                modifier = Modifier.offset { IntOffset((13 * tilePx).toInt(), (39 * tilePx).toInt()) }
+                    .pointerInput(busy, qty, sel) { detectTapGestures { if (!busy) { if (selling) onSell(sel, qty) else onBuy(sel, qty); chosen = null } } }
+            ) { box(0, 0, 6, 3); text("OK", 2, 2) }
+        }
+    }
+}
+
+private data class Quint<A, B, C, D, E>(val a: A, val b: B, val c: C, val d: D, val e: E)

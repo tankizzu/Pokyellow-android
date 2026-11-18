@@ -119,6 +119,16 @@ class RomData private constructor(
         }
     }
 
+    /** Prezzo dello strumento al negozio (BCD dalla ROM), null se sconosciuto. MT/MN: null. */
+    fun itemPrice(id: Int): Int? {
+        val r = rom ?: return null
+        if (id !in 1..0x61) return null
+        val o = M.ROM_ITEM_PRICES + 3 * (id - 1)
+        if (o + 3 > r.size) return null
+        fun bcd(b: Int) = (b shr 4) * 10 + (b and 15)
+        return bcd(u8(r, o)) * 10000 + bcd(u8(r, o + 1)) * 100 + bcd(u8(r, o + 2))
+    }
+
     /** Indice interno della specie con quel numero del Pokédex (0 se sconosciuto). */
     fun indexForDex(dex: Int): Int = dexOrder.indexOf(dex) + 1
 

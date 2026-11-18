@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-18 – negozio (D-056), partite di prova costruite giocando
+- Negozio nello stile dell'app: verificato al Pokémon Market di Smeraldopoli (Poké Ball comprata e rivenduta, soldi
+  giusti, uscita). Colori veri delle immagini dei Pokémon. Pokémon KO in lotta: lista SQUADRA (da provare con 2).
+- Partita automatica nel banco di prova: lotta col rivale → Smeraldopoli → Pacco → Oak → negozio aperto.
+
 ## 2026-11-18 – PC del giocatore (D-055)
 - STRUMENTI PC dell'app: deposita e preleva con un tocco; verificato col PC della cameretta (Pozione depositata e
   ripresa, poi di nuovo a camminare).

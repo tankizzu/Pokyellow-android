@@ -758,3 +758,51 @@ class ZzScenarioTest : AppScreensHarness() {
         save("parcel.state")
     }
 }
+
+/**
+ * Negozio di Smeraldopoli (D-056, partita costruita dalla partita automatica): parlando col commesso compare la
+ * scelta dell'app; COMPRA → POKé BALL → OK (1 pezzo): soldi −200 e Poké Ball nella borsa; VENDI → POKé BALL → OK:
+ * soldi +100; INDIETRO, ESCI → di nuovo a camminare. I menu del gioco non si vedono.
+ */
+class AppShopTest : AppScreensHarness() {
+    @Test fun compraEVendi() {
+        val s = start(auto = "giallo.state.shop") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue(waitFor(10_000) { s.latestSnapshot.get().freeRoam })
+        val clerk = s.mapGridForTest()!!.people.minByOrNull { it.first }!!
+        val g = s.mapGridForTest()!!
+        val here = s.positionForTest()
+        val spot = g.interactionSpots(clerk.first, clerk.second).entries.filter { g.path(here.second, here.third, setOf(it.key)) != null }.first()
+        s.walkPathForTest(spot.key.first, spot.key.second)
+        waitFor(15_000) { s.positionForTest().let { it.second == spot.key.first && it.third == spot.key.second } }
+        s.setKeys(spot.value.key); pump(150); s.setKeys(0); pump(400)
+        tapTile(10f, 20f)
+        var k = 0
+        while (!s.shopMenuShown && k++ < 10) tapTile(10f, 20f)
+        assertTrue("scelta del negozio", shotUntil("39-negozio") { b -> boxAt(b, 1, 33, 9, 4) && boxAt(b, 10, 33, 9, 4) && boxAt(b, 5, 38, 10, 4) })
+        val money0 = s.latestSnapshot.get().money
+        tapTile(4f, 35f)                                    // COMPRA
+        assertTrue("lista con prezzi", shotUntil("40-negozio-compra") { b -> boxAt(b, 0, 12, 20, 26) && boxAt(b, 5, 39, 10, 4) })
+        tapTile(4f, 14.5f)                                  // POKé BALL
+        assertTrue("quantità", shotUntil("41-negozio-quantita") { b -> boxAt(b, 0, 30, 20, 9) && boxAt(b, 13, 39, 7, 4) })
+        tapTile(16f, 41f)                                   // OK
+        assertTrue("Poké Ball comprata", waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().bag.any { it.id == 0x04 } })
+        assertTrue("soldi −200", waitFor(5_000) { s.latestSnapshot.get().money == money0 - 200 })
+        shot("42-negozio-comprata")
+        tapTile(9f, 40.5f)                                  // INDIETRO → scelta
+        pump(800)
+        tapTile(13f, 35f)                                   // VENDI
+        assertTrue("borsa da vendere", shotUntil("43-negozio-vendi") { b -> boxAt(b, 0, 12, 20, 26) })
+        val idx = s.latestSnapshot.get().bag.indexOfFirst { it.id == 0x04 }
+        tapTile(4f, 14.5f + 3 * idx)
+        tapTile(16f, 41f)                                   // OK
+        assertTrue("Poké Ball venduta", waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().bag.none { it.id == 0x04 } })
+        assertTrue("soldi +100", waitFor(5_000) { s.latestSnapshot.get().money == money0 - 100 })
+        tapTile(9f, 40.5f); pump(800)                       // INDIETRO
+        tapTile(9f, 40f)                                    // ESCI
+        assertTrue("di nuovo in giro", waitFor(20_000) { s.latestSnapshot.get().freeRoam })
+        shot("44-negozio-uscita")
+    }
+}
+

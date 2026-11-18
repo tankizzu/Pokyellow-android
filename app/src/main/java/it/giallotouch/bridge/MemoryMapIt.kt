@@ -100,6 +100,9 @@ object MemoryMapIt {
 
     /** Primo e ultimo indirizzo da copiare per leggere lotta, squadra, borsa, soldi e mappa in un colpo solo. */
     const val BLOCK_START = BATTLE_MON
+    /** Articoli del negozio aperto (numero, poi codici, 0xFF in fondo) e prezzi nella ROM (3 byte BCD per strumento). */
+    const val SHOP_LIST = 0xCF7F
+    const val ROM_ITEM_PRICES = 0x4495
     /** Strumenti nel PC del giocatore (come la borsa: numero di voci, poi coppie codice-quantità, 0xFF in fondo). */
     const val PC_ITEM_COUNT = 0xD53E
     const val PC_ITEMS = 0xD53F

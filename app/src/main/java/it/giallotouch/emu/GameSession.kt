@@ -161,6 +161,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Schermata dei nomi del gioco sullo schermo: l'app non la mostra mai (copre con la sua, D-046). */
     @Volatile var namingShown = false
         private set
+    /** Menu del negozio sullo schermo (D-056) e articoli in vendita (codici). */
+    @Volatile var shopMenuShown = false
+        private set
+    @Volatile var shopItems: List<Int> = emptyList()
+        private set
     /** Menu del PC del giocatore sullo schermo (D-055): l'app mostra la sua schermata STRUMENTI PC. */
     @Volatile var pcMenuShown = false
         private set
@@ -587,6 +592,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         return ok
     }
 
+    /** Solo per il banco di prova: legge [n] byte di memoria da [address]. */
+    fun memoryForTest(address: Int, n: Int): ByteArray {
+        val b = ByteArray(n)
+        runOnGameThread { NativeCore.nativeReadRange(handle, address, b) }
+        return b
+    }
+
     /** Solo per il banco di prova: variabili dei menu e mappa dello schermo. */
     fun screenForTest(): Pair<ByteArray, ByteArray> {
         val v = ByteArray(MenuReader.MENU_VARS_SIZE); val t = ByteArray(MenuReader.SCREEN_SIZE)
@@ -655,7 +667,14 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (battleExecutor.busy || battlePartyAsked) { battleGameMenu = false; battleSplit = true }
                 if (battleGameMenu) battleSplit = false
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
-                pcMenuShown = ItemMenus.read(frameVars, frameTiles, 0).kind == ItemMenus.Kind.PC_MENU && closingFrames == 0
+                val itemKind = ItemMenus.read(frameVars, frameTiles, 0).kind
+                pcMenuShown = itemKind == ItemMenus.Kind.PC_MENU && closingFrames == 0
+                shopMenuShown = itemKind == ItemMenus.Kind.SHOP_MENU && closingFrames == 0
+                if (shopMenuShown) {
+                    val b = ByteArray(12); NativeCore.nativeReadRange(handle, MemoryMapIt.SHOP_LIST, b)
+                    val n = (b[0].toInt() and 0xFF).coerceAtMost(10)
+                    shopItems = (1..n).map { b[it].toInt() and 0xFF }.takeWhile { it != 0xFF }
+                }
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
                 nameList = if (frameMenu.kind == MenuKind.NAME_LIST) MenuReader.nameListEntries(frameTiles, frameMenu.items) else null
                 namingShown = NamingReader.looksLikeNaming(frameTiles)
@@ -663,7 +682,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = dialog || yn != null || nameList != null || hidingOldMenus() ||
+                val onScreen = dialog || yn != null || nameList != null || shopMenuShown || hidingOldMenus() ||
                     ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 if (dialog && !frameMask.ready) dialog = false
                 if (dialog) {
@@ -682,6 +701,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     if ((hide || partyScreen) && frameMask.ready) add(if (inBattleNow) BoxMask.Box(0, 0, 19, 11) else BoxMask.Box(0, 0, 19, 17))
                     if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
                     if (nameList != null && frameMask.ready) add(BoxMask.Box(0, 0, 10, 11))
+                    if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
                     if (dialog) add(BoxMask.Box(0, 12, 19, 17))
                 }
                 frameMask.apply(back, NativeCore.HEIGHT, 0, boxes, boxesOnScreen = onScreen)

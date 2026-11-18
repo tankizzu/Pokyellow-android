@@ -148,6 +148,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
     var nameList by remember { mutableStateOf<List<IntArray>?>(null) }   // nomi proposti dal Professore (D-052)
     var pcOpen by remember { mutableStateOf(false) }       // STRUMENTI PC dell'app (D-055)
+    var shopMode by remember { mutableStateOf(-1) }        // negozio dell'app (D-056): -1 chiuso, 0 scelta, 1 compra, 2 vendi
     var battleMenu by remember { mutableStateOf(false) }   // menu di lotta del gioco sullo schermo (si può scegliere)
     var battleGameMenu by remember { mutableStateOf(false) }   // in lotta: squadra/borsa del gioco aperte
     var battlePartyAsked by remember { mutableStateOf(false) } // in lotta: il gioco chiede un Pokémon (KO)
@@ -191,6 +192,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             yesNo = session.yesNo
             nameList = session.nameList
             if (session.pcMenuShown && !pcOpen) pcOpen = true
+            if (session.shopMenuShown && shopMode < 0) shopMode = 0
             battleMenu = session.battleMenuShown
             battleGameMenu = session.battleGameMenu
             battlePartyAsked = session.battlePartyAsked
@@ -454,7 +456,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )
-        } else if (inGame && sheet != null && !trainerCard && !pcOpen && (snapshot.freeRoam || panelOpen)) {
+        } else if (inGame && sheet != null && !trainerCard && !pcOpen && shopMode < 0 && (snapshot.freeRoam || panelOpen)) {
             // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
             GamePanel(
                 sheet = sheet!!,
@@ -484,7 +486,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && yesNo == null && nameList == null && !pcOpen && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && snapshot.cursorOnScreen && yesNo == null && nameList == null && !pcOpen && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()
@@ -543,6 +545,16 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         }
 
+        if (shopMode >= 0 && sheet != null) {
+            GameShopScreen(
+                sheet = sheet!!, mode = shopMode, money = snapshot.money, shopItems = session.shopItems, bag = snapshot.bag,
+                romData = session.romData, busy = itemRequested,
+                onMode = { shopMode = it },
+                onBuy = { i, q -> itemRequested = true; session.itemAction(ItemAction.ShopBuy(i, session.romData.itemName(session.shopItems[i]), q)) },
+                onSell = { i, q -> itemRequested = true; session.itemAction(ItemAction.ShopSell(i, session.romData.itemName(snapshot.bag[i].id), q)) },
+                onExit = { shopMode = -1; session.closeMenus() },
+            )
+        }
         if (pcOpen && sheet != null) {
             GamePcScreen(
                 sheet = sheet!!, pcItems = snapshot.pcItems, bag = snapshot.bag, romData = session.romData, busy = itemRequested,
