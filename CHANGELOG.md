@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 02:16 UTC)
+- Mappati i menu di lotta della versione italiana (menu principale a due colonne, menu delle mosse) e la regola "menu attivo solo se il cursore è sullo schermo".
+- Nuovo esecutore a circuito chiuso (`BattleMenu.kt`): sceglie mossa, strumenti, squadra o fuga premendo un tasto alla volta e controllando la memoria dopo ogni pressione; si ferma da solo se la lotta finisce o se non vede il menu entro 6 s.
+- App: durante la lotta compaiono i pulsanti delle mosse (nome letto dalla ROM dell'utente, PP) e Squadra / Borsa / Fuga; la barra Menu/Select/Salva si nasconde. Squadra e Borsa aprono per ora i menu originali del gioco.
+- Test: 13 su menu simulato + 1 prova sul gioco vero (motore compilato per il computer, ROM fuori dal repository): l'esecutore sceglie la seconda mossa e il suo PP scende di 1. Tutti superati.
+
 ## 2026-11-18 (promemoria 01:16 UTC)
 - Trovati e verificati: creatura in campo durante la lotta (wBattleMon D018: mosse, PP, PS, livello) e tabella dei nomi delle mosse nella ROM italiana (0xBC000, 165 voci).
 - Ponte: legge tipo di lotta e creatura in campo; `RomData` legge i nomi delle mosse dalla ROM dell'utente all'avvio.

@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
+import it.giallotouch.bridge.BattleCommand
 import it.giallotouch.bridge.PartyMember
 import it.giallotouch.bridge.Status
 import it.giallotouch.emu.GameSession
@@ -80,10 +81,12 @@ fun GameScreen(session: GameSession) {
         if (session.resumedFromState) message = "Partita ripresa da dove l'avevi lasciata"
     }
     var snapshot by remember { mutableStateOf(session.latestSnapshot.get()) }
+    var commandBusy by remember { mutableStateOf(false) }
     LaunchedEffect(session) {
         while (true) {
             snapshot = session.latestSnapshot.get()
-            delay(250)
+            commandBusy = session.commandBusy
+            delay(100)
         }
     }
 
@@ -157,6 +160,18 @@ fun GameScreen(session: GameSession) {
             )
         }
 
+        val battleMon = snapshot.battleMon
+        if (snapshot.inBattle && battleMon != null) {
+            BattlePanel(
+                moves = battleMon.moves.map { session.romData.moveName(it.id) to it.pp },
+                enabled = !commandBusy,
+                onCommand = { session.command(it) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 14.dp)
+            )
+        } else
         // Barra in basso (prototipo): i menu nativi arriveranno con il "ponte" verso il gioco.
         Row(
             Modifier
@@ -184,6 +199,48 @@ fun GameScreen(session: GameSession) {
             ) {
                 Text(it, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             }
+        }
+    }
+}
+
+/**
+ * Comandi di lotta sovrapposti: ogni pulsante sceglie la voce nel menu originale del gioco
+ * tramite l'esecutore a circuito chiuso. Squadra e Borsa aprono i menu originali del gioco
+ * (le schermate native arriveranno dopo).
+ */
+@Composable
+private fun BattlePanel(
+    moves: List<Pair<String, Int>>,
+    enabled: Boolean,
+    onCommand: (BattleCommand) -> Unit,
+    modifier: Modifier,
+) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (row in 0 until 2) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (col in 0 until 2) {
+                    val index = row * 2 + col
+                    val move = moves.getOrNull(index)
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .height(64.dp)
+                            .background(Glass, RoundedCornerShape(16.dp))
+                            .border(1.dp, Color(0xFF403C62), RoundedCornerShape(16.dp))
+                            .then(if (move != null && enabled) Modifier.clickable { onCommand(BattleCommand.Fight(index)) } else Modifier)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(move?.first ?: "—", color = if (enabled) Cream else Color(0xFF7D78A0), fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1)
+                        if (move != null) Text("PP ${move.second}", color = Color(0xFFAAA4C8), fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BarButton("Squadra", Modifier.weight(1f)) { if (enabled) onCommand(BattleCommand.Party) }
+            BarButton("Borsa", Modifier.weight(1f)) { if (enabled) onCommand(BattleCommand.Item) }
+            BarButton("Fuga", Modifier.weight(1f)) { if (enabled) onCommand(BattleCommand.Run) }
         }
     }
 }

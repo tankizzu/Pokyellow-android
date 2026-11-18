@@ -5,6 +5,9 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.os.SystemClock
 import android.util.Log
+import it.giallotouch.bridge.BattleCommand
+import it.giallotouch.bridge.BattleCommandExecutor
+import it.giallotouch.bridge.BattleMenuReader
 import it.giallotouch.bridge.GameSnapshot
 import it.giallotouch.bridge.GameStateReader
 import it.giallotouch.bridge.MemoryMapIt
@@ -59,7 +62,35 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
         }
     }
 
-    fun setKeys(mask: Int) = NativeCore.nativeSetKeys(handle, mask)
+    /** Tasti premuti dal giocatore (levetta, tocchi); applicati a ogni fotogramma dal thread del gioco. */
+    @Volatile private var userKeys = 0
+    fun setKeys(mask: Int) { userKeys = mask }
+
+    /** Esecutore dei comandi di lotta: quando è occupato, i suoi tasti sostituiscono quelli del giocatore. */
+    private val executor = BattleCommandExecutor()
+    @Volatile var commandBusy = false
+        private set
+    private val menuVars = ByteArray(BattleMenuReader.MENU_VARS_SIZE)
+    private val tileMap = ByteArray(BattleMenuReader.SCREEN_SIZE)
+
+    /** Chiede di eseguire un comando di lotta (scegliere una mossa, fuggire…). */
+    fun command(cmd: BattleCommand) {
+        commandBusy = true
+        tasks.add(Runnable { executor.start(cmd) })
+    }
+
+    private fun currentKeys(): Int {
+        if (!executor.busy) {
+            commandBusy = false
+            return userKeys
+        }
+        NativeCore.nativeReadRange(handle, BattleMenuReader.MENU_VARS, menuVars)
+        NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+        val inBattle = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0
+        val keys = executor.step(BattleMenuReader.read(menuVars, tileMap), inBattle)
+        if (!executor.busy) commandBusy = false
+        return keys
+    }
 
     fun start() {
         if (thread != null) return
@@ -133,6 +164,7 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
                     continue
                 }
                 if (track != null && track.playState != AudioTrack.PLAYSTATE_PLAYING) track.play()
+                NativeCore.nativeSetKeys(handle, currentKeys())
                 val count = NativeCore.nativeRunFrame(handle, back, audio)
                 back = latestFrame.getAndSet(back)
                 onFrame?.invoke()

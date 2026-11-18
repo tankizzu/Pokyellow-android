@@ -24,6 +24,7 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 | wJoyIgnore | CD6B | ✅ | 0 quando il giocatore ha il controllo; FC durante la scena di Oak (tasti bloccati) |
 | wIsInBattle | D05B | ✅ | 0 fuori dalla lotta, 2 nella lotta con allenatore (1 = selvatico, da confermare) |
 | wBattleMon | D018 (battle_struct) | ✅ | creatura in campo: specie +0, PS +1, mosse +8, livello +14, PS max +15, PP +25 (bit 0-5) |
+| wTopMenuItemY / wTopMenuItemX | CC24 / CC25 | ✅ | posizione del primo elemento del menu attivo |
 | wMaxMenuItem | CC28 | 🟡 | 6 nel menu START (7 voci) |
 | wMenuWatchedKeys | CC29 | 🟡 | |
 | wLastMenuItem | CC2A | ✅ | |
@@ -65,6 +66,15 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 | wTextBoxID, stato del menu di lotta, dati dell'avversario | dialoghi e comandi di lotta | ⏳ |
 | wWalkBikeSurfState | a piedi / bici / surf | ⏳ (probabile +5) |
 | Tabelle nella ROM: tipi e PP massimi delle mosse, nomi creature e strumenti, collisioni | menu nativi, percorsi | ⏳ |
+
+## Menu di lotta (verificati sul gioco vero)
+| Menu | CC24 (Y) | CC25 (X) | Elementi | Cursore ▶ (0xED) nella mappa dello schermo |
+|---|---|---|---|---|
+| Principale, colonna sinistra | 0x0E | 0x07 | 0 = lotta, 1 = strumenti | colonna X, riga 14 + 2 × elemento |
+| Principale, colonna destra | 0x0E | 0x0E | 0 = squadra, 1 = fuga | colonna X, riga 14 + 2 × elemento |
+| Mosse | 0x0C | 0x05 | 1 = prima mossa … 4 | colonna 5, riga 12 + elemento |
+
+Le variabili restano in memoria anche a menu chiuso: il menu è attivo solo se c'è il cursore sullo schermo.
 
 ## Tabelle nella ROM (lette a ogni avvio dalla ROM dell'utente, mai copiate nell'app)
 | Tabella | Offset nella ROM | Stato | Note |

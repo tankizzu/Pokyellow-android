@@ -20,7 +20,9 @@
 - [ ] Riscontro del committente sull'APK 0.1
 - [x] Ponte (`bridge`): lettura di squadra, soldi, mappa, posizione con test su JVM
 - [x] Squadra in alto con dati reali (da verificare su partita vera con un compagno in squadra)
-- [ ] Ponte: pathfinding ed esecutore comandi a circuito chiuso
+- [x] Esecutore comandi a circuito chiuso per la lotta (provato sul gioco vero)
+- [ ] Ponte: pathfinding e tocco su persone/oggetti
+- [ ] Sì/No nativi nei dialoghi; tipo e PP massimi delle mosse
 - [ ] Tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi
 
 ## Prova del motore su computer
@@ -29,6 +31,13 @@ SB=third_party/SameBoy/Core; D=(-D_GNU_SOURCE -D_USE_MATH_DEFINES -DGB_DISABLE_T
 # compilare ogni file del motore con -DGB_INTERNAL, poi boot_rom.c e tools/native-test/harness.c senza, e collegare con -lm
 ./harness ROM CARTELLA_USCITA   # immagini PPM solo in una cartella temporanea
 ```
+
+## Test sul gioco vero (facoltativi)
+1. Compilare il motore per il computer come libreria condivisa: stessi file e opzioni, più `-fPIC`,
+   `app/src/main/cpp/gbcore_jni.c` e `boot_rom.c`, inclusi `$JAVA_HOME/include` e `include/linux`,
+   collegati con `clang -shared ... -lm -o CARTELLA/libgbcore.so`.
+2. Preparare uno stato salvato al menu di lotta con `tools/native-test/runner.c` (sequenza in docs/MEMORY_MAP_IT.md).
+3. `./gradlew testDebugUnitTest -Pgiallo.rom=ROM -Pgiallo.state=STATO -Pgiallo.hostlib=CARTELLA`
 
 ## Ambiente: ripristino SDK se il container viene ricreato
 ```

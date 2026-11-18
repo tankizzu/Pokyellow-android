@@ -33,13 +33,13 @@
 ## Ultimo lavoro (promemoria 23:16 UTC)
 - Ponte di sola lettura + squadra in alto con dati veri; 4 test superati; APK ricompilato (non ancora consegnato).
 
-## Ultimo lavoro (promemoria 01:16 UTC)
-- Creatura in campo (D018) e nomi delle mosse dalla ROM (0xBC000) letti dal ponte; squadra nascosta in lotta; 7 test superati.
+## Ultimo lavoro (promemoria 02:16 UTC)
+- Comandi di lotta veri: esecutore a circuito chiuso + pulsanti delle mosse; provato sul gioco vero (test superato).
+- APK ricompilato con squadra in alto e comandi di lotta (non ancora consegnato).
 
 ## Prossimo passo
-1. Comandi di lotta veri: pulsanti delle mosse sovrapposti allo sfondo che scelgono la mossa nel menu originale
-   con un esecutore a circuito chiuso (premere, controllare la memoria, ripetere). Serve trovare lo stato
-   "menu di lotta in attesa" e il cursore del menu delle mosse.
-2. Trovare wTextBoxID / stato dei dialoghi per sapere quando un tocco deve far avanzare il testo.
+1. Dialoghi: capire quando il gioco aspetta un tocco (testo con ▼) e quando c'è una domanda Sì/No,
+   per mostrare i pulsanti Sì/No nativi (stessa tecnica: variabili dei menu + cursore sullo schermo).
+2. Tipo e PP massimi delle mosse dalla ROM (tabella dei dati delle mosse) per completare i pulsanti di lotta.
 3. Tocco su persone/oggetti con percorso automatico: servono collisioni (tabelle nella ROM) e posizioni degli sprite.
 4. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.
