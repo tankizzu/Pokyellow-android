@@ -33,3 +33,7 @@ Thumbs.db
 
 # Kotlin / Gradle locali
 .kotlin/
+
+# prove grafiche con immagini del gioco: mai nel repository
+tools/mockup/*.png
+tools/mockup/mockup-*.html

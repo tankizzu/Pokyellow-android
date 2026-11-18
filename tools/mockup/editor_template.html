@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mockup avvio</title>
+<style>
+:root{--paper:#f6efd6;--panel:#fffbea;--ink:#1d1812;--muted:#6f6450;--yellow:#f6c935;--red:#cf4126;--sel:#ff3d8b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:10px max(12px,env(safe-area-inset-right)) 24px max(12px,env(safe-area-inset-left))}
+h1{font-size:18px;margin:0 0 4px}
+p{margin:0}
+.muted{color:var(--muted);font-size:13px}
+.wrap{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.tab{border:2px solid var(--ink);background:var(--panel);border-radius:999px;padding:5px 10px;font:inherit;font-size:14px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--yellow);font-weight:700}
+.stagebox{display:flex;justify-content:center}
+.phone{background:#111;border-radius:22px;padding:7px;box-shadow:0 0 0 2px var(--ink)}
+.stage{position:relative;overflow:hidden;border-radius:15px;touch-action:none;user-select:none;-webkit-user-select:none}
+.part{position:absolute;image-rendering:pixelated;image-rendering:crisp-edges;cursor:move}
+.part canvas,.part img{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none}
+.part.sel{outline:2px solid var(--sel);outline-offset:1px;z-index:50}
+.part .h,.part .x{display:none;position:absolute;width:22px;height:22px;border-radius:50%;background:var(--sel);color:#fff;border:2px solid #fff;font:700 13px/18px system-ui;text-align:center}
+.part.sel .h{display:block;right:-12px;bottom:-12px;cursor:nwse-resize}
+.part.sel .x{display:block;right:-12px;top:-12px;cursor:pointer}
+.kbd{background:#d6d3cc;display:grid;align-content:center;gap:6%;padding:4%}
+.kbd i{display:block;height:20%;background:repeating-linear-gradient(90deg,#fff 0 8.2%,transparent 8.2% 10%);border-radius:3px}
+.grid{position:absolute;inset:0;pointer-events:none;z-index:40}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--panel);border:2px solid var(--ink);border-radius:10px;padding:12px}
+.card h2{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button.b{border:2px solid var(--ink);background:#fff;border-radius:9px;padding:6px 10px;font:inherit;font-size:14px;cursor:pointer;box-shadow:0 2px 0 var(--ink)}
+button.b:active{transform:translateY(1px);box-shadow:0 1px 0 var(--ink)}
+button.b.pri{background:var(--yellow)}
+button.b.del{background:#ffd9cf}
+button.b:disabled{opacity:.45;cursor:default}
+input[type=text]{border:2px solid var(--ink);border-radius:8px;padding:6px 8px;font:inherit;min-width:0;flex:1}
+label.ck{display:inline-flex;gap:6px;align-items:center;font-size:14px}
+textarea{width:100%;min-height:150px;border:2px solid var(--ink);border-radius:8px;padding:8px;font:12px/1.35 ui-monospace,Menlo,monospace}
+.info b{font-weight:700}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+</style>
+</head>
+<body>
+<h1>Mockup dell'avvio</h1>
+<p class="muted">Immagini del gioco vero, solo per te. Tocca una parte per selezionarla, trascinala per spostarla, usa il pallino ↘ per ingrandire/rimpicciolire e ✕ per eliminarla. Riquadri e scritte sono disegnati con i tile del gioco: restano identici anche se li cambi.</p>
+<div class="tabs" id="tabs"></div>
+<div class="wrap">
+  <div class="stagebox"><div class="phone"><div class="stage" id="stage"></div></div></div>
+  <div class="side">
+    <div class="card">
+      <h2>Parte selezionata</h2>
+      <div id="selInfo" class="info muted">Nessuna. Tocca una parte sullo schermo.</div>
+      <div class="row" id="selTextRow" hidden style="margin-top:8px">
+        <input type="text" id="selText" aria-label="Testo della parte" maxlength="20">
+        <button class="b" id="applyText" type="button">Cambia testo</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="b del" id="delBtn" type="button" disabled>Elimina</button>
+        <button class="b" id="dupBtn" type="button" disabled>Duplica</button>
+        <button class="b" id="frontBtn" type="button" disabled>In primo piano</button>
+        <button class="b" id="smaller" type="button" disabled>−</button>
+        <button class="b" id="bigger" type="button" disabled>+</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Schermata</h2>
+      <div class="row">
+        <input type="text" id="newText" placeholder="Nuova scritta (es. CARICA)" maxlength="20" aria-label="Nuova scritta">
+        <button class="b" id="addText" type="button">Aggiungi scritta</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="b" id="addBox" type="button">Aggiungi riquadro</button>
+        <button class="b" id="undoBtn" type="button">Annulla</button>
+        <button class="b" id="resetScreen" type="button">Ripristina schermata</button>
+        <button class="b" id="restoreDel" type="button">Rimetti eliminati</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="ck"><input type="checkbox" id="snap" checked> Aggancia alla griglia del gioco (8 pixel)</label>
+        <label class="ck"><input type="checkbox" id="showGrid"> Mostra griglia</label>
+        <label class="ck">Sfondo <select id="bg"><option value="game">del gioco</option><option value="#000000">nero</option></select></label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Mandami le modifiche</h2>
+      <p class="muted">Quando hai finito, copia il riepilogo e incollalo in chat.</p>
+      <div class="row" style="margin:8px 0">
+        <button class="b pri" id="copyBtn" type="button">Copia riepilogo</button>
+        <span id="copyMsg" class="muted" role="status"></span>
+      </div>
+      <textarea id="summary" readonly aria-label="Riepilogo delle modifiche"></textarea>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+'use strict';
+const DATA = /*__DATA__*/null;
+const H = DATA.H, $ = s => document.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const sheet = new Image(); sheet.src = DATA.sheet;
+const KEY = 'mockup-avvio-v1';
+let uid = 1;
+const ORIGINAL = DATA.screens.map(s => ({ ...s, parts: s.parts.map(p => ({ ...p, uid: uid++, scale: 1 })) }));
+let screens = clone(ORIGINAL);
+try { const s = localStorage.getItem(KEY); if (s){ const v = JSON.parse(s); if (Array.isArray(v) && v.length === screens.length) screens = v; } } catch(e){}
+uid = Math.max(uid, ...screens.flatMap(s => s.parts.map(p => p.uid + 1)));
+let cur = 0, sel = null, k = 2, history = [];
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(screens)); } catch(e){} updateSummary(); };
+const S = () => screens[cur];
+const pushHist = () => { history.push(JSON.stringify(screens)); if (history.length > 40) history.shift(); };
+
+/* ---------- disegno con i tile del gioco ---------- */
+function codes(p){
+  if (p.raw) return p.raw;
+  return [...p.text].map(c => {
+    if (c >= 'A' && c <= 'Z') return 0x80 + c.charCodeAt(0) - 65;
+    if (c >= 'a' && c <= 'z') return 0xA0 + c.charCodeAt(0) - 97;
+    if (c >= '0' && c <= '9') return 0xF6 + c.charCodeAt(0) - 48;
+    return DATA.enc[c] !== undefined ? DATA.enc[c] : 0x7F;
+  });
+}
+const tile = (ctx, t, x, y) => ctx.drawImage(sheet, (t % 16) * 8, Math.floor(t / 16) * 8, 8, 8, x, y, 8, 8);
+function baseSize(p){
+  if (p.type === 'text'){ const n = codes(p).length; return p.vertical ? [8, n * 8] : [n * 8, 8]; }
+  if (p.type === 'box') return [p.w * 8, p.h * 8];
+  return [p.w, p.h];
+}
+function drawPart(p){
+  const [w, h] = baseSize(p);
+  if (p.type === 'img'){ const im = new Image(); im.src = DATA.imgs[p.img]; im.alt = ''; return im; }
+  if (p.type === 'kbd'){ const d = document.createElement('div'); d.className = 'kbd'; d.innerHTML = '<i></i><i></i><i></i><i style="width:60%;margin:0 auto"></i>'; d.style.width = '100%'; d.style.height = '100%'; return d; }
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+  if (p.type === 'text') codes(p).forEach((t, i) => p.vertical ? tile(ctx, t, 0, i * 8) : tile(ctx, t, i * 8, 0));
+  else for (let y = 0; y < p.h; y++) for (let x = 0; x < p.w; x++){
+    let t;
+    if (y === 0) t = x === 0 ? 0x79 : x === p.w - 1 ? 0x7B : 0x7A;
+    else if (y === p.h - 1) t = x === 0 ? 0x7D : x === p.w - 1 ? 0x7E : 0x7A;
+    else t = (x === 0 || x === p.w - 1) ? 0x7C : 0x7F;
+    tile(ctx, t, x * 8, y * 8);
+  }
+  return c;
+}
+
+/* ---------- schermo ---------- */
+const stage = $('#stage');
+function fit(){
+  const wide = window.innerWidth > 760;
+  const availW = wide ? Math.min(420, window.innerWidth * 0.45) : window.innerWidth - 40;
+  const availH = window.innerHeight - (wide ? 120 : 150);
+  k = Math.max(1, Math.min(availW / 160, availH / H));
+  stage.style.width = 160 * k + 'px'; stage.style.height = H * k + 'px';
+}
+function render(){
+  fit();
+  const s = S();
+  stage.style.background = s.bgOverride && s.bgOverride !== 'game' ? s.bgOverride : s.bg;
+  $('#bg').value = s.bgOverride || 'game';
+  stage.innerHTML = '';
+  s.parts.forEach(p => {
+    if (p.deleted) return;
+    const [w, h] = baseSize(p), sc = p.scale || 1;
+    const el = document.createElement('div');
+    el.className = 'part' + (sel === p.uid ? ' sel' : '');
+    el.dataset.uid = p.uid;
+    el.style.cssText = `left:${p.x * k}px;top:${p.y * k}px;width:${w * sc * k}px;height:${h * sc * k}px`;
+    el.appendChild(drawPart(p));
+    el.insertAdjacentHTML('beforeend', '<span class="x" title="Elimina">✕</span><span class="h" title="Ridimensiona">↘</span>');
+    stage.appendChild(el);
+  });
+  if ($('#showGrid').checked){
+    const g = document.createElement('canvas'); g.className = 'grid'; g.width = Math.round(160 * k); g.height = Math.round(H * k);
+    g.style.width = '100%'; g.style.height = '100%';
+    const c = g.getContext('2d'); c.strokeStyle = 'rgba(255,61,139,.35)'; c.lineWidth = 1;
+    for (let x = 0; x <= 160; x += 8){ c.beginPath(); c.moveTo(x * k + .5, 0); c.lineTo(x * k + .5, g.height); c.stroke(); }
+    for (let y = 0; y <= H; y += 8){ c.beginPath(); c.moveTo(0, y * k + .5); c.lineTo(g.width, y * k + .5); c.stroke(); }
+    stage.appendChild(g);
+  }
+  $('#tabs').innerHTML = screens.map((x, i) => `<button type="button" class="tab" aria-pressed="${i === cur}" data-i="${i}">${i + 1}. ${x.label}</button>`).join('');
+  renderSel();
+}
+function selPart(){ return S().parts.find(p => p.uid === sel && !p.deleted) || null; }
+function renderSel(){
+  const p = selPart();
+  for (const id of ['delBtn', 'dupBtn', 'frontBtn', 'smaller', 'bigger']) $('#' + id).disabled = !p;
+  $('#selTextRow').hidden = !(p && p.type === 'text' && !p.raw);
+  if (!p){ $('#selInfo').textContent = 'Nessuna. Tocca una parte sullo schermo.'; return; }
+  const [w, h] = baseSize(p), sc = p.scale || 1;
+  const extra = p.type === 'box' ? ` · ${p.w}×${p.h} caselle` : p.type === 'kbd' ? '' : ` · scala ${sc}×`;
+  $('#selInfo').innerHTML = `<b>${p.label}</b><br>posizione: casella ${(p.x / 8).toFixed(p.x % 8 ? 2 : 0)}, ${(p.y / 8).toFixed(p.y % 8 ? 2 : 0)} (pixel ${Math.round(p.x)}, ${Math.round(p.y)}) · ${Math.round(w * sc)}×${Math.round(h * sc)} pixel${extra}`;
+  if (p.type === 'text' && !p.raw && document.activeElement !== $('#selText')) $('#selText').value = p.text;
+}
+
+/* ---------- tocchi ---------- */
+let drag = null;
+stage.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.part');
+  if (!el){ sel = null; render(); return; }
+  const p = S().parts.find(x => x.uid === +el.dataset.uid); if (!p) return;
+  e.preventDefault();
+  if (e.target.classList.contains('x')){ pushHist(); p.deleted = true; sel = null; save(); render(); return; }
+  if (sel !== p.uid){ sel = p.uid; render(); }
+  const node = stage.querySelector(`.part[data-uid="${p.uid}"]`);
+  pushHist();
+  drag = { p, node, mode: e.target.classList.contains('h') ? 'size' : 'move', sx: e.clientX, sy: e.clientY, o: clone(p) };
+  try { stage.setPointerCapture(e.pointerId); } catch(err){}
+});
+stage.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const { p, o } = drag, snap = $('#snap').checked;
+  let dx = (e.clientX - drag.sx) / k, dy = (e.clientY - drag.sy) / k;
+  const [bw, bh] = baseSize(o);
+  if (drag.mode === 'move'){
+    if (snap){ dx = Math.round(dx / 8) * 8; dy = Math.round(dy / 8) * 8; }
+    p.x = Math.round(o.x + dx); p.y = Math.round(o.y + dy);
+  } else if (p.type === 'box'){
+    p.w = Math.max(2, Math.min(40, o.w + Math.round(dx / 8))); p.h = Math.max(2, Math.min(60, o.h + Math.round(dy / 8)));
+  } else if (p.type === 'kbd'){
+    p.w = Math.max(16, Math.round(o.w + dx)); p.h = Math.max(16, Math.round(o.h + dy));
+  } else {
+    const ns = (bw * (o.scale || 1) + dx) / bw;
+    p.scale = Math.max(.5, Math.min(4, Math.round(ns * 2) / 2));
+  }
+  const [w, h] = baseSize(p), sc = p.scale || 1;
+  drag.node.style.left = p.x * k + 'px'; drag.node.style.top = p.y * k + 'px';
+  drag.node.style.width = w * sc * k + 'px'; drag.node.style.height = h * sc * k + 'px';
+  if (p.type === 'box' && (p.w !== drag.lastW || p.h !== drag.lastH)){
+    drag.lastW = p.w; drag.lastH = p.h;
+    drag.node.replaceChild(drawPart(p), drag.node.firstChild);
+  }
+  renderSel();
+});
+const end = () => { if (drag){ drag = null; save(); render(); } };
+stage.addEventListener('pointerup', end);
+stage.addEventListener('pointercancel', end);
+
+/* ---------- comandi ---------- */
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b){ cur = +b.dataset.i; sel = null; history = []; render(); } });
+$('#delBtn').addEventListener('click', () => { const p = selPart(); if (!p) return; pushHist(); p.deleted = true; sel = null; save(); render(); });
+$('#dupBtn').addEventListener('click', () => { const p = selPart(); if (!p) return; pushHist(); const q = clone(p); q.uid = uid++; q.x += 8; q.y += 8; q.label = p.label + ' (copia)'; S().parts.push(q); sel = q.uid; save(); render(); });
+$('#frontBtn').addEventListener('click', () => { const p = selPart(); if (!p) return; pushHist(); const a = S().parts; a.splice(a.indexOf(p), 1); a.push(p); save(); render(); });
+const step = d => { const p = selPart(); if (!p) return; pushHist();
+  if (p.type === 'box'){ p.w = Math.max(2, p.w + d); p.h = Math.max(2, p.h + d); }
+  else if (p.type === 'kbd'){ p.h = Math.max(16, p.h + d * 8); }
+  else p.scale = Math.max(.5, Math.min(4, (p.scale || 1) + d * .5));
+  save(); render(); };
+$('#smaller').addEventListener('click', () => step(-1));
+$('#bigger').addEventListener('click', () => step(1));
+const clean = s => [...s].filter(c => /[A-Za-z0-9 :\/.?!▶▼é\-×,()]/.test(c)).join('').slice(0, 20);
+$('#applyText').addEventListener('click', () => { const p = selPart(); if (!p || p.type !== 'text') return; const t = clean($('#selText').value); if (!t) return; pushHist(); p.text = t; save(); render(); });
+$('#addText').addEventListener('click', () => {
+  const t = clean($('#newText').value); if (!t) return; pushHist();
+  const p = { type:'text', text:t, x:16, y:Math.round(H / 2 / 8) * 8, label:'Scritta "' + t + '"', uid:uid++, scale:1, added:true };
+  S().parts.push(p); sel = p.uid; $('#newText').value = ''; save(); render();
+});
+$('#addBox').addEventListener('click', () => { pushHist(); const p = { type:'box', x:0, y:Math.round(H / 2 / 8) * 8, w:10, h:4, label:'Riquadro nuovo', uid:uid++, scale:1, added:true }; S().parts.push(p); sel = p.uid; save(); render(); });
+$('#undoBtn').addEventListener('click', () => { const h = history.pop(); if (!h) return; screens = JSON.parse(h); sel = null; save(); render(); });
+$('#resetScreen').addEventListener('click', () => { pushHist(); screens[cur] = clone(ORIGINAL[cur]); sel = null; save(); render(); });
+$('#restoreDel').addEventListener('click', () => { pushHist(); S().parts.forEach(p => delete p.deleted); save(); render(); });
+$('#snap').addEventListener('change', () => {});
+$('#showGrid').addEventListener('change', render);
+$('#bg').addEventListener('change', () => { pushHist(); S().bgOverride = $('#bg').value; save(); render(); });
+window.addEventListener('resize', render);
+
+/* ---------- riepilogo ---------- */
+function updateSummary(){
+  const lines = [];
+  screens.forEach((s, i) => {
+    const o = ORIGINAL[i];
+    const changes = [];
+    s.parts.forEach(p => {
+      const q = o.parts.find(x => x.uid === p.uid);
+      const where = `casella ${+(p.x / 8).toFixed(2)},${+(p.y / 8).toFixed(2)}`;
+      if (p.deleted){ if (q) changes.push(`eliminato: ${p.label}`); return; }
+      if (!q){ changes.push(`aggiunto: ${p.type === 'text' ? '"' + p.text + '"' : p.label} a ${where}` + (p.type === 'box' ? `, ${p.w}×${p.h} caselle` : '') + ((p.scale || 1) !== 1 ? `, scala ${p.scale}×` : '')); return; }
+      const d = [];
+      if (p.x !== q.x || p.y !== q.y) d.push(`spostato a ${where}`);
+      if (p.type === 'box' && (p.w !== q.w || p.h !== q.h)) d.push(`${p.w}×${p.h} caselle`);
+      if (p.type === 'kbd' && (p.w !== q.w || p.h !== q.h)) d.push(`${p.w}×${p.h} pixel`);
+      if ((p.scale || 1) !== 1) d.push(`scala ${p.scale}×`);
+      if (p.type === 'text' && p.text !== q.text) d.push(`testo "${p.text}"`);
+      if (d.length) changes.push(`${q.label}: ${d.join(', ')}`);
+    });
+    if (s.bgOverride && s.bgOverride !== 'game') changes.push('sfondo nero');
+    lines.push(`${i + 1}. ${s.label}: ` + (changes.length ? '\n   - ' + changes.join('\n   - ') : 'nessuna modifica'));
+  });
+  $('#summary').value = 'Modifiche al mockup dell\'avvio (caselle da 8 pixel, schermo 20×44 caselle):\n' + lines.join('\n');
+}
+$('#copyBtn').addEventListener('click', async () => {
+  const t = $('#summary');
+  try { await navigator.clipboard.writeText(t.value); $('#copyMsg').textContent = 'Copiato: incollalo in chat.'; }
+  catch(e){ t.focus(); t.select(); $('#copyMsg').textContent = 'Testo selezionato: copialo e incollalo in chat.'; }
+});
+
+sheet.onload = () => { render(); updateSummary(); };
+if (sheet.complete) { render(); updateSummary(); }
+})();
+</script>
+</body>
+</html>

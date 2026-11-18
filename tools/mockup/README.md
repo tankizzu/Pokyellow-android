@@ -7,3 +7,9 @@
   cartella temporanea e si mostrano al committente direttamente, mai nel repository né in pagine pubblicate (R-01).
 - Sequenze del `runner` usate per le schermate dell'avvio: titolo (avvio + START), menu iniziale con CONTINUA
   (salvare dal menu START, poi `reset`), introduzione (NUOVO GIOCO + A), nome (`naming`), cameretta (`ext NOME 354`).
+
+## Mockup modificabile (privato)
+`build_editor.py` crea `mockup-avvio.html` (fuori dal repository) partendo da `editor_template.html`, dalle schermate
+vere del runner (`../real/*.ppm`, `*.vram`) e dai tile del gioco: ogni scritta, riquadro e immagine è una parte che il
+committente può spostare, ridimensionare o eliminare; il riepilogo delle modifiche si copia in chat.
+Il file prodotto contiene immagini del gioco: si invia solo al committente, non si pubblica e non si aggiunge al repository.
