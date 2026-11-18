@@ -710,17 +710,19 @@ class ZzScenarioTest : AppScreensHarness() {
         assertTrue("nel laboratorio", warpTo(0x28))
         textThrough()
         println("DBGSC lab ${pos()} persone=${s.mapGridForTest()?.people}")
-        // dal Professore: la persona più in alto nel laboratorio
-        repeat(3) {
-            log("dal Professore, tentativo")
-            if (s.latestSnapshot.get().bag.none { it.id == 70 }) return@repeat
+        // dal Professore: si parla con le persone del laboratorio, una alla volta, finché il Pacco è consegnato
+        val people = s.mapGridForTest()!!.people.sortedBy { it.second }
+        for (person in people) {
+            if (s.latestSnapshot.get().bag.none { it.id == 70 }) break
+            log("parlo con $person")
             val g = s.mapGridForTest()!!
-            val oak = g.people.minByOrNull { it.second } ?: return@repeat
-            val spot = g.interactionSpots(oak.first, oak.second).entries.minByOrNull { kotlin.math.abs(it.key.first - pos().second) + kotlin.math.abs(it.key.second - pos().third) } ?: return@repeat
+            val p0 = g.people.minByOrNull { kotlin.math.abs(it.first - person.first) + kotlin.math.abs(it.second - person.second) } ?: continue
+            val spot = g.interactionSpots(p0.first, p0.second).entries.filter { g.path(pos().second, pos().third, setOf(it.key)) != null }
+                .minByOrNull { kotlin.math.abs(it.key.first - pos().second) + kotlin.math.abs(it.key.second - pos().third) } ?: continue
             goTo(spot.key.first, spot.key.second)
             s.setKeys(spot.value.key); pump(150); s.setKeys(0); pump(400)
             tapTile(10f, 20f)
-            textThrough(200)
+            textThrough(250)
         }
         println("DBGSC dopo Oak borsa=${s.latestSnapshot.get().bag} pokedex=${s.latestSnapshot.get().pokedexOwned}")
         save("pokedex.state")
