@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.6.0-prototipo consegnata
+- Contiene D-046 e D-047; verificata col banco di prova dell'interfaccia (73 prove) prima della consegna.
+
 ## 2026-11-18 (promemoria 13:16 UTC) – immagine del Pokémon nella scheda (D-047)
 - La scheda del Pokémon mostra l'immagine vera presa dalla ROM (decodificata in memoria; provate tutte le 151).
 
