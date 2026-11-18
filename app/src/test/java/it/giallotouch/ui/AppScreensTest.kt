@@ -694,9 +694,73 @@ class ZzScenarioTest : AppScreensHarness() {
         return false
     }
 
+    /** Terza tappa (da -Pgiallo.state.items=shop.state): 5 Poké Ball al negozio, cattura sulla Strada 1. */
+    @Test fun costruisci3() {
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.items") != null)
+        s = start(auto = "giallo.state.items") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        // dal commesso: COMPRA → POKé BALL → quantità 5 (cursore) → OK
+        val g = s.mapGridForTest()!!
+        val clerk = g.people.minByOrNull { it.first }!!
+        val spot = g.interactionSpots(clerk.first, clerk.second).entries.first { g.path(pos().second, pos().third, setOf(it.key)) != null }
+        goTo(spot.key.first, spot.key.second)
+        s.setKeys(spot.value.key); pump(150); s.setKeys(0); pump(400)
+        tapTile(10f, 20f)
+        var k = 0
+        while (!s.shopMenuShown && k++ < 10) tapTile(10f, 20f)
+        pump(1500); tapTile(4f, 35f); pump(1500)            // COMPRA
+        tapTile(4f, 14.5f); pump(1000)                       // POKé BALL
+        tapTile(2.6f, 41f); pump(800)                        // cursore: un po' a destra del minimo
+        log("quantità scelta, soldi ${s.latestSnapshot.get().money}")
+        tapTile(16f, 41f)                                    // OK
+        waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().bag.any { it.id == 0x04 } }
+        log("borsa ${s.latestSnapshot.get().bag}")
+        tapTile(9f, 40.5f); pump(800); tapTile(9f, 40f)       // INDIETRO, ESCI
+        waitFor(20_000) { s.latestSnapshot.get().freeRoam }
+        assertTrue("Poké Ball comprate", s.latestSnapshot.get().bag.any { it.id == 0x04 })
+        assertTrue("fuori dal negozio", warpTo(null))
+        k = 0
+        while (pos().first != 12 && k++ < 4) edge(north = false)
+        assertEquals("Strada 1", 12, pos().first)
+        // nell'erba: lotta, BORSA → POKé BALL finché un Pokémon è catturato
+        val rnd = java.util.Random(11)
+        var tries = 0
+        while (s.latestSnapshot.get().party.size < 2 && tries++ < 12) {
+            var walks = 0
+            while (!s.latestSnapshot.get().inBattle && walks++ < 20) {
+                val gg = s.mapGridForTest() ?: break
+                val free = (0 until gg.width).flatMap { x -> (6 until gg.height - 4).map { y -> x to y } }.filter { gg.isFree(it.first, it.second) }
+                val t = free[rnd.nextInt(free.size)]
+                s.walkPathForTest(t.first, t.second)
+                waitFor(30_000) { s.latestSnapshot.get().inBattle || pos().let { it.second == t.first && it.third == t.second } }
+            }
+            if (!s.latestSnapshot.get().inBattle) continue
+            log("lotta con un selvatico")
+            var g2 = 0
+            while (s.latestSnapshot.get().inBattle && g2++ < 300) {
+                if (s.battleMenuShown && !s.commandBusy && !s.battleBusy) {
+                    val ball = s.latestSnapshot.get().bag.indexOfFirst { it.id == 0x04 }
+                    if (ball < 0) { tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f); continue }
+                    tapTile(15f, it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f)   // BORSA
+                    pump(800)
+                    tapTile(4f, 25.5f + 3 * ball)                                             // POKé BALL
+                    waitFor(30_000) { !s.battleBusy }
+                } else if (s.yesNo != null) tapTile(14f, 39f)        // soprannome? NO
+                else tapTile(10f, 2f)
+            }
+            textThrough()
+            if (s.latestSnapshot.get().naming != null) log("schermata del nome!")
+            log("squadra ${s.latestSnapshot.get().party.map { it.name }}")
+        }
+        assertEquals("due Pokémon", 2, s.latestSnapshot.get().party.size)
+        save("two.state")
+    }
+
     /** Seconda tappa (da -Pgiallo.state.two=parcel.state): Pacco a Oak, ritorno al negozio aperto. */
     @Test fun costruisci2() {
-        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") != null)
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") != null && System.getProperty("giallo.state.items") == null)
         s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
@@ -736,7 +800,7 @@ class ZzScenarioTest : AppScreensHarness() {
     }
 
     @Test fun costruisci() {
-        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") == null)
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") == null && System.getProperty("giallo.state.items") == null)
         s = start(auto = "giallo.state") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
