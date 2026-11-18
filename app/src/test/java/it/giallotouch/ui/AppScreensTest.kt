@@ -582,3 +582,35 @@ class AppNameListTest : AppScreensHarness() {
     }
 }
 
+
+/**
+ * PC della cameretta (D-055): tocco davanti al PC → schermata STRUMENTI PC dell'app; DEPOSITA → POZIONE (dalla borsa
+ * al PC); INDIETRO; tocco su POZIONE nel PC (di nuovo nella borsa); INDIETRO → si torna a camminare.
+ */
+class AppPcTest : AppScreensHarness() {
+    @Test fun strumentiPc() {
+        val s = start(auto = "giallo.state.bag") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue(waitFor(10_000) { s.latestSnapshot.get().freeRoam })
+        assertEquals("Pozione nella borsa", 1, s.latestSnapshot.get().bag.size)
+        tapTile(10f, 20f)                                   // davanti al PC: tocco = A
+        var k = 0
+        while (!s.pcMenuShown && k++ < 10) tapTile(10f, 20f)   // "GIALLO accende il PC."
+        assertTrue("STRUMENTI PC dell'app", shotUntil("32-pc") { b -> boxAt(b, 0, 3, 20, 3) && boxAt(b, 0, 7, 20, 31) && boxAt(b, 10, 39, 10, 4) })
+        tapTile(15f, 41f)                                   // DEPOSITA
+        assertTrue("borsa da depositare", shotUntil("33-pc-deposita") { b -> !boxAt(b, 10, 39, 10, 4) })
+        tapTile(4f, 9.5f)                                   // POZIONE
+        assertTrue("Pozione nel PC", waitFor(30_000) { !s.itemBusy && s.latestSnapshot.get().pcItems.any { it.id == 0x14 } })
+        assertTrue("borsa vuota", waitFor(5_000) { s.latestSnapshot.get().bag.isEmpty() })
+        shot("34-pc-dopo-deposito")
+        tapTile(4f, 40.5f)                                  // INDIETRO → strumenti del PC
+        pump(800)
+        tapTile(4f, 9.5f)                                   // POZIONE: PRELEVA
+        assertTrue("Pozione di nuovo nella borsa", waitFor(30_000) { !s.itemBusy && s.latestSnapshot.get().bag.any { it.id == 0x14 } })
+        shot("35-pc-dopo-prelievo")
+        tapTile(4f, 40.5f)                                  // INDIETRO → si spegne il PC
+        assertTrue("di nuovo in giro", waitFor(20_000) { s.latestSnapshot.get().freeRoam })
+        shot("36-pc-chiuso")
+    }
+}

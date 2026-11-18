@@ -32,6 +32,7 @@ object GameStateReader {
             battleType = battleType,
             battleMon = if (battleType != 0) readBattleMon(::u8, ::u16be) else null,
             bag = readBag(::u8),
+            pcItems = readItems(::u8, M.PC_ITEM_COUNT, M.PC_ITEMS, M.PC_CAPACITY),
             pokedexSeen = readFlags(::u8, M.POKEDEX_SEEN),
             pokedexOwned = readFlags(::u8, M.POKEDEX_OWNED),
         )
@@ -40,11 +41,13 @@ object GameStateReader {
     private fun readFlags(u8: (Int) -> Int, start: Int): List<Int> =
         (1..M.NUM_POKEDEX).filter { n -> (u8(start + (n - 1) / 8) shr ((n - 1) % 8)) and 1 == 1 }
 
-    private fun readBag(u8: (Int) -> Int): List<BagItem> {
-        val count = u8(M.BAG_COUNT)
-        if (count > M.BAG_CAPACITY || u8(M.BAG_ITEMS + 2 * count) != 0xFF) return emptyList()
-        return (0 until count).map { BagItem(u8(M.BAG_ITEMS + 2 * it), u8(M.BAG_ITEMS + 2 * it + 1)) }
-            .takeIf { items -> items.all { it.id != 0 && it.id != 0xFF } } ?: emptyList()
+    private fun readBag(u8: (Int) -> Int): List<BagItem> = readItems(u8, M.BAG_COUNT, M.BAG_ITEMS, M.BAG_CAPACITY)
+
+    private fun readItems(u8: (Int) -> Int, countAddr: Int, items: Int, capacity: Int): List<BagItem> {
+        val count = u8(countAddr)
+        if (count > capacity || u8(items + 2 * count) != 0xFF) return emptyList()
+        return (0 until count).map { BagItem(u8(items + 2 * it), u8(items + 2 * it + 1)) }
+            .takeIf { list -> list.all { it.id != 0 && it.id != 0xFF } } ?: emptyList()
     }
 
     private fun readBattleMon(u8: (Int) -> Int, u16be: (Int) -> Int): BattleMon? {

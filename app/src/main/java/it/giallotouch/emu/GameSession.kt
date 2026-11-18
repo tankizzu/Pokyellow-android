@@ -158,6 +158,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Schermata dei nomi del gioco sullo schermo: l'app non la mostra mai (copre con la sua, D-046). */
     @Volatile var namingShown = false
         private set
+    /** Menu del PC del giocatore sullo schermo (D-055): l'app mostra la sua schermata STRUMENTI PC. */
+    @Volatile var pcMenuShown = false
+        private set
     /** La scheda allenatore del gioco è sullo schermo: l'app la mostra ridisposta (D-045). */
     @Volatile var trainerCardShown = false
         private set
@@ -631,6 +634,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (battleExecutor.busy) { battleGameMenu = false; battleSplit = true }
                 if (battleGameMenu) battleSplit = false
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
+                pcMenuShown = ItemMenus.read(frameVars, frameTiles, 0).kind == ItemMenus.Kind.PC_MENU && closingFrames == 0
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
                 nameList = if (frameMenu.kind == MenuKind.NAME_LIST) MenuReader.nameListEntries(frameTiles, frameMenu.items) else null
                 namingShown = NamingReader.looksLikeNaming(frameTiles)

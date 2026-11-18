@@ -19,7 +19,7 @@ object ItemMenus {
     private const val MORE = 0xEE
     private val STRUM = intArrayOf(0x92, 0x93, 0x91, 0x94, 0x8C)   // "STRUM" nel menu START
 
-    enum class Kind { START_MENU, ITEM_LIST, USE_TOSS, QUANTITY, YES_NO, TEXT_WAIT, PARTY, OTHER }
+    enum class Kind { START_MENU, ITEM_LIST, USE_TOSS, QUANTITY, YES_NO, TEXT_WAIT, PARTY, PC_MENU, OTHER }
 
     data class Screen(
         val kind: Kind,
@@ -66,6 +66,11 @@ object ItemMenus {
                 return Screen(Kind.ITEM_LIST, cursor = scrollOffset + row, name = name)
             }
         }
+        // Menu del PC del giocatore (D-055): riquadro (0,0)–(17,9), PRELEVA / DEPOSITA / BUTTA / DISCONNETTI,
+        // Y = 2, X = 1, massimo 3, tasti 0x03, cursore ▶ in (1, 2 + 2i).
+        if (topY == 2 && topX == 1 && maxItem == 3 && watched == 0x03 && t(0, 0) == 0x79 && t(17, 0) == 0x7B && t(17, 9) == 0x7E) {
+            (0..3).firstOrNull { t(1, 2 + 2 * it) == CURSOR }?.let { return Screen(Kind.PC_MENU, cursor = it) }
+        }
         // Menu squadra "su chi usarlo?": Y = 1, X = 0, tasti 0x03, cursore ▶ in (0, 1 + 2i) (come in lotta).
         if (topY == 1 && topX == 0 && watched == 0x03) {
             (0..5).firstOrNull { t(0, 1 + 2 * it) == CURSOR }?.let { return Screen(Kind.PARTY, cursor = it) }
@@ -91,6 +96,12 @@ sealed interface ItemAction {
 
     /** Apre la scheda allenatore del gioco: la voce col nome del giocatore, subito dopo STRUM. nel menu START (D-045). */
     data object OpenTrainer : ItemAction { override val slot = -1; override val name = "" }
+
+    /** PC del giocatore (D-055): preleva un pezzo dello strumento [slot] del PC. */
+    data class PcWithdraw(override val slot: Int, override val name: String) : ItemAction
+
+    /** PC del giocatore (D-055): deposita un pezzo dello strumento [slot] della borsa. */
+    data class PcDeposit(override val slot: Int, override val name: String) : ItemAction
 
     /** Sposta lo strumento [slot] al posto [to], come nel gioco: SELECT sul primo, SELECT sul secondo (scambio). */
     data class Swap(override val slot: Int, override val name: String, val to: Int) : ItemAction
@@ -179,7 +190,34 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
         else -> { tossed = true; SELECT }
     }
 
-    private fun decide(a: ItemAction, s: ItemMenus.Screen, freeRoam: Boolean): Int = when (s.kind) {
+    /** PC: menu → PRELEVA/DEPOSITA → strumento → quantità 1 → messaggio → di nuovo al menu del PC. */
+    private fun decidePc(a: ItemAction, s: ItemMenus.Screen): Int = when (s.kind) {
+        ItemMenus.Kind.PC_MENU -> {
+            val target = if (a is ItemAction.PcWithdraw) 0 else 1
+            when {
+                tossed -> DONE
+                s.cursor < target -> Keys.DOWN
+                s.cursor > target -> Keys.UP
+                else -> Keys.A
+            }
+        }
+        ItemMenus.Kind.ITEM_LIST -> when {
+            tossed -> Keys.B
+            s.cursor < a.slot -> Keys.DOWN
+            s.cursor > a.slot -> Keys.UP
+            a.name.isNotEmpty() && !a.name.startsWith("MT") && !a.name.startsWith("MN") && s.name != a.name -> { action = null; result = Result.FAILED; 0 }
+            else -> Keys.A
+        }
+        ItemMenus.Kind.QUANTITY -> when {
+            s.value > 1 -> Keys.DOWN
+            s.value < 1 -> Keys.UP
+            else -> { tossed = true; Keys.A }
+        }
+        ItemMenus.Kind.TEXT_WAIT -> Keys.A
+        else -> 0
+    }
+
+    private fun decide(a: ItemAction, s: ItemMenus.Screen, freeRoam: Boolean): Int = if (a is ItemAction.PcWithdraw || a is ItemAction.PcDeposit) decidePc(a, s) else when (s.kind) {
         ItemMenus.Kind.START_MENU -> if (a is ItemAction.OpenTrainer) when {
             s.value < 0 -> 0
             s.cursor < s.value + 1 -> Keys.DOWN
@@ -209,6 +247,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
                 else -> { if (a is ItemAction.Use) { if (a.target == null) useChosen = true else awaitingTarget = true }; Keys.A }
             }
         }
+        ItemMenus.Kind.PC_MENU -> 0
         ItemMenus.Kind.PARTY -> {
             val t = (a as? ItemAction.Use)?.target
             when {

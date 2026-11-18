@@ -20,6 +20,8 @@ data class GameSnapshot(
     val naming: NamingScreen? = null,
     /** Strumenti nella borsa, nello stesso ordine del gioco. */
     val bag: List<BagItem> = emptyList(),
+    /** Strumenti depositati nel PC del giocatore (D-055). */
+    val pcItems: List<BagItem> = emptyList(),
     /** Numeri del Pokédex visti e presi, in ordine. */
     val pokedexSeen: List<Int> = emptyList(),
     val pokedexOwned: List<Int> = emptyList(),

@@ -147,6 +147,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var trainerCard by remember { mutableStateOf(false) }   // scheda allenatore del gioco sullo schermo (D-045)
     var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
     var nameList by remember { mutableStateOf<List<IntArray>?>(null) }   // nomi proposti dal Professore (D-052)
+    var pcOpen by remember { mutableStateOf(false) }       // STRUMENTI PC dell'app (D-055)
     var battleMenu by remember { mutableStateOf(false) }   // menu di lotta del gioco sullo schermo (si può scegliere)
     var battleGameMenu by remember { mutableStateOf(false) }   // in lotta: squadra/borsa del gioco aperte
     var battleList by remember { mutableStateOf(0) }       // in lotta: 1 = SQUADRA, 2 = BORSA dell'app (D-050)
@@ -188,6 +189,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             trainerCard = session.trainerCardShown
             yesNo = session.yesNo
             nameList = session.nameList
+            if (session.pcMenuShown && !pcOpen) pcOpen = true
             battleMenu = session.battleMenuShown
             battleGameMenu = session.battleGameMenu
             battleBusy = session.battleBusy
@@ -442,7 +444,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )
-        } else if (inGame && sheet != null && !trainerCard && (snapshot.freeRoam || panelOpen)) {
+        } else if (inGame && sheet != null && !trainerCard && !pcOpen && (snapshot.freeRoam || panelOpen)) {
             // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
             GamePanel(
                 sheet = sheet!!,
@@ -472,7 +474,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && yesNo == null && nameList == null && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && snapshot.cursorOnScreen && yesNo == null && nameList == null && !pcOpen && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()
@@ -531,6 +533,14 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         }
 
+        if (pcOpen && sheet != null) {
+            GamePcScreen(
+                sheet = sheet!!, pcItems = snapshot.pcItems, bag = snapshot.bag, romData = session.romData, busy = itemRequested,
+                onWithdraw = { i -> itemRequested = true; session.itemAction(ItemAction.PcWithdraw(i, session.romData.itemName(snapshot.pcItems[i].id))) },
+                onDeposit = { i -> itemRequested = true; session.itemAction(ItemAction.PcDeposit(i, session.romData.itemName(snapshot.bag[i].id))) },
+                onClose = { pcOpen = false; session.closeMenus() },
+            )
+        }
         val pick = usePick
         if (pick != null && sheet != null && !snapshot.inBattle) {
             BackHandler { usePick = null; bagOpen = true }

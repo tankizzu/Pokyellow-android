@@ -97,5 +97,9 @@ object MemoryMapIt {
 
     /** Primo e ultimo indirizzo da copiare per leggere lotta, squadra, borsa, soldi e mappa in un colpo solo. */
     const val BLOCK_START = BATTLE_MON
-    const val BLOCK_END = CUR_MAP_WIDTH
+    /** Strumenti nel PC del giocatore (come la borsa: numero di voci, poi coppie codice-quantità, 0xFF in fondo). */
+    const val PC_ITEM_COUNT = 0xD53E
+    const val PC_ITEMS = 0xD53F
+    const val PC_CAPACITY = 50
+    const val BLOCK_END = PC_ITEMS + 2 * PC_CAPACITY + 1
 }

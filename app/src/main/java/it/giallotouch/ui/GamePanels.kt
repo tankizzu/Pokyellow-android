@@ -774,3 +774,58 @@ fun GameBattleListPanel(
         ) { box(0, 0, 9, 3); textAt("INDIETRO", 8, 12) }
     }
 }
+
+/**
+ * STRUMENTI PC (D-055, mockup del committente): lista degli strumenti nel PC, tocco = PRELEVA un pezzo; DEPOSITA
+ * mostra la borsa, tocco = deposita un pezzo. INDIETRO in basso a sinistra, DEPOSITA a destra.
+ */
+@Composable
+fun GamePcScreen(
+    sheet: IntArray,
+    pcItems: List<it.giallotouch.bridge.BagItem>,
+    bag: List<it.giallotouch.bridge.BagItem>,
+    romData: RomData,
+    busy: Boolean,
+    onWithdraw: (Int) -> Unit,
+    onDeposit: (Int) -> Unit,
+    onClose: () -> Unit,
+) {
+    var depositing by remember { mutableStateOf(false) }
+    BackHandler { if (busy) Unit else if (depositing) depositing = false else onClose() }
+    val list = if (depositing) bag else pcItems
+    val step = when { list.size <= 9 -> 3; list.size <= 14 -> 2; else -> 1 }
+    BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        TileImage(
+            sheet, 20, 39, unit, key = listOf(list, depositing, busy),
+            modifier = Modifier.pointerInput(list, depositing, busy) {
+                detectTapGestures { pos ->
+                    if (busy) return@detectTapGestures
+                    val row = (pos.y / tilePx).toInt()
+                    val i = (row - 9 + step / 2).floorDiv(step)
+                    if (row in 8..37 && i in list.indices) { if (depositing) onDeposit(i) else onWithdraw(i) }
+                }
+            }
+        ) {
+            box(0, 3, 19, 5); val title = if (depositing) "DEPOSITA" else "STRUMENTI PC"; text(title, (20 - title.length) / 2, 4)
+            box(0, 7, 19, 37)
+            if (list.isEmpty()) text("VUOTO", 2, 9)
+            list.take(28 / step + 1).forEachIndexed { i, item ->
+                val r = 9 + step * i
+                if (r > 36) return@forEachIndexed
+                text(romData.itemName(item.id).take(12), 2, r)
+                if (!it.giallotouch.bridge.Items.isKeyItem(item.id)) { val q = "×" + item.quantity; text(q, 19 - q.length, r) }
+            }
+            if (busy) text("...", 16, 4)
+        }
+        BackBox(sheet, unit, 0, 39, textX = 8) { if (!busy) { if (depositing) depositing = false else onClose() } }
+        if (!depositing) TileImage(
+            sheet, 10, 4, unit, key = "deposita",
+            modifier = Modifier
+                .offset { IntOffset((10 * tilePx).toInt(), (39 * tilePx).toInt()) }
+                .pointerInput(busy) { detectTapGestures { if (!busy) depositing = true } }
+        ) { box(0, 0, 9, 3); textAt("DEPOSITA", 8, 12) }
+    }
+}
