@@ -40,6 +40,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
 import it.giallotouch.bridge.GameCommand
+import it.giallotouch.bridge.TextAssist
+import it.giallotouch.storage.Settings
 import it.giallotouch.bridge.MenuKind
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.width
@@ -64,8 +66,10 @@ private val Cream = Color(0xFFFFF7DC)
  * - in basso: Menu (START), Select, Salva.
  */
 @Composable
-fun GameScreen(session: GameSession) {
+fun GameScreen(session: GameSession, settings: Settings) {
     var held by remember { mutableStateOf(0) }       // direzione tenuta dalla levetta
+    var pressedSince by remember { mutableStateOf<Long?>(null) }  // dito appoggiato (per il testo più veloce)
+    var autoText by remember { mutableStateOf(settings.autoTextSpeed) }
     var tapped by remember { mutableStateOf(0) }     // tasti premuti brevemente (A, B, START, SELECT)
     var joyOrigin by remember { mutableStateOf<Offset?>(null) }
     var joyKnob by remember { mutableStateOf(Offset.Zero) }
@@ -74,6 +78,11 @@ fun GameScreen(session: GameSession) {
     val radius = with(density) { 58.dp.toPx() }
 
     LaunchedEffect(held, tapped) { session.setKeys(held or tapped) }
+    LaunchedEffect(autoText) { session.autoTextSpeed = autoText; settings.autoTextSpeed = autoText }
+    // Dito tenuto premuto per più di 0,3 s: durante i testi il gioco scorre più veloce.
+    LaunchedEffect(pressedSince) {
+        if (pressedSince == null) session.setHolding(false) else { delay(300); session.setHolding(true) }
+    }
     LaunchedEffect(tapped) {
         if (tapped != 0) { delay(110); tapped = 0 }
     }
@@ -115,6 +124,7 @@ fun GameScreen(session: GameSession) {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val start = down.position
                         val t0 = down.uptimeMillis
+                        pressedSince = t0
                         var moved = false
                         joyOrigin = start
                         joyKnob = Offset.Zero
@@ -152,6 +162,7 @@ fun GameScreen(session: GameSession) {
                         }
                         held = 0
                         joyOrigin = null
+                        pressedSince = null
                     }
                 }
         ) {
@@ -226,6 +237,7 @@ fun GameScreen(session: GameSession) {
         ) {
             BarButton("Menu", Modifier.weight(1f)) { tapped = NativeCore.KEY_START }
             BarButton("Select", Modifier.weight(1f)) { tapped = NativeCore.KEY_SELECT }
+            AutoTextButton(autoText, Modifier.weight(1f)) { autoText = (autoText + 1) % 4 }
             BarButton("Salva", Modifier.weight(1f)) {
                 message = if (session.saveNow()) "Partita salvata in questo punto" else "Salvataggio non riuscito"
             }
@@ -307,6 +319,23 @@ private fun typeColor(type: Int): Color = when (type) {
     0x14 -> Color(0xFFF58B5C); 0x15 -> Color(0xFF6DB3EF); 0x16 -> Color(0xFF7CC95A); 0x17 -> Color(0xFFF2C84B)
     0x18 -> Color(0xFFF08AB0); 0x19 -> Color(0xFF9EDCE6); 0x1A -> Color(0xFF8C7AE6)
     else -> Color(0xFFC9C3AD)
+}
+
+/** Testo automatico: ogni tocco passa a No → Lento → Medio → Veloce. */
+@Composable
+private fun AutoTextButton(speed: Int, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier
+            .height(56.dp)
+            .background(if (speed > 0) Yellow else Glass, RoundedCornerShape(16.dp))
+            .border(1.dp, if (speed > 0) Yellow else Color(0xFF403C62), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Testo auto", color = if (speed > 0) Ink else Color(0xFFAAA4C8), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(TextAssist.LABELS[speed], color = if (speed > 0) Ink else Cream, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    }
 }
 
 @Composable

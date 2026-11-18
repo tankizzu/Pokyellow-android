@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.2.2-prototipo
+- Pulsante "Testo auto" nella barra in basso: No → Lento → Medio → Veloce (salvato sul telefono). Quando il gioco aspetta un tocco (▼) preme A da solo dopo la pausa scelta.
+- Tenendo il dito appoggiato per più di 0,3 s durante un testo, il testo scorre più veloce (impulsi di B).
+- Nessuno dei due preme mai nulla se c'è un cursore ▶ (menu, domande Sì/No, tastiera dei nomi).
+- 38 test superati; sul gioco vero il testo automatico avanza fino alla domanda Sì/No e si ferma senza rispondere.
+
 ## 2026-11-18 – 0.2.1-prototipo
 - Correzione B-001: l'app apre il gioco anche dentro uno ZIP, controlla la somma di controllo dell'intestazione,
   mostra il titolo se è un altro gioco e ripara/scarta all'avvio un file salvato non valido dalle versioni precedenti.

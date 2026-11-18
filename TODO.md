@@ -23,6 +23,9 @@
 - [x] Esecutore comandi a circuito chiuso per la lotta (provato sul gioco vero)
 - [x] Ponte: pathfinding e tocco su persone, oggetti, cartelli, banconi
 - [ ] Tocco sui PC; sporgenze, acqua (Surf) e dislivelli nel percorso
+- [x] Testo automatico a 3 velocità (D-028) e testo veloce tenendo premuto (D-030)
+- [ ] **Gioco a tutto schermo (priorità, D-026/D-027)**
+- [ ] Tastiera del telefono per i nomi (D-029)
 - [x] Sì/No nativi nelle domande del gioco
 - [x] Tipo e PP massimi delle mosse dalla ROM
 - [ ] Tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi

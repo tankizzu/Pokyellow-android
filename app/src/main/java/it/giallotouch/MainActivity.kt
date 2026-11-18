@@ -19,12 +19,14 @@ import androidx.core.view.WindowInsetsControllerCompat
 import it.giallotouch.emu.GameSession
 import it.giallotouch.storage.RomLoader
 import it.giallotouch.storage.SaveStorage
+import it.giallotouch.storage.Settings
 import it.giallotouch.ui.GameScreen
 import it.giallotouch.ui.RomPickerScreen
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var storage: SaveStorage
+    private lateinit var settings: Settings
     private var session by mutableStateOf<GameSession?>(null)
     private var startupMessage by mutableStateOf<String?>(null)
 
@@ -34,6 +36,7 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         hideSystemBars()
         storage = SaveStorage(this)
+        settings = Settings(this)
         if (storage.hasRom()) checkStoredRomAndStart()
         setContent { App() }
     }
@@ -55,7 +58,7 @@ class MainActivity : ComponentActivity() {
         }
         val current = session
         if (current != null) {
-            GameScreen(current)
+            GameScreen(current, settings)
         } else {
             RomPickerScreen(
                 error = error ?: startupMessage,

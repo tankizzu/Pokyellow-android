@@ -39,6 +39,11 @@
 
 | D-026 | 2026-11-18 | Il committente: **priorità al gioco a tutto schermo** ("non dovrebbe essere impossibile"); il promemoria orario resta attivo e si prosegue in autonomia. |
 
+| D-027 | 2026-11-18 | Il committente conferma che il gioco parte (0.2.1). **Lo schermo intero resta la funzione principale.** Si prosegue in autonomia con il promemoria orario. |
+| D-028 | 2026-11-18 | **Pulsante "Testo auto" con 3 velocità** (lento 2 s, medio 1 s, veloce 0,4 s): preme A da solo quando il gioco aspetta un tocco (▼). Mai su menu o domande. |
+| D-029 | 2026-11-18 | **Tastiera del telefono al posto di quella del gioco** quando il gioco chiede un nome: la tastiera del gioco va coperta e il nome scritto dall'app nel gioco. |
+| D-030 | 2026-11-18 | **Tenendo premuto il dito (levetta) il testo scorre più veloce.** Mai su menu o domande. |
+
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
 |---|---|---|---|

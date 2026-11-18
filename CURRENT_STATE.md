@@ -3,7 +3,7 @@
 **Ultimo aggiornamento:** 2026-11-17 (notte)
 
 ## Dove siamo
-- **APK 0.2.1-prototipo consegnato il 2026-11-18** (corregge B-001: ZIP). Prima: 0.2.0 con il resoconto (squadra in alto, comandi di lotta, Sì/No, tocco su persone/oggetti).
+- **APK 0.2.2-prototipo consegnato il 2026-11-18** (testo automatico, testo veloce tenendo premuto). 0.2.1 ha corretto B-001 (ZIP): il committente conferma che il gioco parte. con il resoconto (squadra in alto, comandi di lotta, Sì/No, tocco su persone/oggetti).
 - **Prototipo 0.1 compilato e consegnato al committente** per le prime prove sul CMF Phone 2 Pro.
   Il gioco gira con SameBoy; comandi provvisori (vedi D-024).
 - Fase 1b (memoria versione italiana) iniziata: `docs/MEMORY_MAP_IT.md`.
@@ -46,5 +46,8 @@ Piano per la "vista estesa" (ARCHITECTURE.md §7):
    e sovrapporre al centro l'immagine originale (testi e menu restano quelli del gioco).
 4. Usarla solo in esplorazione; lotta e schermate speciali restano come ora.
 5. Poi: personaggi fuori inquadratura (oggi spariscono al bordo).
+
+Dopo il tutto schermo: **tastiera del telefono per i nomi** (D-029): riconoscere la schermata dei nomi,
+coprirla, scrivere il nome con un esecutore a circuito chiuso sulla griglia delle lettere del gioco.
 
 2. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.

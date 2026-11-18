@@ -15,6 +15,7 @@ import it.giallotouch.bridge.MapGrid
 import it.giallotouch.bridge.WalkExecutor
 import it.giallotouch.bridge.MemoryMapIt
 import it.giallotouch.bridge.RomData
+import it.giallotouch.bridge.TextAssist
 import it.giallotouch.storage.SaveStorage
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
@@ -69,6 +70,12 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile private var userKeys = 0
     fun setKeys(mask: Int) { userKeys = mask }
 
+    /** Testo automatico (0 = spento, 1–3 = lento/medio/veloce) e dito tenuto premuto (testo più veloce). */
+    private val textAssist = TextAssist()
+    @Volatile var autoTextSpeed: Int = 0
+        set(value) { field = value.coerceIn(0, 3) }
+    fun setHolding(holding: Boolean) { textAssist.holding = holding }
+
     /** Esecutore dei comandi di lotta: quando è occupato, i suoi tasti sostituiscono quelli del giocatore. */
     private val executor = CommandExecutor()
     @Volatile var commandBusy = false
@@ -122,7 +129,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         }
         if (!executor.busy) {
             commandBusy = false
-            return userKeys
+            textAssist.autoSpeed = autoTextSpeed
+            if (autoTextSpeed == 0 && !textAssist.holding) return userKeys
+            NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+            return userKeys or textAssist.step(tileMap)
         }
         NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
         NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
