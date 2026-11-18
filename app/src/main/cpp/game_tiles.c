@@ -52,10 +52,18 @@ int gt_sheet(GB_gameboy_t *gb, uint32_t *out, GTState *st) {
         if (total >= 8) {
             int p = 0;
             for (int q = 1; q < 8; q++) if (count[q] > count[p]) p = q;
+            /* Scritte e riquadri del gioco sono in due colori: carta (il più chiaro della palette) e inchiostro
+             * (il più scuro). Sulla mappa la palette più usata può contenere rossi o gialli: si tengono solo questi due. */
+            uint32_t lightest = 0, darkest = 0; int lmax = -1, lmin = 1 << 30;
             for (int c = 0; c < 4; c++) {
                 uint16_t rgb = bgp[p * 8 + c * 2] | (bgp[p * 8 + c * 2 + 1] << 8);
-                st->colors[c] = GB_convert_rgb15(gb, rgb & 0x7FFF, false);
+                uint32_t col = GB_convert_rgb15(gb, rgb & 0x7FFF, false);
+                int l = ((col >> 16) & 0xFF) * 3 + ((col >> 8) & 0xFF) * 6 + (col & 0xFF);
+                if (l > lmax) { lmax = l; lightest = col; }
+                if (l < lmin) { lmin = l; darkest = col; }
             }
+            st->colors[0] = lightest;
+            st->colors[1] = st->colors[2] = st->colors[3] = darkest;
             st->known = true;
         }
     }

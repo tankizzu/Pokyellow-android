@@ -333,7 +333,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )
-        } else if (inGame && sheet != null) {
+        } else if (inGame && sheet != null && (snapshot.freeRoam || panelOpen)) {
             // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
             GamePanel(
                 sheet = sheet!!,
@@ -355,27 +355,22 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 sheet = sheet!!,
                 autoText = autoText,
                 onAutoText = { autoText = (autoText + 1) % 4 },
-                onGameMenu = { optionsOpen = false; tapped = NativeCore.KEY_START },
                 onBack = { optionsOpen = false },
             )
         }
 
-        // SELECT serve solo dentro i menu del gioco (per spostare strumenti e mosse): compare solo lì, sopra la barra.
-        if (inGame && !snapshot.freeRoam && !snapshot.inBattle && snapshot.naming == null && snapshot.menu.kind != MenuKind.MAIN_MENU) {
-            Box(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .navigationBarsPadding()
-                    .padding(end = 14.dp, bottom = 24.dp)
-                    .background(Glass, RoundedCornerShape(50))
-                    .border(1.dp, Color(0xFF403C62), RoundedCornerShape(50))
-                    .clickable { tapped = NativeCore.KEY_SELECT }
-                    .padding(horizontal = 14.dp, vertical = 8.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(AppIcons.Select, contentDescription = null, tint = Cream, modifier = Modifier.size(16.dp))
-                    Text("  Select", color = Cream, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                }
+        // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
+        // disegnato con i tile del gioco, in basso a destra.
+        if (inGame && snapshot.cursorOnScreen && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val unit = with(density) { maxWidth.toPx() } / 160f
+                val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()
+                TileImage(
+                    sheet!!, 8, 4, unit, key = "select",
+                    modifier = Modifier
+                        .offset { IntOffset((12 * 8 * unit).toInt(), ((rows - 4) * 8 * unit).toInt()) }
+                        .pointerInput(Unit) { detectTapGestures { tapped = NativeCore.KEY_SELECT } }
+                ) { box(0, 0, 7, 3); text("SELECT", 1, 2) }
             }
         }
 

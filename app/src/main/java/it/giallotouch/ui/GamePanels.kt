@@ -146,11 +146,10 @@ private fun drawTeam(c: TileCanvas, party: List<PartyMember>, romData: RomData) 
 }
 
 /**
- * OPZIONI (D-040), nello stile del gioco: testo automatico (tocco = cambia velocità), menu originale del gioco
- * (per la scheda dell'allenatore, il salvataggio e le opzioni del gioco), INDIETRO.
+ * OPZIONI (D-040), nello stile del gioco: testo automatico (tocco = cambia velocità) e INDIETRO.
  */
 @Composable
-fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, onGameMenu: () -> Unit, onBack: () -> Unit) {
+fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, onBack: () -> Unit) {
     val speeds = listOf("NO", "LENTO", "MEDIO", "VELOCE")
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8]))
         .pointerInput(Unit) { detectTapGestures { } }) {
@@ -162,19 +161,18 @@ fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, onGameMe
             box(0, 0, 19, 2); text("OPZIONI", 6, 1)
         }
         TileImage(
-            sheet, 20, 8, unit, key = autoText,
+            sheet, 20, 5, unit, key = autoText,
             modifier = Modifier
                 .offset { g.at(0f, (top + 4).toFloat()) }
-                .pointerInput(Unit) { detectTapGestures { pos -> if (pos.y < 4 * g.tilePx) onAutoText() else onGameMenu() } }
+                .pointerInput(Unit) { detectTapGestures { onAutoText() } }
         ) {
-            box(0, 0, 19, 7)
+            box(0, 0, 19, 4)
             text("TESTO AUTO", 2, 2); text(speeds[autoText], 18 - speeds[autoText].length + 1, 2)
-            text("MENU DEL GIOCO", 2, 5)
         }
         TileImage(
             sheet, 20, 4, unit, key = "opz-indietro",
             modifier = Modifier
-                .offset { g.at(0f, (top + 13).toFloat()) }
+                .offset { g.at(0f, (top + 10).toFloat()) }
                 .pointerInput(Unit) { detectTapGestures { onBack() } }
         ) {
             box(0, 0, 19, 3); text("INDIETRO", 2, 2)

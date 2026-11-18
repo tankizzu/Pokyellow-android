@@ -23,6 +23,8 @@ data class GameSnapshot(
     /** Numeri del Pokédex visti e presi, in ordine. */
     val pokedexSeen: List<Int> = emptyList(),
     val pokedexOwned: List<Int> = emptyList(),
+    /** Sullo schermo c'è il cursore ▶ di un menu del gioco (per mostrare SELECT solo nei menu, non nei dialoghi). */
+    val cursorOnScreen: Boolean = false,
 ) {
     val inBattle: Boolean get() = battleType != 0
 

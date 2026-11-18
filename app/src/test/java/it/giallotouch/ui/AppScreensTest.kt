@@ -171,6 +171,18 @@ abstract class AppScreensHarness {
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         assertTrue("in partita", waitFor(20_000) { s.inGame })
         assertTrue("pulsante MENU visibile", shotUntil("05-gioco") { boxAt(it, 7, rows() - 4, 7, 4) })
+        // Il giocatore sale fino a stare sotto il Professore (5,2), poi un tocco nel vuoto (lontano, in basso a sinistra)
+        // fa partire il dialogo; START sparisce durante il dialogo.
+        var guard = 0
+        while (s.latestSnapshot.get().y > 3 && guard++ < 20) press(s, NativeCore.KEY_UP)
+        pump(800)
+        tapTile(1f, rows() - 12f)
+        assertTrue("dialogo avviato col tocco nel vuoto", waitFor(10_000) { !s.latestSnapshot.get().freeRoam })
+        assertTrue("START nascosto nel dialogo", shotUntil("05b-dialogo") { !boxAt(it, 7, rows() - 4, 7, 4) })
+        var k = 0
+        while (!s.latestSnapshot.get().freeRoam && k++ < 20) press(s, NativeCore.KEY_B)
+        waitFor(5_000) { s.latestSnapshot.get().freeRoam }
+        assertTrue("START di nuovo visibile", shotUntil("05c-dopo-dialogo") { boxAt(it, 7, rows() - 4, 7, 4) })
         tapTile(10f, rows() - 2f)
         assertTrue("riquadro dei pulsanti aperto", shotUntil("06-menu-aperto") { boxAt(it, 0, rows() - 13, 20, 9) })
         tapTile(4f, rows() - 7f)     // BORSA
@@ -182,7 +194,7 @@ abstract class AppScreensHarness {
         tapTile(10f, rows() - 2f)    // MENU di nuovo
         pump(800)
         tapTile(15f, rows() - 10f)   // OPZIONI
-        assertTrue("OPZIONI aperte", shotUntil("07-opzioni") { boxAt(it, 0, 10, 20, 8) })
+        assertTrue("OPZIONI aperte", shotUntil("07-opzioni") { boxAt(it, 0, 10, 20, 5) })
     }
 
     /** La schermata del nome nello stile del gioco, sopra la tastiera del telefono. */

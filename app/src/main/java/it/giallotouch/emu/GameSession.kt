@@ -205,13 +205,27 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             var end = px to py
             for (d in path) end = end.first + d.dx to end.second + d.dy
             walker.start(path, spots[end])
-        } else if (TAP_WALKS_TO_GROUND && grid.isFree(tx, ty)) {
-            grid.path(px, py, setOf(tx to ty))?.let { walker.start(it, null) }
+        } else {
+            // Tocco nel vuoto: se accanto (o oltre un bancone) c'è qualcuno o un cartello, ci si gira e si parla;
+            // altrimenti è il tasto A (D-044).
+            for (dy in -2..2) for (dx in -2..2) {
+                val t = (px + dx) to (py + dy)
+                if (!grid.isInteractive(t.first, t.second)) continue
+                val face = grid.interactionSpots(t.first, t.second)[px to py] ?: continue
+                walker.start(emptyList(), face)
+                return
+            }
+            if (TAP_WALKS_TO_GROUND && grid.isFree(tx, ty)) grid.path(px, py, setOf(tx to ty))?.let { walker.start(it, null) }
+            else pendingA = 8
         }
     }
 
+    /** Tasto A premuto da un tocco nel vuoto (fotogrammi rimasti: premuto, poi rilasciato). */
+    private var pendingA = 0
+
     private fun currentKeys(): Int {
         if (itemExecutor.busy) return stepItemAction()
+        if (pendingA > 0) { pendingA--; return if (pendingA >= 4) NativeCore.KEY_A else 0 }
         if (nameExecutor.busy) {
             val keys = nameExecutor.step(readNaming())
             if (!nameExecutor.busy) {
@@ -415,7 +429,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             // In gioco solo con la mappa vera riconosciuta (vista estesa attiva): durante l'animazione iniziale
             // e il titolo lo schermo può sembrare "libero" ma non è una partita.
             if (freeRoam && extendedActive) inGame = true
-            val snapshot = base.copy(menu = MenuReader.read(menuVars, tileMap), freeRoam = freeRoam, naming = naming)
+            val snapshot = base.copy(
+                menu = MenuReader.read(menuVars, tileMap), freeRoam = freeRoam, naming = naming,
+                cursorOnScreen = tileMap.any { (it.toInt() and 0xFF) == 0xED },
+            )
             if (snapshot != latestSnapshot.get()) latestSnapshot.set(snapshot)
         }.onFailure { Log.e(TAG, "Lettura stato non riuscita", it) }
     }

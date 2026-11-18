@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 – tocco nel vuoto per parlare, colori corretti, START nei dialoghi (D-044)
+- Riquadri e scritte dell'app di nuovo in bianco e nero come il gioco (sulla mappa prendevano il rosso della palette).
+- Tocco nel vuoto vicino a una persona o un cartello: il personaggio si gira e parla (verificato: dialogo col Professore).
+- START sparisce durante i dialoghi e torna alla fine (verificato); in lotta resta nascosto.
+- OPZIONI: tolto "menu del gioco". SELECT nello stile del gioco, solo quando c'è un menu del gioco con il cursore.
+
 ## 2026-11-18 (promemoria 10:16 UTC) – Borsa nello stile del gioco, START, spostare gli strumenti (D-043)
 - Il pulsante in basso si chiama **START**.
 - **Borsa nello stile del gioco**: lista con quantità, tocco su uno strumento → USA / GETTA / ANNULLA; INDIETRO e **SELECT**.
