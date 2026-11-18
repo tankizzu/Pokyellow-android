@@ -614,3 +614,92 @@ class AppPcTest : AppScreensHarness() {
         shot("36-pc-chiuso")
     }
 }
+
+/**
+ * Partite di prova costruite giocando (solo su richiesta: -Pgiallo.scenario=CARTELLA): dalla lotta col rivale si va
+ * a Smeraldopoli, si riceve il Pacco al Pokémon Market, lo si porta a Oak e si torna al negozio. A ogni tappa lo
+ * stato del gioco si salva nella cartella (fuori dal repository: contiene il gioco).
+ */
+class ZzScenarioTest : AppScreensHarness() {
+    private lateinit var s: GameSession
+    private fun pos() = s.positionForTest()
+    private fun goTo(x: Int, y: Int) {
+        val map = pos().first
+        s.walkPathForTest(x, y)
+        waitFor(40_000) { pos().let { it.first != map || (it.second == x && it.third == y) } || s.latestSnapshot.get().inBattle }
+        fightIfNeeded()
+    }
+    private fun fightIfNeeded() {
+        var g = 0
+        while (s.latestSnapshot.get().inBattle && g++ < 400) {
+            if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
+        }
+        textThrough()
+    }
+    private fun textThrough(max: Int = 80) {
+        var k = 0
+        while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < max) tapTile(10f, 2f)
+        if (s.latestSnapshot.get().inBattle) fightIfNeeded()
+    }
+    private fun save(name: String) {
+        val dir = java.io.File(System.getProperty("giallo.scenario")!!)
+        assertTrue(s.saveStateForTest(java.io.File(dir, name)))
+        shot("scen-" + name.removeSuffix(".state"))
+        println("DBGSC salvato $name a ${pos()} squadra=${s.latestSnapshot.get().party.map { it.name }} borsa=${s.latestSnapshot.get().bag}")
+    }
+    /** Entra nella porta verso [dest] (o una qualsiasi se null): ci si va sopra, poi si spinge verso l'esterno. */
+    private fun warpTo(dest: Int?): Boolean {
+        val map = pos().first
+        repeat(4) {
+            val w = s.warpsForTest().firstOrNull { dest == null || it.third == dest } ?: return false
+            val (wy, wx) = w.first to w.second
+            goTo(wx, wy)
+            for (d in listOf(NativeCore.KEY_DOWN, NativeCore.KEY_UP, NativeCore.KEY_LEFT, NativeCore.KEY_RIGHT)) {
+                if (pos().first != map) break
+                s.setKeys(d); pump(400); s.setKeys(0); pump(600)
+            }
+            if (waitFor(4_000) { pos().first != map }) { pump(1500); return true }
+            // porta non raggiungibile: si prova dalla casella sotto
+            goTo(wx, wy + 1); s.setKeys(NativeCore.KEY_UP); pump(500); s.setKeys(0)
+            if (waitFor(4_000) { pos().first != map }) { pump(1500); return true }
+        }
+        return false
+    }
+    /** Esce dal bordo nord (o sud) del luogo. */
+    private fun edge(north: Boolean): Boolean {
+        val map = pos().first
+        repeat(6) {
+            val g = s.mapGridForTest() ?: return false
+            val ys = if (north) (0 until g.height) else (g.height - 1 downTo 0)
+            val target = ys.firstNotNullOfOrNull { y -> (0 until g.width).sortedBy { kotlin.math.abs(it - pos().second) }.firstOrNull { g.isFree(it, y) }?.let { it to y } } ?: return false
+            goTo(target.first, target.second)
+            var k = 0
+            while (pos().first == map && k++ < 6) { s.setKeys(if (north) NativeCore.KEY_UP else NativeCore.KEY_DOWN); pump(300); s.setKeys(0); pump(200) }
+            if (pos().first != map) { pump(1500); return true }
+            fightIfNeeded()
+        }
+        return false
+    }
+
+    @Test fun costruisci() {
+        assumeTrue(System.getProperty("giallo.scenario") != null)
+        s = start(auto = "giallo.state") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        fightIfNeeded()
+        assertTrue("in giro nel laboratorio", waitFor(10_000) { s.latestSnapshot.get().freeRoam })
+        println("DBGSC lab ${pos()} porte=${s.warpsForTest()}")
+        assertTrue("fuori dal laboratorio", warpTo(null))
+        println("DBGSC fuori ${pos()}")
+        assertTrue("Strada 1", edge(north = true))
+        println("DBGSC strada ${pos()}")
+        var k = 0
+        while (pos().first == 12 && k++ < 4) edge(north = true)
+        println("DBGSC città ${pos()} porte=${s.warpsForTest()}")
+        assertEquals("Smeraldopoli", 1, pos().first)
+        save("viridian.state")
+        assertTrue("nel Pokémon Market", warpTo(0x2A))
+        textThrough()
+        save("parcel.state")
+    }
+}

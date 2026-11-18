@@ -569,6 +569,21 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Solo per il banco di prova: stato della chiusura automatica dei menu. */
     fun closingForTest() = "pendingClose=$pendingClose frames=$pendingCloseFrames closing=$closingFrames calm=$closingCalm item=${itemExecutor.busy}"
 
+    /** Solo per il banco di prova: porte del luogo attuale (riga, colonna, mappa di arrivo) da D3B1. */
+    fun warpsForTest(): List<Triple<Int, Int, Int>> {
+        val b = ByteArray(1 + 4 * 32)
+        runOnGameThread { NativeCore.nativeReadRange(handle, 0xD3B1, b) }
+        val n = (b[0].toInt() and 0xFF).coerceAtMost(32)
+        return (0 until n).map { i -> Triple(b[1 + 4 * i].toInt() and 0xFF, b[2 + 4 * i].toInt() and 0xFF, b[4 + 4 * i].toInt() and 0xFF) }
+    }
+
+    /** Solo per il banco di prova: salva lo stato del gioco in un file (partite di prova). */
+    fun saveStateForTest(file: java.io.File): Boolean {
+        var ok = false
+        runOnGameThread { NativeCore.nativeSaveState(handle)?.let { file.writeBytes(it); ok = true } }
+        return ok
+    }
+
     /** Solo per il banco di prova: variabili dei menu e mappa dello schermo. */
     fun screenForTest(): Pair<ByteArray, ByteArray> {
         val v = ByteArray(MenuReader.MENU_VARS_SIZE); val t = ByteArray(MenuReader.SCREEN_SIZE)
