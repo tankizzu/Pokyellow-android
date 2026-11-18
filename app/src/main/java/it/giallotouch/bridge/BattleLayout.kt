@@ -12,6 +12,11 @@ package it.giallotouch.bridge
 object BattleLayout {
     const val SCENE_ROWS = 96
     const val TEXT_ROWS = 48
+    /** Posizioni scelte dal committente (D-045), in righe da 8 pixel dall'alto dello schermo. */
+    const val TEXT_TOP_ROW = 4
+    const val SCENE_TOP_ROW = 10
+    const val ACTIONS_TOP_ROW = 22
+    const val MOVES_TOP_ROW = 27
 
     private const val CORNER_TR = 0x7B
     private const val CORNER_BL = 0x7D

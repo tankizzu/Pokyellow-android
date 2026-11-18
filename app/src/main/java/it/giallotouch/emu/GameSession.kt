@@ -78,6 +78,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Menu iniziale del gioco sullo schermo: numero di voci del gioco (2 o 3), 0 se non c'è (D-040). */
     @Volatile var mainMenuItems = 0
         private set
+    /** La scheda allenatore del gioco è sullo schermo: l'app la mostra ridisposta (D-045). */
+    @Volatile var trainerCardShown = false
+        private set
     /** Cursore ▶ del menu iniziale ridisegnato (indice nelle voci dell'app), mosso dalla levetta. */
     @Volatile var startMenuCursor = 0
 
@@ -168,8 +171,20 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     fun itemAction(action: ItemAction) {
         itemBusy = true
         itemResult = null
+        if (action is ItemAction.OpenTrainer) holdSheet = true
         tasks.add(Runnable { walker.cancel(); itemExecutor.start(action) })
     }
+
+    /**
+     * Sulla scheda allenatore il gioco riusa le caselle dei riquadri per la cornice della scheda: finché la scheda è
+     * aperta (o sta per aprirsi/chiudersi) l'app tiene le caselle lette prima (D-045).
+     */
+    @Volatile private var holdSheet = false
+
+    /** INDIETRO della scheda allenatore: B finché si torna a camminare (chiude scheda e menu START). */
+    fun closeMenus() { tasks.add(Runnable { closingFrames = 60 * 8; closingCalm = 0 }) }
+    private var closingFrames = 0
+    private var closingCalm = 0
 
     private fun stepItemAction(): Int {
         NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
@@ -225,6 +240,19 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
 
     private fun currentKeys(): Int {
         if (itemExecutor.busy) return stepItemAction()
+        if (closingFrames > 0) {
+            closingFrames--
+            if (closingFrames % 24 == 0) {
+                NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
+                NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+                val menu = ItemMenus.read(menuVars, tileMap, 0).kind
+                val free = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(tileMap)
+                // Il gioco torna alla mappa prima di ridisegnare il menu START: si smette dopo 3 controlli di fila in giro.
+                closingCalm = if (!ItemMenus.trainerCard(tileMap) && menu == ItemMenus.Kind.OTHER && free) closingCalm + 1 else 0
+                if (closingCalm >= 3) closingFrames = 0
+            }
+            return if (closingFrames % 24 >= 20 && closingCalm == 0) NativeCore.KEY_B else 0
+        }
         if (pendingA > 0) { pendingA--; return if (pendingA >= 4) NativeCore.KEY_A else 0 }
         if (nameExecutor.busy) {
             val keys = nameExecutor.step(readNaming())
@@ -385,6 +413,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, frameVars)
                 battleSplit = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && BattleLayout.textBoxAtBottom(frameTiles)
                 mainMenuItems = MenuReader.read(frameVars, frameTiles).let { if (it.kind == MenuKind.MAIN_MENU) it.items else 0 }
+                trainerCardShown = ItemMenus.trainerCard(frameTiles)
                 val eh = extendedHeight
                 if (eh > NativeCore.HEIGHT) {
                     val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop) == 1
@@ -397,7 +426,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 frames++
                 if (frames % AUTOSAVE_FRAMES == 0L) runCatching { saveBatteryIfChanged() }
                 if (frames % SNAPSHOT_FRAMES == 0L) readSnapshot()
-                if (frames % SHEET_FRAMES == 0L && NativeCore.nativeGameTiles(handle, sheetBuf) >= 0) {
+                if (holdSheet && !trainerCardShown && !itemExecutor.busy && closingFrames == 0 && latestSnapshot.get().freeRoam) holdSheet = false
+                if (frames % SHEET_FRAMES == 0L && !holdSheet && !trainerCardShown && NativeCore.nativeGameTiles(handle, sheetBuf) >= 0) {
                     val old = tileSheet.get()
                     if (old == null || !old.contentEquals(sheetBuf)) tileSheet.set(sheetBuf.copyOf())
                 }

@@ -32,9 +32,13 @@
 
 ## Regola prima di ogni APK (D-042)
 Far girare il banco di prova dell'interfaccia e guardare le foto:
-`./gradlew testDebugUnitTest --tests '*Screen*Test*' -Pgiallo.rom=ROM -Pgiallo.battery=SALVATAGGIO.sav
+`./gradlew testDebugUnitTest --tests '*Screen*Test*' -Pgiallo.rom=ROM -Pgiallo.state=STATO_LOTTA -Pgiallo.battery=SALVATAGGIO.sav
  -Pgiallo.state.squadra=STATO_CON_SQUADRA -Pgiallo.state.naming=STATO_NOME -Pgiallo.shots=CARTELLA_FOTO -Pgiallo.hostlib=LIB`
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
+
+## Fatto dopo la 0.4.1 (non ancora in un APK)
+- D-043/D-044/D-045: START, Borsa nello stile del gioco, tocco nel vuoto per parlare, colori, scheda allenatore,
+  menu START e lotta come nel mockup. Banco di prova: avvio, gioco, nome, lotta, scheda allenatore (70 prove).
 
 ## Prossimo passo – RISCONTRO SULLA 0.4.1
 1. Il committente prova la 0.4.1 (avvio ridisegnato verificato sull'app vera).

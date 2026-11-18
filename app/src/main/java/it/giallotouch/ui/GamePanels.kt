@@ -60,6 +60,8 @@ fun GamePanel(
     onOptions: () -> Unit,
     onSave: () -> Unit,
     onMember: (Int) -> Unit,
+    playerName: String = "",
+    onTrainer: () -> Unit = {},
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -68,11 +70,11 @@ fun GamePanel(
         val bottom = g.rows - 1
         if (open) {
             // Squadra in alto: riquadro normale, contenuto a metà grandezza ("in piccolo").
-            TileImage(sheet, 20, 8, unit, key = "squadra-box", modifier = Modifier.offset { g.at(0f, 4f) }) { box(0, 0, 19, 7) }
+            TileImage(sheet, 20, 8, unit, key = "squadra-box", modifier = Modifier.offset { g.at(0f, 2f) }) { box(0, 0, 19, 7) }
             TileImage(
                 sheet, 36, 12, unit / 2, key = party,
                 modifier = Modifier
-                    .offset { g.at(1f, 5f) }
+                    .offset { g.at(1f, 3f) }
                     .pointerInput(party) {
                         detectTapGestures { pos ->
                             val half = g.tilePx / 2
@@ -82,28 +84,28 @@ fun GamePanel(
                     }
             ) { drawTeam(this, party, romData) }
             // Riquadro dei pulsanti sopra MENU.
-            val top = bottom - 12
+            val top = bottom - 15
             TileImage(
-                sheet, 20, 9, unit, key = cursor,
+                sheet, 20, 11, unit, key = Pair(cursor, playerName),
                 modifier = Modifier
                     .offset { g.at(0f, top.toFloat()) }
                     .pointerInput(Unit) {
                         detectTapGestures { pos ->
                             val right = pos.x >= 10 * g.tilePx
-                            val lower = pos.y >= 5 * g.tilePx
+                            val row = (pos.y / g.tilePx).toInt()
                             when {
-                                !right && !lower -> onPokedex()
-                                !right && lower -> onBag()
-                                right && !lower -> onOptions()
-                                else -> onSave()
+                                row <= 3 -> onTrainer()
+                                row <= 6 -> if (right) onOptions() else onPokedex()
+                                else -> if (right) onSave() else onBag()
                             }
                         }
                     }
             ) {
-                box(0, 0, 19, 8)
-                text("POKéDEX", 2, 3); text("BORSA", 2, 6)
-                text("OPZIONI", 11, 3); text("SALVA", 11, 6)
-                tile(TileCanvas.CURSOR, if (cursor % 2 == 0) 1 else 10, if (cursor < 2) 3 else 6)
+                box(0, 0, 19, 10)
+                text(playerName.take(10), 7, 2)
+                text("POKéDEX", 2, 5); text("OPZIONI", 11, 5)
+                text("BORSA", 2, 8); text("SALVA", 13, 8)
+                tile(TileCanvas.CURSOR, when (cursor) { 1 -> 10; 3 -> 12; else -> 1 }, if (cursor < 2) 5 else 8)
             }
         }
         TileImage(
@@ -361,5 +363,83 @@ fun GameBagScreen(
                 if (!key) { text("GETTA", 2, 4); text("ANNULLA", 2, 6) } else text("ANNULLA", 2, 4)
             }
         }
+    }
+}
+
+
+/**
+ * Comandi di lotta nello stile del gioco (D-045): riquadro SQUADRA / BORSA / FUGA sotto la scena e lista delle mosse
+ * con i PP. Ogni tocco sceglie la voce nel menu originale del gioco (esecutore a circuito chiuso).
+ */
+@Composable
+fun GameBattlePanel(
+    sheet: IntArray,
+    moves: List<Pair<String, String>>,
+    enabled: Boolean,
+    onMove: (Int) -> Unit,
+    onParty: () -> Unit,
+    onBag: () -> Unit,
+    onRun: () -> Unit,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        val a = it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW
+        val m = it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW
+        TileImage(
+            sheet, 20, 5, unit, key = "azioni",
+            modifier = Modifier
+                .offset { IntOffset(0, (a * tilePx).toInt()) }
+                .pointerInput(enabled) {
+                    detectTapGestures { pos ->
+                        if (!enabled) return@detectTapGestures
+                        val col = (pos.x / tilePx).toInt()
+                        when { col < 8 -> onParty(); col < 14 -> onBag(); else -> onRun() }
+                    }
+                }
+        ) { box(0, 0, 19, 4); text("SQUADRA", 1, 2); text("BORSA", 9, 2); text("FUGA", 15, 2) }
+        TileImage(
+            sheet, 20, 11, unit, key = moves,
+            modifier = Modifier
+                .offset { IntOffset(0, (m * tilePx).toInt()) }
+                .pointerInput(moves, enabled) {
+                    detectTapGestures { pos ->
+                        if (!enabled) return@detectTapGestures
+                        val i = (((pos.y / tilePx).toInt() - 1) / 2).coerceIn(0, 3)
+                        if (i < moves.size) onMove(i)
+                    }
+                }
+        ) {
+            box(0, 0, 19, 10)
+            for (i in 0 until 4) {
+                val mv = moves.getOrNull(i)
+                text(mv?.first?.take(11) ?: "-", 2, 2 + 2 * i)
+                if (mv != null && mv.second.isNotEmpty()) text(mv.second, 19 - mv.second.length, 2 + 2 * i)
+            }
+        }
+    }
+}
+
+
+/** Riquadri dell'app sopra la scheda allenatore del gioco (D-045): Pokédex e squadra, INDIETRO. */
+@Composable
+fun GameTrainerExtras(sheet: IntArray, seen: Int, owned: Int, party: Int, onBack: () -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        TileImage(sheet, 20, 9, unit, key = Triple(seen, owned, party), modifier = Modifier.offset { IntOffset(0, (30 * tilePx).toInt()) }) {
+            box(0, 0, 19, 8)
+            text("POKéDEX", 2, 2)
+            text("VISTI $seen  PRESI $owned", 2, 4)
+            text("SQUADRA $party", 2, 6)
+        }
+        TileImage(
+            sheet, 10, 4, unit, key = "indietro",
+            modifier = Modifier
+                .offset { IntOffset((5 * tilePx).toInt(), (40 * tilePx).toInt()) }
+                .pointerInput(Unit) { detectTapGestures { onBack() } }
+        ) { box(0, 0, 9, 3); textAt("INDIETRO", 8, 12) }
     }
 }

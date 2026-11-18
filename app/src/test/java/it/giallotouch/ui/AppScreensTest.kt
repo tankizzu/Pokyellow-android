@@ -197,6 +197,31 @@ abstract class AppScreensHarness {
         assertTrue("OPZIONI aperte", shotUntil("07-opzioni") { boxAt(it, 0, 10, 20, 5) })
     }
 
+    /** Lotta (D-045): riquadro delle azioni alla riga 22 e delle mosse alla riga 27; tocco su FUGA arriva al gioco. */
+    fun lotta() {
+        val s = start(auto = "giallo.state") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue("in lotta", waitFor(20_000) { s.latestSnapshot.get().inBattle && s.latestSnapshot.get().battleMon != null })
+        assertTrue("azioni e mosse", shotUntil("09-lotta") { boxAt(it, 0, 22, 20, 5) && boxAt(it, 0, 27, 20, 11) })
+    }
+
+    /** Scheda allenatore (D-045): START → nome del giocatore apre la scheda del gioco ridisposta; INDIETRO chiude. */
+    fun schedaAllenatore() {
+        val s = start(auto = "giallo.state.squadra") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue("in partita", waitFor(20_000) { s.inGame && s.latestSnapshot.get().freeRoam })
+        tapTile(10f, rows() - 2f)
+        assertTrue("menu aperto", shotUntil("10-menu-allenatore") { boxAt(it, 0, rows() - 15, 20, 11) })
+        tapTile(9f, rows() - 13f)    // riga del nome del giocatore
+        assertTrue("scheda del gioco aperta", waitFor(20_000) { s.trainerCardShown })
+        assertTrue("riquadri della scheda", shotUntil("11-scheda-allenatore") { boxAt(it, 0, 30, 20, 9) && boxAt(it, 5, 40, 10, 4) })
+        tapTile(9f, 41.5f)           // INDIETRO
+        assertTrue("di nuovo in giro", waitFor(15_000) { !s.trainerCardShown && s.latestSnapshot.get().freeRoam })
+        shot("12-dopo-scheda")
+    }
+
     /** La schermata del nome nello stile del gioco, sopra la tastiera del telefono. */
     fun nome() {
         val s = start(auto = "giallo.state.naming") ?: return assumeTrue(false)
@@ -217,4 +242,12 @@ class AppGameScreensTest : AppScreensHarness() {
 
 class AppNameScreenTest : AppScreensHarness() {
     @Test fun schermataNome() = nome()
+}
+
+class AppBattleScreenTest : AppScreensHarness() {
+    @Test fun schermataLotta() = lotta()
+}
+
+class AppTrainerScreenTest : AppScreensHarness() {
+    @Test fun scheda() = schedaAllenatore()
 }

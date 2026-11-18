@@ -63,6 +63,7 @@ import it.giallotouch.bridge.Status
 import it.giallotouch.emu.GameSession
 import it.giallotouch.emu.NativeCore
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -136,6 +137,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var dexOpen by remember { mutableStateOf(false) }     // Pokédex nativo
     var itemRequested by remember { mutableStateOf(false) }  // Usa/Getta in corso nel menu del gioco
     var optionsOpen by remember { mutableStateOf(false) }   // OPZIONI nello stile del gioco
+    var trainerCard by remember { mutableStateOf(false) }   // scheda allenatore del gioco sullo schermo (D-045)
     /** Voce del riquadro dei pulsanti: 0 POKéDEX, 1 OPZIONI, 2 BORSA, 3 SALVA. */
     fun panelActivate(i: Int) {
         panelCursor = i
@@ -167,6 +169,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             snapshot = session.latestSnapshot.get()
             commandBusy = session.commandBusy
             inGame = session.inGame
+            trainerCard = session.trainerCardShown
             session.tileSheet.get()?.let { if (it !== sheet) sheet = it }
             if (itemRequested && !session.itemBusy) {
                 itemRequested = false
@@ -310,7 +313,20 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // Squadra in alto, con i dati letti dalla memoria del gioco (nascosta durante la lotta).
         val battleMon = snapshot.battleMon
-        if (snapshot.inBattle && battleMon != null) {
+        if (snapshot.inBattle && battleMon != null && sheet != null) {
+            GameBattlePanel(
+                sheet = sheet!!,
+                moves = battleMon.moves.map { slot ->
+                    val max = session.romData.maxPp(slot.id, slot.ppUps)
+                    session.romData.moveName(slot.id) to (if (max != null) "${slot.pp}/$max" else "${slot.pp}")
+                },
+                enabled = !commandBusy,
+                onMove = { session.command(GameCommand.Fight(it)) },
+                onParty = { session.command(GameCommand.Party) },
+                onBag = { session.command(GameCommand.Item) },
+                onRun = { session.command(GameCommand.Run) },
+            )
+        } else if (snapshot.inBattle && battleMon != null) {
             BattlePanel(
                 moves = battleMon.moves.map { slot ->
                     val info = session.romData.moveInfo(slot.id)
@@ -333,7 +349,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )
-        } else if (inGame && sheet != null && (snapshot.freeRoam || panelOpen)) {
+        } else if (inGame && sheet != null && !trainerCard && (snapshot.freeRoam || panelOpen)) {
             // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
             GamePanel(
                 sheet = sheet!!,
@@ -347,6 +363,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 onOptions = { panelActivate(1) },
                 onSave = { panelActivate(3) },
                 onMember = { i -> panelOpen = false; teamSelected = i; teamOpen = true },
+                playerName = snapshot.playerName,
+                onTrainer = { panelOpen = false; itemRequested = true; session.itemAction(ItemAction.OpenTrainer) },
             )
         }
         if (optionsOpen && sheet != null) {
@@ -450,6 +468,11 @@ fun GameScreen(session: GameSession, settings: Settings) {
         }
         if (dexOpen && !snapshot.inBattle) {
             PokedexSheet(snapshot.pokedexSeen, snapshot.pokedexOwned, session.romData) { dexOpen = false }
+        }
+
+        // Scheda allenatore del gioco ridisposta: riquadri dell'app sopra; INDIETRO chiude scheda e menu START (B, B).
+        if (trainerCard && sheet != null) {
+            GameTrainerExtras(sheet!!, snapshot.pokedexSeen.size, snapshot.pokedexOwned.size, snapshot.party.size) { session.closeMenus() }
         }
 
         // Schermata dei nomi del gioco: coperta dalla tastiera del telefono.

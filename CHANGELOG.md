@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-18 – scheda allenatore, START e lotta dal mockup (D-045)
+- **START aperto**: squadra in alto, riquadro in basso con il nome del giocatore, POKéDEX, OPZIONI, BORSA, SALVA.
+- **Scheda allenatore**: tocco sul nome → l'app apre la scheda vera del gioco e la ridispone (dati, medaglie), con
+  sotto un riquadro con Pokédex e squadra e il pulsante INDIETRO che chiude scheda e menu (verificato).
+- **Lotta**: testo in alto, scena, riquadro SQUADRA/BORSA/FUGA e riquadro mosse con i PP (verificato con foto).
+- Banco di prova esteso: lotta e scheda allenatore (70 prove superate).
+
 ## 2026-11-18 – tocco nel vuoto per parlare, colori corretti, START nei dialoghi (D-044)
 - Riquadri e scritte dell'app di nuovo in bianco e nero come il gioco (sulla mappa prendevano il rosso della palette).
 - Tocco nel vuoto vicino a una persona o un cartello: il personaggio si gira e parla (verificato: dialogo col Professore).

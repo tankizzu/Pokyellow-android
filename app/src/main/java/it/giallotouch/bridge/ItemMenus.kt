@@ -12,6 +12,7 @@ package it.giallotouch.bridge
  * - scelta USA / GETTA: Y = 0x0B, X = 0x0D, massimo 1, tasti 0x03, "U" in (14,11), cursore in (13, 11+2c).
  * - quantità da gettare: riquadro (15,9)–(19,11) con "×" in (16,10) e due cifre in (17,10)–(18,10).
  * - domanda di conferma: riquadro Sì/No (MenuReader.YES_NO); testi in attesa: ▼ (0xEE) in (18,16).
+ * - scheda allenatore: riquadro da (0,0) e "NOME/" in (2,2) ([trainerCard]).
  */
 object ItemMenus {
     private const val CURSOR = 0xED
@@ -29,6 +30,12 @@ object ItemMenus {
         /** Lista: nome mostrato sulla riga del cursore. */
         val name: String = "",
     )
+
+    private val NOME = intArrayOf(0x8D, 0x8E, 0x8C, 0x84, 0xF3)   // "NOME/" della scheda allenatore
+
+    /** La scheda allenatore del gioco è sullo schermo. */
+    fun trainerCard(tiles: ByteArray): Boolean =
+        tiles.size >= 360 && (tiles[0].toInt() and 0xFF) == 0x79 && NOME.indices.all { (tiles[2 * 20 + 2 + it].toInt() and 0xFF) == NOME[it] }
 
     fun read(vars: ByteArray, tiles: ByteArray, scrollOffset: Int): Screen {
         fun t(x: Int, y: Int) = tiles[y * 20 + x].toInt() and 0xFF
@@ -74,6 +81,9 @@ sealed interface ItemAction {
 
     /** Getta [quantity] pezzi, con conferma "Sì", poi chiude i menu. */
     data class Toss(override val slot: Int, override val name: String, val quantity: Int) : ItemAction
+
+    /** Apre la scheda allenatore del gioco: la voce col nome del giocatore, subito dopo STRUM. nel menu START (D-045). */
+    data object OpenTrainer : ItemAction { override val slot = -1; override val name = "" }
 
     /** Sposta lo strumento [slot] al posto [to], come nel gioco: SELECT sul primo, SELECT sul secondo (scambio). */
     data class Swap(override val slot: Int, override val name: String, val to: Int) : ItemAction
@@ -156,7 +166,12 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
     }
 
     private fun decide(a: ItemAction, s: ItemMenus.Screen, freeRoam: Boolean): Int = when (s.kind) {
-        ItemMenus.Kind.START_MENU -> when {
+        ItemMenus.Kind.START_MENU -> if (a is ItemAction.OpenTrainer) when {
+            s.value < 0 -> 0
+            s.cursor < s.value + 1 -> Keys.DOWN
+            s.cursor > s.value + 1 -> Keys.UP
+            else -> { useChosen = true; Keys.A }
+        } else when {
             tossed -> Keys.B
             s.value < 0 -> 0
             s.cursor < s.value -> Keys.DOWN

@@ -79,13 +79,27 @@ class GameRenderer(private val session: GameSession) {
         }
         val frame = s.latestFrame.get()
         frameBitmap.setPixels(frame, 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, NativeCore.HEIGHT)
+        if (s.trainerCardShown) {
+            // Scheda allenatore del gioco ridisposta (D-045): dati alla riga 8, medaglie alla riga 18, sfondo della scheda.
+            val row = w / 20
+            canvas.drawColor(frame[70 * NativeCore.WIDTH])
+            src.set(0, 0, NativeCore.WIDTH, 64)
+            dst.set(0, 8 * row, w, 8 * row + 8 * row)
+            canvas.drawBitmap(frameBitmap, src, dst, paint)
+            src.set(0, 64, NativeCore.WIDTH, NativeCore.HEIGHT)
+            dst.set(0, 18 * row, w, 18 * row + 10 * row)
+            canvas.drawBitmap(frameBitmap, src, dst, paint)
+            return
+        }
         if (s.battleSplit) {
             canvas.drawColor(BattleLayout.backgroundColor(frame))
             val sceneH = w * BattleLayout.SCENE_ROWS / NativeCore.WIDTH
             val textH = w * BattleLayout.TEXT_ROWS / NativeCore.WIDTH
-            val gap = (8 * density).toInt()
-            val textTop = (height - battleReservedBottomPx - gap - textH).coerceAtLeast(sceneH)
-            val sceneTop = ((textTop - sceneH) / 2).coerceAtLeast(0)
+            // Disposizione scelta dal committente (D-045): riquadro del testo alla riga 4, scena alla riga 10
+            // (righe da 8 pixel del gioco alla scala dello schermo).
+            val row = w / 20
+            val textTop = BattleLayout.TEXT_TOP_ROW * row
+            val sceneTop = BattleLayout.SCENE_TOP_ROW * row
             src.set(0, 0, NativeCore.WIDTH, BattleLayout.SCENE_ROWS)
             dst.set(0, sceneTop, w, sceneTop + sceneH)
             canvas.drawBitmap(frameBitmap, src, dst, paint)
