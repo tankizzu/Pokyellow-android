@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 08:16 UTC) – aggiunte disegnate con i tile del gioco
+- Il motore fornisce all'app i **tile veri del gioco** (carattere, riquadri, cursore ▶) con i colori dei riquadri
+  di testo, letti dalla memoria video (sfondo e finestra). Nuovo disegnatore `TileCanvas` sulla griglia di 8 pixel.
+- Verificato sul gioco vero: il riquadro del menu iniziale ridisegnato dall'app è **identico pixel per pixel** a quello del gioco.
+- Linguetta laterale e riquadro dei pulsanti ora sono disegnati come il gioco (come nel mockup 6A/6B): riquadro uguale al
+  menu START con SQUADRA, BORSA, POKéDEX, MENU, TESTO, SALVA, ESCI e cursore ▶. Tocco lungo sulla linguetta = cambia lato.
+- Strumenti di prova: comandi `vram` e `reset` del runner, `tools/mockup/` (immagini del gioco solo in privato).
+- 61 test superati.
+
 ## 2026-11-18 – avvio pulito e pulsante laterale (richiesta del committente)
 - **Prima di iniziare a giocare non c'è nessun pulsante dell'app**: titolo, menu iniziale, introduzione e nome mostrano
   solo il gioco (più CARICA PARTITA nel menu iniziale e la tastiera del telefono per il nome).

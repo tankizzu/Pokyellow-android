@@ -32,5 +32,7 @@ object NativeCore {
     /** Vista estesa: riempie [out] (160 × height) e restituisce 1 se lo schermo mostra la mappa, 0 altrimenti. */
     @JvmStatic external fun nativeRenderExtended(handle: Long, out: IntArray, height: Int): Int
     const val EXT_MAX_HEIGHT = 512
+    /** Foglio 128×128 dei tile del gioco (carattere, riquadri) con i colori dei riquadri di testo: 1 = colori dallo schermo. */
+    @JvmStatic external fun nativeGameTiles(handle: Long, out: IntArray): Int
     @JvmStatic external fun nativeDestroy(handle: Long)
 }

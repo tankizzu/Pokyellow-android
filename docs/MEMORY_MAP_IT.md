@@ -118,6 +118,10 @@ Tile della grafica: (base − 1) × 12 (0x7C per base 0x0C); ferma giù 0–3, s
 | Pokédex presi | D2FB (19 byte) | bit n−1 = numero n; Pikachu = byte 3 bit 0 |
 | Pokédex visti | D30E (19 byte) | Eevee (133) = byte 16 bit 4 dopo la lotta col rivale |
 
+## Livelli dello schermo per menu e testi
+I menu e i testi sono disegnati sulla **finestra** (LCDC bit 5 acceso, mappa del bit 6: 0x9C00 al menu iniziale),
+non sullo sfondo. I tile del carattere 0x80–0xFF stanno a 0x8800; i riquadri 0x79–0x7F seguono l'indirizzamento di LCDC bit 4.
+
 ## Menu START e STRUMENTI (verificati sul gioco vero)
 | Schermata | Riconoscimento | Note |
 |---|---|---|

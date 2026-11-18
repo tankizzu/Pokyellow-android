@@ -24,6 +24,7 @@ add_library(gbcore SHARED
     gbcore_jni.c
     boot_rom.c
     extended_view.c
+    game_tiles.c
     ${SAMEBOY_SOURCES}
 )
 

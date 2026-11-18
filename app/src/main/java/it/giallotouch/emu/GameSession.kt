@@ -23,6 +23,7 @@ import it.giallotouch.bridge.NameExecutor
 import it.giallotouch.bridge.NamingReader
 import it.giallotouch.bridge.RomData
 import it.giallotouch.bridge.TextAssist
+import it.giallotouch.bridge.TileCanvas
 import it.giallotouch.storage.SaveSlot
 import it.giallotouch.storage.SaveStorage
 import it.giallotouch.storage.SlotEntry
@@ -60,6 +61,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var extendedActive = false
         private set
     @Volatile var onFrame: (() -> Unit)? = null
+
+    /** Tile del gioco (carattere, riquadri) per disegnare le aggiunte dell'app come il gioco (D-039); null all'inizio. */
+    val tileSheet = AtomicReference<IntArray?>(null)
+    private val sheetBuf = IntArray(TileCanvas.SHEET_SIZE)
 
     /** Lotta a tutto schermo: true quando la schermata di lotta va mostrata divisa (scena + riquadro del testo). */
     @Volatile var battleSplit = false
@@ -362,6 +367,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 frames++
                 if (frames % AUTOSAVE_FRAMES == 0L) runCatching { saveBatteryIfChanged() }
                 if (frames % SNAPSHOT_FRAMES == 0L) readSnapshot()
+                if (frames % SHEET_FRAMES == 0L && NativeCore.nativeGameTiles(handle, sheetBuf) >= 0) {
+                    val old = tileSheet.get()
+                    if (old == null || !old.contentEquals(sheetBuf)) tileSheet.set(sheetBuf.copyOf())
+                }
                 if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
                     // La scrittura si blocca quando il buffer è pieno: tiene il gioco alla velocità giusta.
                     track.write(audio, 0, count)
@@ -422,6 +431,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         private const val FRAME_NANOS = 16_742_706L
         private const val AUTOSAVE_FRAMES = 60L * 20
         private const val SNAPSHOT_FRAMES = 15L
+        private const val SHEET_FRAMES = 30L
         /** Scelta del committente nel Laboratorio (D-012): toccare il terreno NON fa camminare. */
         private const val TAP_WALKS_TO_GROUND = false
     }

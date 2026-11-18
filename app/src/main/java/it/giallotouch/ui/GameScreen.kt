@@ -25,8 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import it.giallotouch.bridge.TileCanvas
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -111,6 +114,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var itemRequested by remember { mutableStateOf(false) }  // Usa/Getta in corso nel menu del gioco
     var panelOpen by remember { mutableStateOf(false) }   // pulsanti del pulsante laterale visibili
     var panelSide by remember { mutableStateOf(settings.panelSide) }
+    var panelCursor by remember { mutableStateOf(0) }   // voce indicata dal cursore ▶ nel riquadro dei pulsanti
+    var sheet by remember { mutableStateOf<IntArray?>(null) }   // tile del gioco per le aggiunte "come il gioco"
     var teamSelected by remember { mutableStateOf<Int?>(null) }  // scheda aperta (null = elenco)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
@@ -120,6 +125,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             snapshot = session.latestSnapshot.get()
             commandBusy = session.commandBusy
             inGame = session.inGame
+            session.tileSheet.get()?.let { if (it !== sheet) sheet = it }
             if (itemRequested && !session.itemBusy) {
                 itemRequested = false
                 if (session.itemResult == false) message = "Non sono riuscito: continua dal menu del gioco"
@@ -270,42 +276,66 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )
-        } else if (inGame) {
-            // Pulsante laterale (D-037): durante il gioco i pulsanti compaiono solo quando servono, dal lato scelto.
-            // Prima di iniziare a giocare (titolo, menu iniziale, introduzione) non c'è nessun pulsante dell'app.
+        } else if (inGame && sheet != null) {
+            // Pulsante laterale (D-037) disegnato con i tile del gioco (D-039): linguetta 3×5 caselle attaccata al bordo,
+            // e riquadro dei pulsanti come il menu START del gioco. Tocco lungo sulla linguetta = cambia lato.
+            val tiles = sheet!!
             val right = panelSide == "destra"
-            Row(
-                Modifier
-                    .align(BiasAlignment(if (right) 1f else -1f, 0.22f))
-                    .navigationBarsPadding(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val panel: @Composable () -> Unit = {
-                    if (panelOpen) {
-                        Column(Modifier.width(176.dp).padding(horizontal = if (right) 0.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PanelButton("Squadra", AppIcons.Team) { panelOpen = false; teamSelected = null; teamOpen = true }
-                            PanelButton("Borsa", AppIcons.Bag) { panelOpen = false; bagOpen = true }
-                            PanelButton("Pokédex", AppIcons.Dex) { panelOpen = false; dexOpen = true }
-                            PanelButton("Menu", AppIcons.Menu) { panelOpen = false; tapped = NativeCore.KEY_START }
-                            PanelButton(if (autoText > 0) "Testo: ${TextAssist.LABELS[autoText]}" else "Testo auto", AppIcons.Text, active = autoText > 0) {
-                                autoText = (autoText + 1) % 4
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val density = LocalDensity.current
+                val unit = with(density) { maxWidth.toPx() } / 160f
+                val tilePx = 8 * unit
+                val rowsOnScreen = (with(density) { maxHeight.toPx() } / tilePx).toInt()
+                val tabRow = (rowsOnScreen * 0.61f).toInt()
+                val tabCol = if (right) 17 else 0
+                fun off(col: Int, row: Int) = IntOffset((col * tilePx).toInt(), (row * tilePx).toInt())
+                if (panelOpen) {
+                    val items = listOf("SQUADRA", "BORSA", "POKéDEX", "MENU", "TESTO " + "-123"[autoText], "SALVA", "ESCI")
+                    val boxCol = if (right) 7 else 3
+                    val boxRow = tabRow + 4 - 15
+                    TileImage(
+                        tiles, 10, 16, unit, key = Triple(items, panelCursor, right),
+                        modifier = Modifier
+                            .offset { off(boxCol, boxRow) }
+                            .pointerInput(items) {
+                                detectTapGestures { pos ->
+                                    val i = (((pos.y / tilePx).toInt() - 1) / 2).coerceIn(0, items.size - 1)
+                                    panelCursor = i
+                                    when (i) {
+                                        0 -> { panelOpen = false; teamSelected = null; teamOpen = true }
+                                        1 -> { panelOpen = false; bagOpen = true }
+                                        2 -> { panelOpen = false; dexOpen = true }
+                                        3 -> { panelOpen = false; tapped = NativeCore.KEY_START }
+                                        4 -> autoText = (autoText + 1) % 4
+                                        5 -> { panelOpen = false; message = if (session.saveManual()) "Partita salvata in questo punto" else "Salvataggio non riuscito" }
+                                        else -> panelOpen = false
+                                    }
+                                }
                             }
-                            PanelButton("Salva", AppIcons.Save) {
-                                panelOpen = false
-                                message = if (session.saveManual()) "Partita salvata in questo punto" else "Salvataggio non riuscito"
-                            }
-                            PanelButton(if (right) "Sposta a sinistra" else "Sposta a destra", AppIcons.Select, small = true) {
-                                panelSide = if (right) "sinistra" else "destra"
-                                settings.panelSide = panelSide
-                            }
-                        }
+                    ) {
+                        box(0, 0, 9, 15)
+                        text("▶", 1, 2 + 2 * panelCursor)
+                        items.forEachIndexed { i, label -> text(label, 2, 2 + 2 * i) }
                     }
                 }
-                val tab: @Composable () -> Unit = {
-                    SideTab(open = panelOpen, right = right) { panelOpen = !panelOpen }
+                TileImage(
+                    tiles, 3, 5, unit, key = "linguetta",
+                    modifier = Modifier
+                        .offset { off(tabCol, tabRow) }
+                        .pointerInput(right) {
+                            detectTapGestures(
+                                onTap = { panelOpen = !panelOpen },
+                                onLongPress = {
+                                    panelSide = if (right) "sinistra" else "destra"
+                                    settings.panelSide = panelSide
+                                    message = if (right) "Pulsanti a sinistra" else "Pulsanti a destra"
+                                }
+                            )
+                        }
+                ) {
+                    box(0, 0, 2, 4)
+                    for (r in 1..3) tile(TileCanvas.HORIZONTAL, 1, r)
                 }
-                if (right) { panel(); tab() } else { tab(); panel() }
             }
         }
 
@@ -551,42 +581,6 @@ internal fun HpBar(hp: Int, max: Int) {
                 .height(5.dp)
                 .background(color, RoundedCornerShape(3.dp))
         )
-    }
-}
-
-/** Pulsante laterale: linguetta attaccata al bordo che apre e chiude i pulsanti del gioco. */
-@Composable
-private fun SideTab(open: Boolean, right: Boolean, onClick: () -> Unit) {
-    val shape = if (right) RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp) else RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp)
-    Box(
-        Modifier
-            .size(width = 48.dp, height = 64.dp)
-            .background(if (open) Yellow else Glass, shape)
-            .border(1.dp, if (open) Yellow else Color(0xFF403C62), shape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(if (open) AppIcons.Close else AppIcons.Menu, contentDescription = if (open) "Chiudi i pulsanti" else "Mostra i pulsanti",
-            tint = if (open) Ink else Cream, modifier = Modifier.size(24.dp))
-    }
-}
-
-/** Pulsante del pannello laterale: icona e nome in riga. */
-@Composable
-private fun PanelButton(label: String, icon: ImageVector, active: Boolean = false, small: Boolean = false, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(if (small) 40.dp else 50.dp)
-            .background(if (active) Yellow else Glass, RoundedCornerShape(14.dp))
-            .border(1.dp, if (active) Yellow else Color(0xFF403C62), RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Icon(icon, contentDescription = null, tint = if (active) Ink else Cream, modifier = Modifier.size(if (small) 16.dp else 20.dp))
-        Text(label, color = if (active) Ink else Cream, fontSize = if (small) 12.sp else 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 

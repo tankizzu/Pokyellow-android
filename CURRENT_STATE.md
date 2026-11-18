@@ -37,6 +37,9 @@ cameretta con linguetta e riquadro dei pulsanti come il menu START). In attesa d
 1. Nel motore/app: disegnare le aggiunte con i tile del gioco presi dalla memoria video (carattere, riquadri, ▶).
 2. Applicare alle schermate dall'accensione alla cameretta; poi estendere lo stile ai menu nativi.
 Strumenti: `tools/mockup/gbui.py`, comandi `vram` e `reset` del runner.
+Fatto: motore → tile del gioco (`nativeGameTiles`), disegnatore `TileCanvas` (identico al gioco, provato), linguetta e
+riquadro dei pulsanti disegnati come il gioco. Da fare dopo le scelte: menu iniziale (voci spostabili, CARICA PARTITA),
+schermata dei salvataggi, nome con FINE, introduzione, Select e messaggi nello stile del gioco.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.

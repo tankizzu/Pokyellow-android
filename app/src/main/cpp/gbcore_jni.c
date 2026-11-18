@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include "gb.h"
 #include "extended_view.h"
+#include "game_tiles.h"
 
 #define WIDTH 160
 #define HEIGHT 144
@@ -25,6 +26,7 @@ typedef struct {
     size_t audio_len;
     volatile int keys;
     EVState ev;
+    GTState gt;
     uint32_t ext[WIDTH * EXT_MAX_HEIGHT];
 } Core;
 
@@ -161,6 +163,18 @@ Java_it_giallotouch_emu_NativeCore_nativeRenderExtended(JNIEnv *env, jclass cls,
     if (!ev_render(core->gb, core->pixels, core->ext, height, &core->ev)) return 0;
     (*env)->SetIntArrayRegion(env, out, 0, WIDTH * height, (const jint *)core->ext);
     return 1;
+}
+
+/* Tile del gioco (carattere e riquadri) in un foglio 128×128 ARGB, con i colori dei riquadri di testo (D-039). */
+JNIEXPORT jint JNICALL
+Java_it_giallotouch_emu_NativeCore_nativeGameTiles(JNIEnv *env, jclass cls, jlong handle, jintArray out) {
+    (void)cls;
+    Core *core = as_core(handle);
+    if ((*env)->GetArrayLength(env, out) < 128 * 128) return -1;
+    uint32_t sheet[128 * 128];
+    int known = gt_sheet(core->gb, sheet, &core->gt);
+    (*env)->SetIntArrayRegion(env, out, 0, 128 * 128, (const jint *)sheet);
+    return known;
 }
 
 /* Copia un intervallo della memoria del gioco (senza effetti collaterali) per il "ponte" verso l'app. */
