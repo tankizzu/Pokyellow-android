@@ -665,18 +665,20 @@ class ZzScenarioTest : AppScreensHarness() {
         }
         return false
     }
-    /** Esce dal bordo nord (o sud) del luogo. */
+    /** Esce dal bordo nord (o sud) del luogo: prova le caselle libere del bordo finché ne raggiunge una. */
     private fun edge(north: Boolean): Boolean {
         val map = pos().first
-        repeat(6) {
-            val g = s.mapGridForTest() ?: return false
-            val ys = if (north) (0 until g.height) else (g.height - 1 downTo 0)
-            val target = ys.firstNotNullOfOrNull { y -> (0 until g.width).sortedBy { kotlin.math.abs(it - pos().second) }.firstOrNull { g.isFree(it, y) }?.let { it to y } } ?: return false
-            goTo(target.first, target.second)
+        val g = s.mapGridForTest() ?: return false
+        val rows = if (north) (0 until 3) else (g.height - 1 downTo g.height - 3)
+        val candidates = rows.flatMap { y -> (0 until g.width).filter { g.isFree(it, y) }.map { it to y } }
+            .sortedBy { kotlin.math.abs(it.first - pos().second) }
+        for (c in candidates.take(12)) {
+            goTo(c.first, c.second)
+            if (pos().first != map) { pump(1500); return true }
+            if (pos().second != c.first || pos().third != c.second) continue
             var k = 0
             while (pos().first == map && k++ < 6) { s.setKeys(if (north) NativeCore.KEY_UP else NativeCore.KEY_DOWN); pump(300); s.setKeys(0); pump(200) }
             if (pos().first != map) { pump(1500); return true }
-            fightIfNeeded()
         }
         return false
     }
@@ -693,6 +695,7 @@ class ZzScenarioTest : AppScreensHarness() {
         println("DBGSC fuori ${pos()}")
         assertTrue("Strada 1", edge(north = true))
         println("DBGSC strada ${pos()}")
+        save("route1.state")
         var k = 0
         while (pos().first == 12 && k++ < 4) edge(north = true)
         println("DBGSC città ${pos()} porte=${s.warpsForTest()}")
