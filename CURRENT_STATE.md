@@ -4,11 +4,12 @@
 
 ## Dove siamo
 - **0.3.0-prototipo (non ancora consegnato): gioco a tutto schermo + tastiera del telefono per i nomi.**
-  In esplorazione la mappa riempie lo schermo verticale; lotta, menu a tutto schermo e transizioni mostrano
+  In esplorazione la mappa riempie lo schermo verticale (con le persone fuori inquadratura); in lotta lo sfondo
+  riempie lo schermo con scena in alto e testo sopra i pulsanti; menu a tutto schermo e transizioni mostrano
   l'immagine originale 10:9. Quando il gioco chiede un nome compare la tastiera del telefono.
 - 0.2.2 consegnata (testo automatico a 3 velocità, testo veloce tenendo premuto). 0.2.1 ha corretto B-001 (ZIP):
   il committente conferma che il gioco parte.
-- 47 test superati (14 sul gioco vero, solo in locale con la ROM dell'utente).
+- 50 test superati (15 sul gioco vero, solo in locale con la ROM dell'utente).
 
 ## Cosa c'è nell'app
 - Scelta del file del gioco (anche ZIP), controllo SHA-1 e intestazione.
@@ -25,12 +26,12 @@
 - Al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
 - L'app non è stata provata qui su un telefono (nessun emulatore Android): verificati motore e logica su computer.
 
-## Prossimo passo – LOTTA A TUTTO SCHERMO (D-018)
-1. Riconoscere le parti della schermata di lotta (creature, barre, riquadro del testo) dalla mappa dello schermo.
-2. Estendere lo sfondo (a tinta unita) a tutto lo schermo e posizionare scena e testo senza deformarli.
-3. Pulsanti di lotta sopra lo sfondo (già pronti).
-Poi: menu nativi (Squadra, Borsa, Pokédex, Scheda, Negozio, PC).
-Da provare sul telefono: vista estesa con le persone, tastiera dei nomi (nuova partita → "NUOVO NOME").
+## Prossimo passo – MENU NATIVI (Squadra per prima)
+1. Leggere tutto ciò che serve dalla memoria (già pronto per la squadra: nomi, livelli, PS, stato, mosse).
+2. Barra di icone in basso come nel Laboratorio (D-012): Squadra, Borsa, Pokédex, Scheda, Negozio, PC.
+3. Primo menu: Squadra in sola lettura (scheda di ogni creatura); le azioni che cambiano il gioco
+   (scambiare l'ordine, usare strumenti) passano dal menu originale tramite esecutore a circuito chiuso.
+Da provare sul telefono: vista estesa con le persone, lotta a tutto schermo, tastiera dei nomi.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.

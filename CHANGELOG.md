@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 06:16 UTC) – lotta a tutto schermo
+- **Lotta a tutto schermo** (D-018): lo sfondo della lotta riempie lo schermo; la scena (creature e barre, 96 righe)
+  sta in alto e il riquadro del testo (48 righe) subito sopra i pulsanti nativi, alla stessa scala, senza deformazioni.
+  Si divide solo quando il riquadro del testo è nelle righe 12–17 (scena, menu mosse, scelta squadra);
+  le schermate senza riquadro (statistiche) restano intere al centro.
+- 50 test superati (uno nuovo sul gioco vero: lotta divisa, mappa no).
+
 ## 2026-11-18 – 0.3.0-prototipo (gioco a tutto schermo e tastiera del telefono)
 - **Vista estesa**: in esplorazione la mappa riempie tutto lo schermo verticale (circa 10 × 22 caselle invece di 10 × 9).
   Sopra e sotto l'inquadratura originale l'app disegna la mappa con i tile e i colori del gioco presi dalla memoria video;

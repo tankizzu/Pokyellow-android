@@ -29,6 +29,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -94,6 +96,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     }
     var snapshot by remember { mutableStateOf(session.latestSnapshot.get()) }
     var commandBusy by remember { mutableStateOf(false) }
+    var battleReserved by remember { mutableStateOf(0) }   // altezza dei pulsanti di lotta, per la lotta a tutto schermo
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
     var namingDismissed by remember { mutableStateOf(false) }
@@ -124,6 +127,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
         AndroidView(
             factory = { ctx -> GameView(ctx).also { it.attach(session) } },
             modifier = Modifier.fillMaxSize(),
+            update = { it.battleReservedBottomPx = battleReserved },
             onRelease = { it.attach(null) }
         )
 
@@ -236,6 +240,10 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 onCommand = { session.command(it) },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .onGloballyPositioned { c ->
+                        val parentHeight = c.parentLayoutCoordinates?.size?.height ?: return@onGloballyPositioned
+                        battleReserved = (parentHeight - c.positionInParent().y).toInt().coerceAtLeast(0)
+                    }
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )

@@ -25,11 +25,12 @@
 - [x] Testo automatico a 3 velocità (D-028) e testo veloce tenendo premuto (D-030)
 - [x] **Gioco a tutto schermo (D-026/D-027)**: vista estesa in esplorazione (0.3.0)
 - [x] Vista estesa: persone e oggetti fuori inquadratura
-- [ ] **Lotta a tutto schermo – prossimo passo**; opzione mappa attenuata/nascosta
+- [x] Lotta a tutto schermo (D-018, D-033)
+- [ ] Opzione mappa attenuata/nascosta (D-015, bassa priorità)
 - [x] Tastiera del telefono per i nomi (D-029, D-032) – da provare sul telefono
 - [x] Sì/No nativi nelle domande del gioco
 - [x] Tipo e PP massimi delle mosse dalla ROM
-- [ ] Lotta sovrapposta a tutto schermo; menu nativi (Squadra, Borsa, Pokédex, Scheda, Negozio, PC)
+- [ ] **Menu nativi – prossimo passo**: Squadra, Borsa, Pokédex, Scheda, Negozio, PC (barra di icone in basso, D-012)
 
 ## Prova del motore su computer
 ```

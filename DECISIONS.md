@@ -45,6 +45,7 @@
 | D-030 | 2026-11-18 | **Tenendo premuto il dito (levetta) il testo scorre più veloce.** Mai su menu o domande. |
 | D-031 | 2026-11-18 | **Vista estesa realizzata nel motore (C)**: mappa dalla RAM del gioco, tile e palette dalla memoria video, posizione trovata confrontando lo schermo del gioco con la mappa. Se il confronto non è sicuro o c'è un menu a tutto schermo si mostra l'immagine originale: mai un'immagine sbagliata. Mappa extra visibile (D-019); attenuata/nascosta come opzione futura. |
 | D-032 | 2026-11-18 | **Tastiera dei nomi**: copre la schermata dei nomi del gioco, accetta solo i caratteri della griglia originale (accenti tolti), stessa lunghezza massima del gioco. Il nome è inserito premendo i tasti sulla griglia (nessuna scrittura in memoria). In caso di errore si torna alla tastiera del gioco. Il gesto indietro non cancella lettere mentre la tastiera è aperta. |
+| D-033 | 2026-11-18 | **Lotta a tutto schermo realizzata così** (applica D-018): scena e riquadro del testo sono le due parti dell'immagine originale (righe 0–95 e 96–143), stessa scala della mappa; sfondo = colore più frequente della scena; testo sopra i pulsanti nativi, scena centrata nello spazio sopra. Nessun disegno inventato. |
 
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |

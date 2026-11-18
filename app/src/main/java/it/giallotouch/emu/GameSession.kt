@@ -5,6 +5,7 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.os.SystemClock
 import android.util.Log
+import it.giallotouch.bridge.BattleLayout
 import it.giallotouch.bridge.GameCommand
 import it.giallotouch.bridge.CommandExecutor
 import it.giallotouch.bridge.MenuReader
@@ -51,6 +52,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var extendedActive = false
         private set
     @Volatile var onFrame: (() -> Unit)? = null
+
+    /** Lotta a tutto schermo: true quando la schermata di lotta va mostrata divisa (scena + riquadro del testo). */
+    @Volatile var battleSplit = false
+        private set
+    private val frameTiles = ByteArray(MenuReader.SCREEN_SIZE)
 
     /** Ultimo stato letto dalla memoria del gioco (squadra, soldi, posizione), aggiornato 4 volte al secondo. */
     val latestSnapshot = AtomicReference(GameSnapshot.EMPTY)
@@ -262,6 +268,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 NativeCore.nativeSetKeys(handle, currentKeys())
                 val count = NativeCore.nativeRunFrame(handle, back, audio)
                 back = latestFrame.getAndSet(back)
+                battleSplit = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 &&
+                    run { NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles); BattleLayout.textBoxAtBottom(frameTiles) }
                 val eh = extendedHeight
                 if (eh > NativeCore.HEIGHT) {
                     val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh) == 1
