@@ -380,6 +380,8 @@ fun GameBattlePanel(
     onParty: () -> Unit,
     onBag: () -> Unit,
     onRun: () -> Unit,
+    /** Tocco su un riquadro mentre il gioco mostra un testo (nessun menu di lotta): manda avanti il testo (tasto A). */
+    onAdvance: () -> Unit = {},
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -393,7 +395,7 @@ fun GameBattlePanel(
                 .offset { IntOffset(0, (a * tilePx).toInt()) }
                 .pointerInput(enabled) {
                     detectTapGestures { pos ->
-                        if (!enabled) return@detectTapGestures
+                        if (!enabled) { onAdvance(); return@detectTapGestures }
                         val col = (pos.x / tilePx).toInt()
                         if (col < 10) onParty() else onBag()
                     }
@@ -404,7 +406,7 @@ fun GameBattlePanel(
             sheet, 8, 4, unit, key = "fuga",
             modifier = Modifier
                 .offset { IntOffset((6 * tilePx).toInt(), (it.giallotouch.bridge.BattleLayout.RUN_TOP_ROW * tilePx).toInt()) }
-                .pointerInput(enabled) { detectTapGestures { if (enabled) onRun() } }
+                .pointerInput(enabled) { detectTapGestures { if (enabled) onRun() else onAdvance() } }
         ) { box(0, 0, 7, 3); textAt("FUGA", 17, 13) }
         TileImage(
             sheet, 20, 11, unit, key = moves,
@@ -412,7 +414,7 @@ fun GameBattlePanel(
                 .offset { IntOffset(0, (m * tilePx).toInt()) }
                 .pointerInput(moves, enabled) {
                     detectTapGestures { pos ->
-                        if (!enabled) return@detectTapGestures
+                        if (!enabled) { onAdvance(); return@detectTapGestures }
                         val i = (((pos.y / tilePx).toInt() - 1) / 2).coerceIn(0, 3)
                         if (i < moves.size) onMove(i)
                     }

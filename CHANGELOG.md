@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.6.1-prototipo: correzioni della lotta (B-005, B-006)
+- Un tocco sulla mossa la usa subito, anche cambiando mossa al turno dopo.
+- Durante i testi della lotta un tocco ovunque (anche sui riquadri) manda avanti; dopo la vittoria sul rivale i
+  dialoghi proseguono e si torna a camminare (provato fino in fondo, 76 prove).
+
 ## 2026-11-18 – dialoghi in alto (D-048)
 - Il riquadro del dialogo compare alla riga 9; SÌ e NO in due riquadri in basso (2,37) e (12,37), senza cursore.
 - Verificato col banco di prova: dialogo col Professore in alto, mappa al posto del riquadro originale (73 prove).

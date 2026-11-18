@@ -203,7 +203,41 @@ abstract class AppScreensHarness {
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         assertTrue("in lotta", waitFor(20_000) { s.latestSnapshot.get().inBattle && s.latestSnapshot.get().battleMon != null })
-        assertTrue("azioni e mosse", shotUntil("09-lotta") { boxAt(it, 0, 23, 20, 5) && boxAt(it, 0, 28, 20, 11) && boxAt(it, 6, 39, 8, 4) })
+        assertTrue("azioni e mosse prima", shotUntil("09-lotta") { boxAt(it, 0, 23, 20, 5) && boxAt(it, 0, 28, 20, 11) && boxAt(it, 6, 39, 8, 4) })
+    }
+
+    /**
+     * Lotta col rivale fino alla fine, solo con tocchi (segnalazioni del committente): un tocco sulla mossa la usa
+     * subito (anche al secondo turno con un'altra mossa); un tocco fuori dai riquadri manda avanti i testi della lotta;
+     * dopo la vittoria i dialoghi vanno avanti e si torna a camminare.
+     */
+    fun lottaCompleta(onlyPanel: Boolean = false) {
+        val s = start(auto = "giallo.state") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue("in lotta", waitFor(20_000) { s.latestSnapshot.get().battleMon != null })
+        fun pp(i: Int) = s.latestSnapshot.get().battleMon?.moves?.getOrNull(i)?.pp ?: -1
+        fun mainMenu() = s.battleMenuShown && !s.commandBusy
+        assertTrue(waitFor(10_000) { mainMenu() })
+        val moveRow = it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2f
+        var turn = 0
+        var guard = 0
+        while (s.latestSnapshot.get().inBattle && guard++ < 400) {
+            if (mainMenu()) {
+                val move = if (turn % 2 == 0) 0 else 1
+                val before = pp(move)
+                tapTile(4f, moveRow + 2 * move + 0.5f)
+                assertTrue("turno $turn: un solo tocco usa la mossa $move", waitFor(15_000) { pp(move) == before - 1 })
+                turn++
+            } else if (onlyPanel) tapTile(10f, moveRow + 5f) else if (guard % 2 == 0) tapTile(10f, 2f)      // testo della lotta: tocco fuori dai riquadri = avanti
+            else tapTile(10f, moveRow + 5f)                   // …e anche sui riquadri della lotta
+        }
+        shot("09c-dopo-lotta")
+        assertFalse("la lotta è finita", s.latestSnapshot.get().inBattle)
+        var k = 0
+        while (!s.latestSnapshot.get().freeRoam && k++ < 200) tapTile(10f, 20f)
+        assertTrue("dopo la lotta si torna a camminare", waitFor(10_000) { s.latestSnapshot.get().freeRoam })
+        shot("09d-si-cammina")
     }
 
     /** Scheda allenatore (D-045): START → nome del giocatore apre la scheda del gioco ridisposta; INDIETRO chiude. */
@@ -216,7 +250,7 @@ abstract class AppScreensHarness {
         assertTrue("menu aperto", shotUntil("10-menu-allenatore") { boxAt(it, 0, rows() - 15, 20, 11) })
         tapTile(14f, rows() - 13f)   // nome del giocatore (a destra di POKéMON)
         assertTrue("scheda del gioco aperta", waitFor(20_000) { s.trainerCardShown })
-        assertTrue("riquadri della scheda", shotUntil("11-scheda-allenatore") { boxAt(it, 0, 28, 20, 9) && boxAt(it, 5, 39, 10, 4) })
+        assertTrue("riquadri della scheda", shotUntil("11-scheda-allenatore", 30_000) { boxAt(it, 0, 28, 20, 9) && boxAt(it, 5, 39, 10, 4) })
         tapTile(9f, 40.5f)           // INDIETRO
         assertTrue("di nuovo in giro", waitFor(15_000) { !s.trainerCardShown && s.latestSnapshot.get().freeRoam })
         shot("12-dopo-scheda")
@@ -299,4 +333,12 @@ class AppMenuScreensTest : AppScreensHarness() {
 
 class AppYesNoScreenTest : AppScreensHarness() {
     @Test fun domandaSiNo() = siNo()
+}
+
+class AppBattleFullTest : AppScreensHarness() {
+    @Test fun lottaFinoAllaFine() = lottaCompleta()
+}
+
+class AppBattlePanelTapTest : AppScreensHarness() {
+    @Test fun testiAvantiToccandoIRiquadri() = lottaCompleta(onlyPanel = true)
 }

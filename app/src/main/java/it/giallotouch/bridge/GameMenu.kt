@@ -103,13 +103,17 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
     private var holdFrames = 0
     private var cooldown = 0
     private var finishing = false
+    private var lastMenu: MenuState? = null
+    private var stable = 0
 
     val busy: Boolean get() = command != null
 
     fun start(cmd: GameCommand) {
         command = cmd
         framesLeft = timeoutFrames
-        heldKey = 0; holdFrames = 0; cooldown = 0; finishing = false
+        // Si parte con i tasti rilasciati per qualche fotogramma: se il giocatore stava tenendo premuto A, la prima
+        // pressione del comando deve essere una pressione nuova, altrimenti il gioco la ignora.
+        heldKey = 0; holdFrames = 0; cooldown = RELEASE; finishing = false; lastMenu = null; stable = 0
     }
 
     fun cancel() { command = null; heldKey = 0 }
@@ -121,6 +125,9 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
         if (holdFrames > 0) { holdFrames--; return heldKey }
         if (cooldown > 0) { cooldown--; return 0 }
         if (finishing) { cancel(); return 0 }
+        // Un menu appena comparso (o cambiato) non ascolta subito i tasti: si aspetta che resti uguale per un po'.
+        if (menu != lastMenu) { lastMenu = menu; stable = 0; return 0 }
+        if (++stable < SETTLE) return 0
         val decision = decide(cmd, menu) ?: return 0
         heldKey = decision.key
         holdFrames = HOLD - 1
@@ -134,6 +141,7 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
     companion object {
         private const val HOLD = 3
         private const val RELEASE = 5
+        private const val SETTLE = 8
 
         /** Prossimo tasto da premere per avvicinarsi al comando; null = aspettare (testo in corso). */
         fun decide(cmd: GameCommand, menu: MenuState): Decision? = when (menu.kind) {

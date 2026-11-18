@@ -19,3 +19,14 @@ Ora si è in partita solo con la mappa vera riconosciuta (vista estesa attiva) o
 ## B-004 – MENU invisibile in gioco (0.4.0) – CORRETTO in 0.4.1
 L'immagine del gioco era una View a parte ridisegnata a ogni fotogramma e copriva i pulsanti dell'app.
 Ora è disegnata dentro Compose sotto i pulsanti. Trovato con il nuovo banco di prova dell'interfaccia.
+
+## B-005 – Lotta: serviva toccare due volte la mossa (risolto, 0.6.1)
+Il tocco sulla mossa arrivava al gioco anche come tasto A: il menu delle mosse si apriva e il comando trovava A già
+premuto; inoltre premeva A appena il menu compariva, quando il gioco non ascolta ancora. Corretto: un tocco usato da un
+riquadro dell'app non diventa più tasto A; il comando parte con i tasti rilasciati e aspetta che il menu sia fermo.
+Prova: `AppBattleFullTest` (lotta col rivale fino alla fine, una mossa diversa a ogni turno, un solo tocco).
+
+## B-006 – Lotta: testi bloccati toccando i riquadri (risolto, 0.6.1)
+Durante i testi della lotta i riquadri SQUADRA/BORSA/mosse prendevano il tocco senza fare niente: sembrava bloccato
+(anche nei dialoghi dopo la vittoria sul rivale). Ora un tocco sui riquadri, quando il gioco non mostra il menu di lotta,
+manda avanti il testo. Prova: `AppBattlePanelTapTest` (lotta fino alla fine toccando solo i riquadri).

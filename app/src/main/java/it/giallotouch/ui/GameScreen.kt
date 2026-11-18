@@ -143,6 +143,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var optionsOpen by remember { mutableStateOf(false) }   // OPZIONI nello stile del gioco
     var trainerCard by remember { mutableStateOf(false) }   // scheda allenatore del gioco sullo schermo (D-045)
     var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
+    var battleMenu by remember { mutableStateOf(false) }   // menu di lotta del gioco sullo schermo (si può scegliere)
     /** Voce del riquadro dei pulsanti (D-046): 0 POKéMON, 1 allenatore, 2 POKéDEX, 3 OPZIONI, 4 BORSA, 5 SALVA. */
     fun panelActivate(i: Int) {
         panelCursor = i
@@ -177,6 +178,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             inGame = session.inGame
             trainerCard = session.trainerCardShown
             yesNo = session.yesNo
+            battleMenu = session.battleMenuShown
             session.tileSheet.get()?.let { if (it !== sheet) sheet = it }
             if (itemRequested && !session.itemBusy) {
                 itemRequested = false
@@ -237,6 +239,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
+                                // Tocco già usato da un riquadro dell'app (mossa, pulsante…): niente tasto A in più.
+                                if (change.isConsumed) break
                                 if (!moved && change.uptimeMillis - t0 < 350 && panelOpen) {
                                     panelActivate(panelCursor)   // tocco fuori dal riquadro = conferma (tasto A)
                                 } else if (!moved && change.uptimeMillis - t0 < 350 && session.mainMenuItems > 0) {
@@ -346,7 +350,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     val max = session.romData.maxPp(slot.id, slot.ppUps)
                     session.romData.moveName(slot.id) to (if (max != null) "${slot.pp}/$max" else "${slot.pp}")
                 },
-                enabled = !commandBusy,
+                enabled = !commandBusy && battleMenu,
+                onAdvance = { if (!commandBusy) tapped = NativeCore.KEY_A },
                 onMove = { session.command(GameCommand.Fight(it)) },
                 onParty = { session.command(GameCommand.Party) },
                 onBag = { session.command(GameCommand.Item) },
