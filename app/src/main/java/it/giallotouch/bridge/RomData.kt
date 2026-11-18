@@ -16,6 +16,10 @@ class RomData private constructor(
     private val dexOrder: List<Int> = emptyList(),
     /** Velocità di crescita per numero del Pokédex (posizione 0 = n. 1). */
     private val growthRates: List<Int> = emptyList(),
+    /** Icone della squadra (16×16, indici di colore 0–3) per tipo d'icona del gioco. */
+    private val icons: List<IntArray> = emptyList(),
+    /** Tipo d'icona per numero del Pokédex (posizione 0 = n. 1). */
+    private val iconTypes: List<Int> = emptyList(),
 ) {
     data class MoveInfo(val type: Int, val maxPp: Int)
 
@@ -43,6 +47,15 @@ class RomData private constructor(
     /** Numero del Pokédex di una specie (indice interno), 0 se sconosciuto. */
     fun dexNumber(index: Int): Int = dexOrder.getOrNull(index - 1) ?: 0
 
+    /**
+     * Icona piccola della specie (indice interno) come nel menu POKéMON del gioco: 16×16 indici di colore 0 (chiaro)–3
+     * (scuro), null se sconosciuta.
+     */
+    fun partyIcon(index: Int): IntArray? = iconTypes.getOrNull(dexNumber(index) - 1)?.let { icons.getOrNull(it) }
+
+    /** Indice interno della specie con quel numero del Pokédex (0 se sconosciuto). */
+    fun indexForDex(dex: Int): Int = dexOrder.indexOf(dex) + 1
+
     /** Nome della specie dall'indice interno del gioco (quello della squadra), vuoto se sconosciuto. */
     fun speciesName(index: Int): String = speciesNames.getOrNull(index - 1) ?: ""
 
@@ -61,11 +74,48 @@ class RomData private constructor(
                     List(151) { u8(rom, M.ROM_BASE_STATS + it * M.BASE_STATS_SIZE + 19) }.takeIf { r -> r.all { it in 0..5 } } ?: emptyList()
                     else emptyList(),
                 itemNames = readNameList(rom, M.ROM_ITEM_NAMES, M.NUM_ITEM_NAMES) ?: emptyList(),
+                icons = readIcons(rom) ?: emptyList(),
+                iconTypes = if (M.ROM_PARTY_ICON_TYPES + 76 <= rom.size)
+                    List(151) { i -> u8(rom, M.ROM_PARTY_ICON_TYPES + i / 2).let { if (i % 2 == 0) it shr 4 else it and 15 } }.takeIf { t -> t.all { it <= 10 } } ?: emptyList()
+                    else emptyList(),
                 speciesNames = readFixedNames(rom, M.ROM_SPECIES_NAMES, M.NUM_SPECIES_INDEXES, M.SPECIES_NAME_LENGTH) ?: emptyList(),
             )
         }
 
         private fun u8(rom: ByteArray, i: Int) = rom[i].toInt() and 0xFF
+
+        /**
+         * Icone della squadra: la tabella del gioco (sorgente, caselle, banco, destinazione) copia i disegni nella
+         * memoria video, 4 caselle per icona (in alto a sinistra, in alto a destra, in basso a sinistra, in basso a
+         * destra). Le icone da una casella per riga (insetto, pianta, serpente, quadrupede) hanno la metà destra
+         * specchiata, come fa il gioco.
+         */
+        fun readIcons(rom: ByteArray): List<IntArray>? {
+            val vram = ByteArray(0x400)
+            for (e in 0 until 14) {
+                val p = M.ROM_PARTY_ICON_GFX + 6 * e
+                if (p + 6 > rom.size) return null
+                val src = u8(rom, p) or (u8(rom, p + 1) shl 8)
+                val n = u8(rom, p + 2); val bank = u8(rom, p + 3)
+                val dest = (u8(rom, p + 4) or (u8(rom, p + 5) shl 8)) - 0x8000
+                val off = bank * 0x4000 + src - 0x4000
+                if (dest !in 0 until 0x400 || dest + 16 * n > 0x400 || off < 0 || off + 16 * n > rom.size) return null
+                System.arraycopy(rom, off, vram, dest, 16 * n)
+            }
+            fun px(tile: Int, x: Int, y: Int): Int {
+                val lo = vram[tile * 16 + 2 * y].toInt(); val hi = vram[tile * 16 + 2 * y + 1].toInt()
+                return (((hi shr (7 - x)) and 1) shl 1) or ((lo shr (7 - x)) and 1)
+            }
+            return List(11) { k ->
+                val mirrored = k in 6..9
+                IntArray(256) { i ->
+                    val x = i % 16; val y = i / 16
+                    val row = y / 8
+                    if (mirrored) px(k * 4 + 2 * row, if (x < 8) x else 15 - x, y % 8)
+                    else px(k * 4 + row * 2 + x / 8, x % 8, y % 8)
+                }
+            }
+        }
 
         /** Legge [count] nomi a lunghezza fissa (riempiti con 0x50); null se la tabella non è nella ROM. */
         fun readFixedNames(rom: ByteArray, start: Int, count: Int, length: Int): List<String>? {

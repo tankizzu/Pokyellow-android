@@ -56,5 +56,13 @@ class RomDataTest {
         assertEquals(true, (1..151).all { data.speciesNameForDex(it).isNotEmpty() })
         // velocità di crescita: Pikachu media veloce (0)
         assertEquals(0, data.growthRate(0x54))
+        // icone della squadra: Pikachu ha la sua; Bulbasaur (n. 1, indice 0x99) e Ivysaur la stessa (pianta)
+        val pika = data.partyIcon(0x54)!!
+        assertEquals(256, pika.size)
+        assertEquals(true, pika.count { it == 3 } in 20..200)
+        val bulba = data.partyIcon(data.indexForDex(1))!!; val ivy = data.partyIcon(data.indexForDex(2))!!
+        assertEquals(true, bulba.contentEquals(ivy) && !bulba.contentEquals(pika))
+        // icone da mezza casella: la metà destra è lo specchio della sinistra
+        assertEquals(true, (0 until 16).all { y -> (0 until 8).all { x -> bulba[y * 16 + x] == bulba[y * 16 + 15 - x] } })
     }
 }

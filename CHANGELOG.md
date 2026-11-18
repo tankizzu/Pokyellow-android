@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-18 – menu dal mockup completo (D-046)
+- Schermata dei nomi originale mai visibile; riquadri dell'app senza bordo bianco esterno.
+- Icone dei Pokémon lette dalla ROM (come nel menu POKéMON del gioco): nel menu START e in SQUADRA.
+- START con POKéMON e nome del giocatore; SÌ/NO in due riquadri sotto il dialogo (riquadro del gioco nascosto).
+- Scheda allenatore, Borsa, Usa/Getta, Opzioni (con VOLUME a 6 livelli), Lotta (FUGA a parte) ridisposte.
+- Nuove schermate nello stile del gioco: SQUADRA, scheda del Pokémon, POKéDEX.
+- Banco di prova: START, squadra, scheda Pokémon, Pokédex, opzioni e SÌ/NO fotografati e controllati (73 prove).
+
 ## 2026-11-18 – 0.5.0-prototipo consegnata
 - Contiene D-043, D-044, D-045 (START, Borsa nello stile del gioco, tocco nel vuoto, scheda allenatore, lotta).
 - Verificata col banco di prova dell'interfaccia (70 prove) prima della consegna.

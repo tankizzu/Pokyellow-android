@@ -203,7 +203,7 @@ abstract class AppScreensHarness {
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         assertTrue("in lotta", waitFor(20_000) { s.latestSnapshot.get().inBattle && s.latestSnapshot.get().battleMon != null })
-        assertTrue("azioni e mosse", shotUntil("09-lotta") { boxAt(it, 0, 22, 20, 5) && boxAt(it, 0, 27, 20, 11) })
+        assertTrue("azioni e mosse", shotUntil("09-lotta") { boxAt(it, 0, 23, 20, 5) && boxAt(it, 0, 28, 20, 11) && boxAt(it, 6, 39, 8, 4) })
     }
 
     /** Scheda allenatore (D-045): START → nome del giocatore apre la scheda del gioco ridisposta; INDIETRO chiude. */
@@ -214,12 +214,52 @@ abstract class AppScreensHarness {
         assertTrue("in partita", waitFor(20_000) { s.inGame && s.latestSnapshot.get().freeRoam })
         tapTile(10f, rows() - 2f)
         assertTrue("menu aperto", shotUntil("10-menu-allenatore") { boxAt(it, 0, rows() - 15, 20, 11) })
-        tapTile(9f, rows() - 13f)    // riga del nome del giocatore
+        tapTile(14f, rows() - 13f)   // nome del giocatore (a destra di POKéMON)
         assertTrue("scheda del gioco aperta", waitFor(20_000) { s.trainerCardShown })
-        assertTrue("riquadri della scheda", shotUntil("11-scheda-allenatore") { boxAt(it, 0, 30, 20, 9) && boxAt(it, 5, 40, 10, 4) })
-        tapTile(9f, 41.5f)           // INDIETRO
+        assertTrue("riquadri della scheda", shotUntil("11-scheda-allenatore") { boxAt(it, 0, 28, 20, 9) && boxAt(it, 5, 39, 10, 4) })
+        tapTile(9f, 40.5f)           // INDIETRO
         assertTrue("di nuovo in giro", waitFor(15_000) { !s.trainerCardShown && s.latestSnapshot.get().freeRoam })
         shot("12-dopo-scheda")
+    }
+
+    /** START → POKéMON (squadra con icone) → scheda del Pokémon → indietro; START → POKéDEX; START → OPZIONI (D-046). */
+    fun menuSquadraPokedex() {
+        val s = start(auto = "giallo.state.squadra") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue("in partita", waitFor(20_000) { s.inGame && s.latestSnapshot.get().freeRoam })
+        tapTile(10f, rows() - 2f)
+        assertTrue("START aperto", shotUntil("13-start") { boxAt(it, 0, 28, 20, 11) && boxAt(it, 0, 2, 20, 8) })
+        tapTile(4f, 30f)             // POKéMON
+        assertTrue("squadra", shotUntil("14-squadra") { boxAt(it, 0, 7, 20, 32) && boxAt(it, 0, 39, 10, 4) && boxAt(it, 10, 39, 10, 4) })
+        tapTile(4f, 9f)              // primo compagno
+        assertTrue("scheda del Pokémon", shotUntil("15-scheda-pokemon") { boxAt(it, 0, 12, 20, 11) && boxAt(it, 0, 24, 20, 11) && boxAt(it, 5, 39, 10, 4) })
+        tapTile(9f, 40.5f)           // INDIETRO → squadra
+        assertTrue("di nuovo la squadra", shotUntil("16-squadra-2") { boxAt(it, 10, 39, 10, 4) })
+        tapTile(4f, 40.5f)           // INDIETRO → gioco
+        pump(800)
+        tapTile(10f, rows() - 2f)
+        pump(800)
+        tapTile(4f, 33f)             // POKéDEX
+        assertTrue("Pokédex", shotUntil("17-pokedex") { boxAt(it, 0, 7, 20, 27) && boxAt(it, 0, 34, 20, 5) })
+        tapTile(9f, 40.5f)
+        pump(800)
+        tapTile(10f, rows() - 2f)
+        pump(800)
+        tapTile(15f, 33f)            // OPZIONI
+        assertTrue("OPZIONI", shotUntil("18-opzioni") { boxAt(it, 0, 10, 20, 28) && boxAt(it, 5, 39, 11, 4) })
+    }
+
+    /** Domanda Sì/No del gioco: due riquadri dell'app sotto il dialogo (D-046). */
+    fun siNo() {
+        // Si parte dal dialogo prima della domanda: l'app deve aver visto la mappa senza il riquadro Sì/No del gioco.
+        val s = start(auto = "giallo.state.text") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        var k = 0
+        while (s.yesNo == null && k++ < 30) { press(s, NativeCore.KEY_A); pump(600) }
+        assertTrue("domanda Sì/No", waitFor(20_000) { s.yesNo != null })
+        assertTrue("riquadri SI e NO", shotUntil("19-si-no") { boxAt(it, 2, 36, 6, 5) && boxAt(it, 11, 36, 6, 5) })
     }
 
     /** La schermata del nome nello stile del gioco, sopra la tastiera del telefono. */
@@ -250,4 +290,12 @@ class AppBattleScreenTest : AppScreensHarness() {
 
 class AppTrainerScreenTest : AppScreensHarness() {
     @Test fun scheda() = schedaAllenatore()
+}
+
+class AppMenuScreensTest : AppScreensHarness() {
+    @Test fun squadraPokedexOpzioni() = menuSquadraPokedex()
+}
+
+class AppYesNoScreenTest : AppScreensHarness() {
+    @Test fun domandaSiNo() = siNo()
 }

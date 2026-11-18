@@ -100,10 +100,11 @@ fun GameScreen(session: GameSession, settings: Settings) {
     LaunchedEffect(held, tapped) {
         val items = session.mainMenuItems
         if (panelOpen && held != 0) {
-            // Pulsanti aperti: la levetta sposta il cursore nella griglia 2×2 invece di camminare.
+            // Pulsanti aperti: la levetta sposta il cursore nella griglia 2×3 invece di camminare.
             panelCursor = when (held) {
                 NativeCore.KEY_LEFT, NativeCore.KEY_RIGHT -> panelCursor xor 1
-                else -> panelCursor xor 2
+                NativeCore.KEY_UP -> (panelCursor + 4) % 6
+                else -> (panelCursor + 2) % 6
             }
             session.setKeys(tapped)
         } else if (items > 0 && held != 0) {
@@ -116,6 +117,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
     }
     LaunchedEffect(startCursor) { session.startMenuCursor = startCursor }
     LaunchedEffect(autoText) { session.autoTextSpeed = autoText; settings.autoTextSpeed = autoText }
+    var volume by remember { mutableStateOf(settings.volume) }
+    LaunchedEffect(volume) { session.volume = volume; settings.volume = volume }
     // Dito tenuto premuto per più di 0,3 s: durante i testi il gioco scorre più veloce.
     LaunchedEffect(pressedSince) {
         if (pressedSince == null) session.setHolding(false) else { delay(300); session.setHolding(true) }
@@ -133,19 +136,23 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var loadOpen by remember { mutableStateOf(false) }     // schermata "Carica partita"
     var slots by remember { mutableStateOf(emptyList<SlotEntry>()) }
     var teamOpen by remember { mutableStateOf(false) }    // menu Squadra nativo
+    var teamSelected by remember { mutableStateOf<Int?>(null) }  // scheda aperta (null = elenco)
     var bagOpen by remember { mutableStateOf(false) }     // menu Borsa nativo
     var dexOpen by remember { mutableStateOf(false) }     // Pokédex nativo
     var itemRequested by remember { mutableStateOf(false) }  // Usa/Getta in corso nel menu del gioco
     var optionsOpen by remember { mutableStateOf(false) }   // OPZIONI nello stile del gioco
     var trainerCard by remember { mutableStateOf(false) }   // scheda allenatore del gioco sullo schermo (D-045)
-    /** Voce del riquadro dei pulsanti: 0 POKéDEX, 1 OPZIONI, 2 BORSA, 3 SALVA. */
+    var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
+    /** Voce del riquadro dei pulsanti (D-046): 0 POKéMON, 1 allenatore, 2 POKéDEX, 3 OPZIONI, 4 BORSA, 5 SALVA. */
     fun panelActivate(i: Int) {
         panelCursor = i
         panelOpen = false
         when (i) {
-            0 -> dexOpen = true
-            1 -> optionsOpen = true
-            2 -> bagOpen = true
+            0 -> { teamSelected = null; teamOpen = true }
+            1 -> { itemRequested = true; session.itemAction(ItemAction.OpenTrainer) }
+            2 -> dexOpen = true
+            3 -> optionsOpen = true
+            4 -> bagOpen = true
             else -> message = if (session.saveManual()) "Partita salvata in questo punto" else "Salvataggio non riuscito"
         }
     }
@@ -155,7 +162,6 @@ fun GameScreen(session: GameSession, settings: Settings) {
         if (game == null) { slots = session.savedSlots(); loadOpen = true } else session.command(GameCommand.MainMenu(game))
     }
     var sheet by remember { mutableStateOf<IntArray?>(null) }   // tile del gioco per le aggiunte "come il gioco"
-    var teamSelected by remember { mutableStateOf<Int?>(null) }  // scheda aperta (null = elenco)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
     var namingDismissed by remember { mutableStateOf(false) }
@@ -170,6 +176,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             commandBusy = session.commandBusy
             inGame = session.inGame
             trainerCard = session.trainerCardShown
+            yesNo = session.yesNo
             session.tileSheet.get()?.let { if (it !== sheet) sheet = it }
             if (itemRequested && !session.itemBusy) {
                 itemRequested = false
@@ -294,7 +301,27 @@ fun GameScreen(session: GameSession, settings: Settings) {
         }
 
         // Domanda Sì/No del gioco: pulsanti nativi sopra il riquadro originale (a destra dell'immagine).
-        if (snapshot.menu.kind == MenuKind.YES_NO) {
+        val yn = yesNo
+        if (yn != null && sheet != null && !snapshot.inBattle) {
+            // Domanda Sì/No (D-046): due riquadri del gioco sotto il dialogo, con le parole e il cursore del gioco.
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val unit = with(density) { maxWidth.toPx() } / 160f
+                val tilePx = 8 * unit
+                listOf(true to yn.yes, false to yn.no).forEachIndexed { k, (answer, word) ->
+                    val w = maxOf(6, word.size + 4)
+                    TileImage(
+                        sheet!!, w, 5, unit, key = Triple(word.toList(), yn.item, k),
+                        modifier = Modifier
+                            .offset { IntOffset(((if (k == 0) 2 else 11) * tilePx).toInt(), (36 * tilePx).toInt()) }
+                            .pointerInput(answer, commandBusy) { detectTapGestures { if (!commandBusy) session.command(GameCommand.Answer(answer)) } }
+                    ) {
+                        box(0, 0, w - 1, 4)
+                        word.forEachIndexed { i, t -> tile(t, 2 + i, 2) }
+                        if (yn.item == k) tile(TileCanvas.CURSOR, 1, 2)
+                    }
+                }
+            }
+        } else if (snapshot.menu.kind == MenuKind.YES_NO) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val imageHeight = maxWidth * 0.9f
                 val imageTop = (maxHeight - imageHeight) / 2
@@ -358,13 +385,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 party = snapshot.party,
                 romData = session.romData,
                 onToggle = { panelOpen = !panelOpen; panelCursor = 0 },
-                onPokedex = { panelActivate(0) },
-                onBag = { panelActivate(2) },
-                onOptions = { panelActivate(1) },
-                onSave = { panelActivate(3) },
+                onActivate = { panelActivate(it) },
                 onMember = { i -> panelOpen = false; teamSelected = i; teamOpen = true },
                 playerName = snapshot.playerName,
-                onTrainer = { panelOpen = false; itemRequested = true; session.itemAction(ItemAction.OpenTrainer) },
             )
         }
         if (optionsOpen && sheet != null) {
@@ -373,13 +396,15 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 sheet = sheet!!,
                 autoText = autoText,
                 onAutoText = { autoText = (autoText + 1) % 4 },
+                volume = volume,
+                onVolume = { volume = it },
                 onBack = { optionsOpen = false },
             )
         }
 
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && snapshot.cursorOnScreen && yesNo == null && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()
@@ -417,7 +442,18 @@ fun GameScreen(session: GameSession, settings: Settings) {
         }
 
         // Menu Squadra nativo (sola lettura); in lotta "Squadra" resta il comando di lotta.
-        if (teamOpen && !snapshot.inBattle) {
+        if (teamOpen && !snapshot.inBattle && sheet != null) {
+            // SQUADRA e scheda del Pokémon nello stile del gioco (D-046).
+            val sel = teamSelected
+            val member = sel?.let { snapshot.party.getOrNull(it) }
+            if (member != null) GameMonScreen(sheet!!, member, session.romData) { teamSelected = null }
+            else GameTeamScreen(
+                sheet = sheet!!, party = snapshot.party, romData = session.romData,
+                onOpen = { teamSelected = it },
+                onSwap = { _, _ -> message = "Spostare i Pokémon arriverà presto" },
+                onClose = { teamOpen = false },
+            )
+        } else if (teamOpen && !snapshot.inBattle) {
             TeamSheet(
                 party = snapshot.party,
                 romData = session.romData,
@@ -466,7 +502,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 onClose = { bagOpen = false }
             )
         }
-        if (dexOpen && !snapshot.inBattle) {
+        if (dexOpen && !snapshot.inBattle && sheet != null) {
+            GameDexScreen(sheet!!, snapshot.pokedexSeen, snapshot.pokedexOwned, session.romData) { dexOpen = false }
+        } else if (dexOpen && !snapshot.inBattle) {
             PokedexSheet(snapshot.pokedexSeen, snapshot.pokedexOwned, session.romData) { dexOpen = false }
         }
 

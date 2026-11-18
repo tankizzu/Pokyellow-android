@@ -28,9 +28,15 @@ class RealGameTilesTest {
             c.box(0, 0, 14, 5)
             c.text("▶NUOVO GIOCO", 1, 2)
             c.text("OPZIONI", 2, 4)
-            var diff = 0
-            for (y in 0 until c.height) for (x in 0 until c.width) if (c.pixels[y * c.width + x] != frame[y * 160 + x]) diff++
+            // Il bianco esterno alla cornice è trasparente (D-046): sul gioco lì c'è la carta; il resto è identico.
+            var diff = 0; var clear = 0
+            val paper = c.paper
+            for (y in 0 until c.height) for (x in 0 until c.width) {
+                val p = c.pixels[y * c.width + x]
+                if (p == 0) { clear++; if (frame[y * 160 + x] != paper) diff++ } else if (p != frame[y * 160 + x]) diff++
+            }
             assertEquals("pixel diversi dal gioco", 0, diff)
+            assertEquals("bianco esterno tolto", true, clear > 0)
         } finally { NativeCore.nativeDestroy(h) }
     }
 }

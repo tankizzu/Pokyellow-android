@@ -81,6 +81,31 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Menu di lotta del gioco (LOTTA/PKMN/STRUM./FUGA o mosse) sullo schermo: l'app lo copre, ha i suoi riquadri (D-045). */
     @Volatile var battleMenuShown = false
         private set
+    /**
+     * Domanda Sì/No del gioco sullo schermo (D-046): riquadro del gioco in caselle (x0, y0, x1, y1), voce del cursore e
+     * caselle delle due risposte (2 per riga), per ridisegnarle nei riquadri dell'app sotto il dialogo.
+     */
+    class YesNo(val x0: Int, val y0: Int, val x1: Int, val y1: Int, val item: Int, val yes: IntArray, val no: IntArray)
+    @Volatile var yesNo: YesNo? = null
+        private set
+
+    private val frameMask = YesNoMask()
+    private val extMask = YesNoMask()
+
+    private fun yesNoInfo(vars: ByteArray, tiles: ByteArray, item: Int): YesNo? {
+        fun t(x: Int, y: Int) = if (x in 0 until 20 && y in 0 until 18) tiles[y * 20 + x].toInt() and 0xFF else -1
+        val topY = vars[0].toInt() and 0xFF; val topX = vars[1].toInt() and 0xFF
+        val x0 = topX - 1; val y0 = topY - 1
+        if (t(x0, y0) != 0x79) return null
+        val x1 = (x0 + 1 until 20).firstOrNull { t(it, y0) == 0x7B } ?: return null
+        val y1 = (y0 + 1 until 18).firstOrNull { t(x0, it) == 0x7D } ?: return null
+        fun word(y: Int) = IntArray(x1 - topX - 1) { t(topX + 1 + it, y) }
+        return YesNo(x0, y0, x1, y1, item, word(topY), word(topY + 2))
+    }
+
+    /** Schermata dei nomi del gioco sullo schermo: l'app non la mostra mai (copre con la sua, D-046). */
+    @Volatile var namingShown = false
+        private set
     /** La scheda allenatore del gioco è sullo schermo: l'app la mostra ridisposta (D-045). */
     @Volatile var trainerCardShown = false
         private set
@@ -123,6 +148,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private val textAssist = TextAssist()
     @Volatile var autoTextSpeed: Int = 0
         set(value) { field = value.coerceIn(0, 3) }
+
+    /** Volume 0–5 (D-046), applicato al suono del gioco. */
+    @Volatile var volume: Int = 5
+        set(value) { field = value.coerceIn(0, 5); runCatching { audioTrack?.setVolume(field / 5f) } }
     fun setHolding(holding: Boolean) { textAssist.holding = holding }
 
     /** Esecutore dei comandi di lotta: quando è occupato, i suoi tasti sostituiscono quelli del giocatore. */
@@ -394,6 +423,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private fun loop() {
         val track = createAudioTrack()
         audioTrack = track
+        runCatching { track?.setVolume(volume / 5f) }
         val audio = ShortArray(8192)
         var back = IntArray(NativeCore.WIDTH * NativeCore.HEIGHT)
         var frames = 0L
@@ -410,7 +440,6 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (track != null && track.playState != AudioTrack.PLAYSTATE_PLAYING) track.play()
                 NativeCore.nativeSetKeys(handle, currentKeys())
                 val count = NativeCore.nativeRunFrame(handle, back, audio)
-                back = latestFrame.getAndSet(back)
                 // Ogni fotogramma: schermata di lotta divisa e menu iniziale ridisegnato (in sincronia con l'immagine).
                 NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles)
                 NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, frameVars)
@@ -419,9 +448,15 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 mainMenuItems = if (frameMenu.kind == MenuKind.MAIN_MENU) frameMenu.items else 0
                 battleMenuShown = frameMenu.kind == MenuKind.BATTLE_MAIN || frameMenu.kind == MenuKind.BATTLE_MOVES
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
+                yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
+                namingShown = NamingReader.looksLikeNaming(frameTiles)
+                val yn = yesNo?.takeIf { !battleSplit && !trainerCardShown }
+                frameMask.apply(back, NativeCore.HEIGHT, 0, yn)
+                back = latestFrame.getAndSet(back)
                 val eh = extendedHeight
                 if (eh > NativeCore.HEIGHT) {
                     val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop) == 1
+                    if (active) extMask.apply(extBack.pixels, eh, extendedFrameTop, yn, frameMask.older)
                     extBack.height = eh
                     extBack.active = active
                     extendedActive = active

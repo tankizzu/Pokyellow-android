@@ -62,6 +62,38 @@ class TileCanvas(val widthTiles: Int, val heightTiles: Int, private val sheet: I
                 }, tx, ty
             )
         }
+        trimOutside(x0 * 8, y0 * 8, (x1 + 1) * 8, (y1 + 1) * 8)
+    }
+
+    /**
+     * Toglie il bianco esterno attorno alla cornice del riquadro (D-046): da ogni bordo verso l'interno i pixel "carta"
+     * diventano trasparenti fino alla prima linea della cornice, così sulla mappa resta solo la cornice.
+     */
+    private fun trimOutside(px0: Int, py0: Int, px1: Int, py1: Int) {
+        val p = paper
+        val xa = px0.coerceAtLeast(0); val xb = px1.coerceAtMost(width); val ya = py0.coerceAtLeast(0); val yb = py1.coerceAtMost(height)
+        for (y in ya until yb) {
+            var x = xa; while (x < xb && pixels[y * width + x].let { it == p || it == 0 }) { pixels[y * width + x] = 0; x++ }
+            x = xb - 1; while (x >= xa && pixels[y * width + x].let { it == p || it == 0 }) { pixels[y * width + x] = 0; x-- }
+        }
+        for (x in xa until xb) {
+            var y = ya; while (y < yb && pixels[y * width + x].let { it == p || it == 0 }) { pixels[y * width + x] = 0; y++ }
+            y = yb - 1; while (y >= ya && pixels[y * width + x].let { it == p || it == 0 }) { pixels[y * width + x] = 0; y-- }
+        }
+    }
+
+    /** Icona della squadra 16×16 (indici di colore 0–3, [RomData.partyIcon]) in pixel; il colore 0 resta trasparente. */
+    fun icon(data: IntArray, px: Int, py: Int, scale: Int = 1) {
+        val i = ink; val pa = paper
+        fun mix(a: Int, b: Int, t: Float): Int {
+            fun ch(sh: Int) = (((a shr sh) and 255) * (1 - t) + ((b shr sh) and 255) * t).toInt() shl sh
+            return (0xFF shl 24) or ch(16) or ch(8) or ch(0)
+        }
+        val colors = intArrayOf(pa, mix(pa, i, 0.33f), mix(pa, i, 0.66f), i)
+        for (y in 0 until 16 * scale) for (x in 0 until 16 * scale) {
+            val c = data[(y / scale) * 16 + x / scale]; val dx = px + x; val dy = py + y
+            if (c != 0 && dx in 0 until width && dy in 0 until height) pixels[dy * width + dx] = colors[c]
+        }
     }
 
     companion object {

@@ -79,15 +79,21 @@ class GameRenderer(private val session: GameSession) {
         }
         val frame = s.latestFrame.get()
         frameBitmap.setPixels(frame, 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, NativeCore.HEIGHT)
+        if (s.namingShown) {
+            // Schermata dei nomi del gioco: mai visibile, nemmeno per un attimo prima della schermata dell'app (D-046).
+            val sheet = s.tileSheet.get()
+            canvas.drawColor(if (sheet != null) sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8] else frame[0])
+            return
+        }
         if (s.trainerCardShown) {
-            // Scheda allenatore del gioco ridisposta (D-045): dati alla riga 8, medaglie alla riga 18, sfondo della scheda.
+            // Scheda allenatore del gioco ridisposta (D-045): dati alla riga 6, medaglie alla riga 16 (D-046), sfondo della scheda.
             val row = w / 20
             canvas.drawColor(frame[70 * NativeCore.WIDTH])
             src.set(0, 0, NativeCore.WIDTH, 64)
-            dst.set(0, 8 * row, w, 8 * row + 8 * row)
+            dst.set(0, 6 * row, w, 6 * row + 8 * row)
             canvas.drawBitmap(frameBitmap, src, dst, paint)
             src.set(0, 64, NativeCore.WIDTH, NativeCore.HEIGHT)
-            dst.set(0, 18 * row, w, 18 * row + 10 * row)
+            dst.set(0, 16 * row, w, 16 * row + 10 * row)
             canvas.drawBitmap(frameBitmap, src, dst, paint)
             return
         }

@@ -54,6 +54,9 @@ object MemoryMapIt {
     const val PARTY_MON_OT = 0xD277
     const val PARTY_MON_NICKS = 0xD2B9
     /** Borsa: numero di strumenti (max 20), poi coppie (strumento, quantità) chiuse da 0xFF. Verificata con la Pozione del PC. */
+    /** ROM: tabella delle icone della squadra (voci da 6 byte) e tipo d'icona per n. del Pokédex (mezzo byte). */
+    const val ROM_PARTY_ICON_GFX = 0x7188D
+    const val ROM_PARTY_ICON_TYPES = 0x719FA
     const val BAG_COUNT = 0xD321
     const val BAG_ITEMS = 0xD322
     const val BAG_CAPACITY = 20

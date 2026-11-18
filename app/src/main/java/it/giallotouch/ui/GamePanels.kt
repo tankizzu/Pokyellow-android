@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,18 +51,14 @@ class TileGrid(val unit: Float, val rows: Int) {
 fun GamePanel(
     sheet: IntArray,
     open: Boolean,
-    /** Cursore ▶ nel riquadro: 0 POKéDEX, 1 OPZIONI, 2 BORSA, 3 SALVA (D-041). */
+    /** Cursore ▶ nel riquadro: 0 POKéMON, 1 allenatore, 2 POKéDEX, 3 OPZIONI, 4 BORSA, 5 SALVA (D-041, D-046). */
     cursor: Int,
     party: List<PartyMember>,
     romData: RomData,
     onToggle: () -> Unit,
-    onPokedex: () -> Unit,
-    onBag: () -> Unit,
-    onOptions: () -> Unit,
-    onSave: () -> Unit,
+    onActivate: (Int) -> Unit,
     onMember: (Int) -> Unit,
     playerName: String = "",
-    onTrainer: () -> Unit = {},
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -91,21 +88,17 @@ fun GamePanel(
                     .offset { g.at(0f, top.toFloat()) }
                     .pointerInput(Unit) {
                         detectTapGestures { pos ->
-                            val right = pos.x >= 10 * g.tilePx
+                            val right = if (pos.x >= 10 * g.tilePx) 1 else 0
                             val row = (pos.y / g.tilePx).toInt()
-                            when {
-                                row <= 3 -> onTrainer()
-                                row <= 6 -> if (right) onOptions() else onPokedex()
-                                else -> if (right) onSave() else onBag()
-                            }
+                            onActivate(right + when { row <= 3 -> 0; row <= 6 -> 2; else -> 4 })
                         }
                     }
             ) {
                 box(0, 0, 19, 10)
-                text(playerName.take(10), 7, 2)
+                text("POKéMON", 2, 2); text(playerName.take(8), 12, 2)
                 text("POKéDEX", 2, 5); text("OPZIONI", 11, 5)
                 text("BORSA", 2, 8); text("SALVA", 13, 8)
-                tile(TileCanvas.CURSOR, when (cursor) { 1 -> 10; 3 -> 12; else -> 1 }, if (cursor < 2) 5 else 8)
+                tile(TileCanvas.CURSOR, when (cursor) { 1 -> 11; 3 -> 10; 5 -> 12; else -> 1 }, 2 + 3 * (cursor / 2))
             }
         }
         TileImage(
@@ -122,28 +115,13 @@ fun GamePanel(
 
 /** Squadra in piccolo: 2 colonne × 3 righe; nome e livello, barra della vita con i PS, barra dell'esperienza. */
 private fun drawTeam(c: TileCanvas, party: List<PartyMember>, romData: RomData) {
+    // Per ogni compagno (D-046): icona del gioco, nome e sotto livello e vita; scritte a metà grandezza, icona intera.
     party.take(6).forEachIndexed { i, m ->
         val col = (i % 2) * 18
         val row = (i / 2) * 4
-        c.text(m.name.take(10), col, row)
-        c.text("L" + m.level, col + 12, row)
-        // vita
-        val hpFrac = if (m.maxHp > 0) m.hp.toFloat() / m.maxHp else 0f
-        val bx = col * 8; val by = (row + 1) * 8 + 1
-        c.fill(bx, by, 80, 6, c.ink)
-        c.fill(bx + 1, by + 1, 78, 4, c.paper)
-        c.fill(bx + 1, by + 1, (78 * hpFrac).toInt(), 4, when {
-            hpFrac > 0.5f -> BAR_GREEN
-            hpFrac > 0.2f -> BAR_YELLOW
-            else -> BAR_RED
-        })
-        c.text("${m.hp}/${m.maxHp}", col + 11, row + 1)
-        // esperienza
-        val exp = Experience.progress(romData.growthRate(m.species), m.level, m.exp)
-        val ey = (row + 2) * 8 + 2
-        c.fill(bx, ey, 80, 4, c.ink)
-        c.fill(bx + 1, ey + 1, 78, 2, c.paper)
-        c.fill(bx + 1, ey + 1, (78 * exp).toInt(), 2, BAR_EXP)
+        romData.partyIcon(m.species)?.let { c.icon(it, col * 8, row * 8, scale = 2) }
+        c.text(m.name.take(10), col + 4, row)
+        c.text("L${m.level} ${m.hp}/${m.maxHp}", col + 4, row + 2)
     }
 }
 
@@ -151,7 +129,7 @@ private fun drawTeam(c: TileCanvas, party: List<PartyMember>, romData: RomData) 
  * OPZIONI (D-040), nello stile del gioco: testo automatico (tocco = cambia velocità) e INDIETRO.
  */
 @Composable
-fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, onBack: () -> Unit) {
+fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: Int, onVolume: (Int) -> Unit, onBack: () -> Unit) {
     val speeds = listOf("NO", "LENTO", "MEDIO", "VELOCE")
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8]))
         .pointerInput(Unit) { detectTapGestures { } }) {
@@ -162,22 +140,38 @@ fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, onBack: 
         TileImage(sheet, 20, 3, unit, key = "opz-titolo", modifier = Modifier.offset { g.at(0f, top.toFloat()) }) {
             box(0, 0, 19, 2); text("OPZIONI", 6, 1)
         }
+        // Riquadro grande (D-046): COMPARSA TESTO (tocco = cambia) e VOLUME con 6 livelli (tocco sul livello).
         TileImage(
-            sheet, 20, 5, unit, key = autoText,
+            sheet, 20, 28, unit, key = Pair(autoText, volume),
             modifier = Modifier
                 .offset { g.at(0f, (top + 4).toFloat()) }
-                .pointerInput(Unit) { detectTapGestures { onAutoText() } }
+                .pointerInput(Unit) {
+                    detectTapGestures { pos ->
+                        val row = (pos.y / g.tilePx).toInt(); val col = (pos.x / g.tilePx).toInt()
+                        when {
+                            row in 1..5 -> onAutoText()
+                            row in 7..12 -> onVolume((((pos.x / unit) - 18) / 22).toInt().coerceIn(0, 5))
+                        }
+                    }
+                }
         ) {
-            box(0, 0, 19, 4)
-            text("TESTO AUTO", 2, 2); text(speeds[autoText], 18 - speeds[autoText].length + 1, 2)
+            box(0, 0, 19, 27)
+            text("COMPARSA TESTO", 2, 2); text(speeds[autoText], 2, 4)
+            text("VOLUME", 2, 8)
+            for (i in 0..5) {
+                val x = 18 + 22 * i; val y = 11 * 8
+                fill(x, y, 14, 8, ink)
+                if (volume == 0 || i > volume) fill(x + 1, y + 1, 12, 6, paper)   // 6 scelte: tocco sulla prima = muto
+            }
+            text(if (volume == 0) "MUTO" else "", 2, 13)
         }
         TileImage(
-            sheet, 20, 4, unit, key = "opz-indietro",
+            sheet, 11, 4, unit, key = "opz-indietro",
             modifier = Modifier
-                .offset { g.at(0f, (top + 10).toFloat()) }
+                .offset { g.at(5f, 39f) }
                 .pointerInput(Unit) { detectTapGestures { onBack() } }
         ) {
-            box(0, 0, 19, 3); text("INDIETRO", 2, 2)
+            box(0, 0, 10, 3); textAt("INDIETRO", 13, 12)
         }
     }
 }
@@ -269,10 +263,12 @@ fun GameBagScreen(
     var dragTo by remember { mutableStateOf<Int?>(null) }
     BackHandler { if (selected != null) selected = null else onClose() }
     val paper = Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8])
-    val step = if (bag.size <= 12) 2 else 1
-    val listTop = 7
-    val listRows = maxOf(1, bag.size) * step + 3
-    val backRow = listTop + listRows + 1
+    // Disposizione del committente (D-046): lista alta fino alla riga 38, strumenti ogni 3 righe (2 o 1 se sono tanti),
+    // INDIETRO e SELECT alla riga 39; con uno strumento scelto la lista si accorcia e sotto compare USA / GETTA.
+    val step = when { bag.size <= 9 -> 3; bag.size <= 14 -> 2; else -> 1 }
+    val listTop = 8
+    val backRow = 39
+    val listRows = if (selected != null) 27 else backRow - listTop
     BoxWithConstraints(Modifier.fillMaxSize().background(paper)) {
         val density = LocalDensity.current
         val unit = with(density) { maxWidth.toPx() } / 160f
@@ -293,7 +289,7 @@ fun GameBagScreen(
                             }
                             row in backRow until backRow + 4 -> onClose()
                             row in listTop + 1 until listTop + listRows - 1 -> {
-                                val i = (row - listTop - 2 + (step - 1)) / step
+                                val i = (row - listTop - 2 + step / 2) / step
                                 if (i in bag.indices) {
                                     val from = sel
                                     if (swapMode && from != null && from != i) { swapMode = false; onSwap(from, i) }
@@ -307,7 +303,7 @@ fun GameBagScreen(
                     // Tenere premuto e trascinare: sposta lo strumento dove si lascia il dito.
                     fun itemAt(y: Float): Int? {
                         val row = (y / tilePx).toInt()
-                        val i = (row - listTop - 2 + (step - 1)) / step
+                        val i = (row - listTop - 2 + step / 2) / step
                         return if (row in listTop + 1 until listTop + listRows - 1 && i in bag.indices) i else null
                     }
                     detectDragGesturesAfterLongPress(
@@ -336,31 +332,35 @@ fun GameBagScreen(
                 else if (sel == i) tile(if (swapMode) 0xEC else TileCanvas.CURSOR, 1, r)
                 if (dragTo == i && dragFrom != i) tile(TileCanvas.CURSOR, 1, r)
             }
-            box(0, backRow, 9, backRow + 3); text("INDIETRO", 1, backRow + 2)
-            box(10, backRow, 19, backRow + 3); text("SELECT", 12, backRow + 2)
-            if (swapMode) tile(TileCanvas.CURSOR, 11, backRow + 2)
+            if (sel == null) {
+                box(0, backRow, 9, backRow + 3); textAt("INDIETRO", 7, backRow * 8 + 12)
+                box(10, backRow, 19, backRow + 3); textAt("SELECT", 97, backRow * 8 + 12)
+                if (swapMode) tileAt(TileCanvas.CURSOR, 89, backRow * 8 + 12)
+            }
         }
         if (sel != null && sel in bag.indices) {
             val item = bag[sel]
             val key = it.giallotouch.bridge.Items.isKeyItem(item.id)
-            val top = rows - 9
+            val top = 35
             TileImage(
                 sheet, 20, 8, unit, key = Pair(sel, key),
                 modifier = Modifier
                     .offset { IntOffset(0, (top * tilePx).toInt()) }
                     .pointerInput(sel, key) {
                         detectTapGestures { pos ->
-                            when (((pos.y / tilePx).toInt() - 1) / 2) {
-                                0 -> onUse(sel, item)
-                                1 -> if (!key) onToss(sel, item) else selected = null
-                                else -> selected = null
+                            val row = (pos.y / tilePx).toInt(); val col = (pos.x / tilePx).toInt()
+                            when {
+                                row >= 4 -> selected = null
+                                col < 10 -> onUse(sel, item)
+                                !key -> onToss(sel, item)
                             }
                         }
                     }
             ) {
                 box(0, 0, 19, 7)
-                text("USA", 2, 2)
-                if (!key) { text("GETTA", 2, 4); text("ANNULLA", 2, 6) } else text("ANNULLA", 2, 4)
+                text("USA", 3, 2)
+                if (!key) text("GETTA", 12, 2)
+                textAt("ANNULLA", 49, 38)
             }
         }
     }
@@ -395,10 +395,17 @@ fun GameBattlePanel(
                     detectTapGestures { pos ->
                         if (!enabled) return@detectTapGestures
                         val col = (pos.x / tilePx).toInt()
-                        when { col < 8 -> onParty(); col < 14 -> onBag(); else -> onRun() }
+                        if (col < 10) onParty() else onBag()
                     }
                 }
-        ) { box(0, 0, 19, 4); text("SQUADRA", 1, 2); text("BORSA", 9, 2); text("FUGA", 15, 2) }
+        ) { box(0, 0, 19, 4); text("SQUADRA", 1, 2); text("BORSA", 13, 2) }
+        // FUGA nel suo riquadro in basso (D-046).
+        TileImage(
+            sheet, 8, 4, unit, key = "fuga",
+            modifier = Modifier
+                .offset { IntOffset((6 * tilePx).toInt(), (it.giallotouch.bridge.BattleLayout.RUN_TOP_ROW * tilePx).toInt()) }
+                .pointerInput(enabled) { detectTapGestures { if (enabled) onRun() } }
+        ) { box(0, 0, 7, 3); textAt("FUGA", 17, 13) }
         TileImage(
             sheet, 20, 11, unit, key = moves,
             modifier = Modifier
@@ -429,17 +436,183 @@ fun GameTrainerExtras(sheet: IntArray, seen: Int, owned: Int, party: Int, onBack
         val density = LocalDensity.current
         val unit = with(density) { maxWidth.toPx() } / 160f
         val tilePx = 8 * unit
-        TileImage(sheet, 20, 9, unit, key = Triple(seen, owned, party), modifier = Modifier.offset { IntOffset(0, (30 * tilePx).toInt()) }) {
+        TileImage(sheet, 20, 9, unit, key = Pair(seen, owned), modifier = Modifier.offset { IntOffset(0, (28 * tilePx).toInt()) }) {
             box(0, 0, 19, 8)
-            text("POKéDEX", 2, 2)
-            text("VISTI $seen  PRESI $owned", 2, 4)
-            text("SQUADRA $party", 2, 6)
+            text("POKéDEX", 6, 3)
+            text("VISTI $seen  PRESI $owned", 2, 6)
         }
         TileImage(
             sheet, 10, 4, unit, key = "indietro",
             modifier = Modifier
-                .offset { IntOffset((5 * tilePx).toInt(), (40 * tilePx).toInt()) }
+                .offset { IntOffset((5 * tilePx).toInt(), (39 * tilePx).toInt()) }
                 .pointerInput(Unit) { detectTapGestures { onBack() } }
         ) { box(0, 0, 9, 3); textAt("INDIETRO", 8, 12) }
+    }
+}
+
+/** Riquadro INDIETRO 10×4 nello stile del gioco, in (col, riga) dello schermo. */
+@Composable
+private fun BackBox(sheet: IntArray, unit: Float, col: Int, row: Int, textX: Int = 9, onBack: () -> Unit) {
+    val tilePx = 8 * unit
+    TileImage(
+        sheet, 10, 4, unit, key = "indietro-$textX",
+        modifier = Modifier
+            .offset { IntOffset((col * tilePx).toInt(), (row * tilePx).toInt()) }
+            .pointerInput(Unit) { detectTapGestures { onBack() } }
+    ) { box(0, 0, 9, 3); textAt("INDIETRO", textX, 12) }
+}
+
+private fun paperOf(sheet: IntArray) = Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8])
+
+/**
+ * SQUADRA nello stile del gioco (D-046): per ogni compagno nome, icona, livello e vita; tocco = scheda del Pokémon.
+ * INDIETRO e SELECT in basso; spostare (SELECT o tenere premuto e trascinare) chiama [onSwap].
+ */
+@Composable
+fun GameTeamScreen(
+    sheet: IntArray,
+    party: List<PartyMember>,
+    romData: RomData,
+    onOpen: (Int) -> Unit,
+    onSwap: (Int, Int) -> Unit,
+    onClose: () -> Unit,
+) {
+    var swapFrom by remember { mutableStateOf<Int?>(null) }
+    var swapMode by remember { mutableStateOf(false) }
+    var dragFrom by remember { mutableStateOf<Int?>(null) }
+    var dragTo by remember { mutableStateOf<Int?>(null) }
+    BackHandler { if (swapMode) { swapMode = false; swapFrom = null } else onClose() }
+    BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        fun memberAt(y: Float): Int? {
+            val row = (y / tilePx).toInt()
+            val i = (row - 8) / 5
+            return if (row >= 8 && i in party.indices) i else null
+        }
+        TileImage(
+            sheet, 20, 39, unit, key = listOf(party, swapMode, swapFrom, dragFrom, dragTo),
+            modifier = Modifier
+                .pointerInput(party, swapMode, swapFrom) {
+                    detectTapGestures { pos ->
+                        val i = memberAt(pos.y) ?: return@detectTapGestures
+                        when {
+                            !swapMode -> onOpen(i)
+                            swapFrom == null -> swapFrom = i
+                            swapFrom != i -> { val f = swapFrom!!; swapMode = false; swapFrom = null; onSwap(f, i) }
+                        }
+                    }
+                }
+                .pointerInput(party) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { p -> dragFrom = memberAt(p.y); dragTo = dragFrom },
+                        onDrag = { change, _ -> memberAt(change.position.y)?.let { dragTo = it } },
+                        onDragEnd = {
+                            val f = dragFrom; val t = dragTo
+                            dragFrom = null; dragTo = null
+                            if (f != null && t != null && f != t) onSwap(f, t)
+                        },
+                        onDragCancel = { dragFrom = null; dragTo = null },
+                    )
+                }
+        ) {
+            box(0, 3, 19, 5); text("SQUADRA", 6, 4)
+            box(0, 7, 19, 38)
+            party.take(6).forEachIndexed { i, m ->
+                val r = 9 + 5 * i
+                val name = m.name.take(10)
+                text(name, 2, r)
+                romData.partyIcon(m.species)?.let { icon(it, maxOf(9, 3 + name.length) * 8, r * 8) }
+                val lv = "L${m.level}"; text(lv, 19 - lv.length, r)
+                text("PS", 2, r + 1)
+                val hp = "${m.hp}/${m.maxHp}"; text(hp, 19 - hp.length, r + 1)
+                when {
+                    dragFrom == i || swapFrom == i -> tile(0xEC, 1, r)
+                    dragTo == i -> tile(TileCanvas.CURSOR, 1, r)
+                }
+            }
+        }
+        BackBox(sheet, unit, 0, 39, textX = 8) { if (swapMode) { swapMode = false; swapFrom = null } else onClose() }
+        TileImage(
+            sheet, 10, 4, unit, key = Pair("select", swapMode),
+            modifier = Modifier
+                .offset { IntOffset((10 * tilePx).toInt(), (39 * tilePx).toInt()) }
+                .pointerInput(Unit) { detectTapGestures { swapMode = !swapMode; swapFrom = null } }
+        ) { box(0, 0, 9, 3); textAt("SELECT", 16, 13); if (swapMode) tileAt(TileCanvas.CURSOR, 8, 13) }
+    }
+}
+
+/** Scheda del Pokémon nello stile del gioco (D-046): icona, nome, livello, vita, tipi, statistiche e mosse con PP. */
+@Composable
+fun GameMonScreen(sheet: IntArray, m: PartyMember, romData: RomData, onClose: () -> Unit) {
+    BackHandler { onClose() }
+    BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        TileImage(sheet, 20, 35, unit, key = m) {
+            romData.partyIcon(m.species)?.let { icon(it, 8, 24, scale = 3) }
+            text(m.name.take(10), 9, 4)
+            text("L${m.level}", 9, 6)
+            text("PS ${m.hp}/${m.maxHp}", 9, 8)
+            text(m.types.distinct().joinToString("/") { romData.typeName(it) }.take(10), 9, 10)
+            box(0, 12, 19, 22)
+            val st = m.stats
+            listOf("ATTACCO" to st?.attack, "DIFESA" to st?.defense, "VELOCITA" to st?.speed, "SPECIALE" to st?.special)
+                .forEachIndexed { k, (label, v) ->
+                    text(label, 2, 14 + 2 * k); val t = v?.toString() ?: "-"; text(t, 18 - t.length, 14 + 2 * k)
+                }
+            box(0, 24, 19, 34)
+            for (k in 0 until 4) {
+                val mv = m.moves.getOrNull(k)
+                text(mv?.let { romData.moveName(it.id).take(11) } ?: "-", 2, 26 + 2 * k)
+                if (mv != null) {
+                    val max = romData.maxPp(mv.id, mv.ppUps)
+                    val pp = if (max != null) "${mv.pp}/$max" else "${mv.pp}"
+                    text(pp, 19 - pp.length, 26 + 2 * k)
+                }
+            }
+        }
+        BackBox(sheet, unit, 5, 39, onBack = onClose)
+    }
+}
+
+/** POKéDEX nello stile del gioco (D-046): lista dei numeri fino all'ultimo visto (scorre col dito), visti e presi. */
+@Composable
+fun GameDexScreen(sheet: IntArray, seen: List<Int>, owned: List<Int>, romData: RomData, onClose: () -> Unit) {
+    BackHandler { onClose() }
+    val last = seen.maxOrNull() ?: 0
+    var first by remember { mutableStateOf(0) }
+    val visible = 12
+    BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        TileImage(
+            sheet, 20, 39, unit, key = listOf(seen, owned, first),
+            modifier = Modifier.pointerInput(last) {
+                var acc = 0f
+                detectVerticalDragGestures { _, dy ->
+                    acc -= dy
+                    val step = (acc / (2 * tilePx)).toInt()
+                    if (step != 0) { acc -= step * 2 * tilePx; first = (first + step).coerceIn(0, maxOf(0, last - visible)) }
+                }
+            }
+        ) {
+            box(0, 3, 19, 5); text("POKéDEX", 6, 4)
+            box(0, 7, 19, 33)
+            if (last == 0) text("NESSUNO", 2, 9)
+            for (k in 0 until visible) {
+                val n = first + k + 1
+                if (n > last) break
+                val r = 9 + 2 * k
+                text("%03d".format(n), 2, r)
+                text(if (n in seen) romData.speciesNameForDex(n).take(10) else "----------", 6, r)
+                if (n in owned) tile(TileCanvas.CURSOR, 18, r)
+            }
+            box(0, 34, 19, 38)
+            text("VISTI ${seen.size}", 2, 36); text("PRESI ${owned.size}", 11, 36)
+        }
+        BackBox(sheet, unit, 5, 39, textX = 8, onBack = onClose)
     }
 }

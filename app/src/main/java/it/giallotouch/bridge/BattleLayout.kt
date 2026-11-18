@@ -14,9 +14,10 @@ object BattleLayout {
     const val TEXT_ROWS = 48
     /** Posizioni scelte dal committente (D-045), in righe da 8 pixel dall'alto dello schermo. */
     const val TEXT_TOP_ROW = 4
-    const val SCENE_TOP_ROW = 10
-    const val ACTIONS_TOP_ROW = 22
-    const val MOVES_TOP_ROW = 27
+    const val SCENE_TOP_ROW = 11
+    const val ACTIONS_TOP_ROW = 23
+    const val MOVES_TOP_ROW = 28
+    const val RUN_TOP_ROW = 39
 
     private const val CORNER_TR = 0x7B
     private const val CORNER_BL = 0x7D

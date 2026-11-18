@@ -37,7 +37,10 @@
 - [x] Avvio con le grafiche del gioco come nel mockup del committente (D-039, D-040, D-041)
 - [x] Borsa nello stile del gioco con SELECT e trascinamento (D-043)
 - [x] Scheda allenatore, START e lotta dal mockup (D-045), verificati col banco di prova
-- [ ] **Prossimo passo**: Squadra nello stile del gioco con spostamento (tenere premuto + SELECT, menu POKéMON del gioco); Pokédex e messaggi
+- [x] Menu dal mockup completo (D-046)
+- [ ] Scheda Pokémon: immagine grande del Pokémon (ora c'è l'icona ingrandita; serve leggere le immagini compresse della ROM)
+- [ ] Squadra: spostamento dei Pokémon nel menu del gioco (serve uno stato con almeno 2 Pokémon)
+- [ ] **Prossimo passo** (vecchio): Squadra nello stile del gioco con spostamento (tenere premuto + SELECT, menu POKéMON del gioco); Pokédex e messaggi
 - [x] In lotta il menu LOTTA/PKMN/STRUM./FUGA del gioco è coperto da un riquadro vuoto (doppione delle azioni dell'app)
 - [ ] Prova sul gioco vero dello scambio di strumenti: pronta `RealGameSwapTest` (`-Pgiallo.state.items=STATO`), manca uno stato con almeno 2 strumenti (es. dopo aver ricevuto il Pacco di Oak a Smeraldopoli)
 - [ ] Usa con scelta del compagno nell'app (pozioni, cure); Squadra: "Sposta"

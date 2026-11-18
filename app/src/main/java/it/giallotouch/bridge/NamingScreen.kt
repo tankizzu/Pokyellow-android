@@ -51,6 +51,17 @@ object NamingReader {
     private const val UNDERSCORE_RAISED = 0x77
     private const val CURSOR = 0xED
 
+    /**
+     * Controllo veloce, a ogni fotogramma: griglia delle lettere e trattini del nome già sullo schermo (anche prima che
+     * compaia il cursore). Serve a non mostrare mai la schermata originale dei nomi, nemmeno per un attimo (D-046).
+     */
+    fun looksLikeNaming(tileMap: ByteArray): Boolean {
+        if (tileMap.size < MenuReader.SCREEN_SIZE) return false
+        fun tile(x: Int, y: Int) = tileMap[y * MenuReader.SCREEN_WIDTH + x].toInt() and 0xFF
+        return tile(0, 4) == CORNER_TL && tile(19, 4) == CORNER_TR && tile(0, 14) == CORNER_BL && tile(19, 14) == CORNER_BR &&
+            tile(10, 3).let { it == UNDERSCORE || it == UNDERSCORE_RAISED }
+    }
+
     fun read(menuVars: ByteArray, tileMap: ByteArray, nameBuffer: ByteArray): NamingScreen? {
         if (menuVars.size < MenuReader.MENU_VARS_SIZE || tileMap.size < MenuReader.SCREEN_SIZE) return null
         val topY = menuVars[0].toInt() and 0xFF

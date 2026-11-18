@@ -11,6 +11,11 @@ class Settings(context: Context) {
         get() = prefs.getInt("testo_automatico", 0)
         set(value) { prefs.edit().putInt("testo_automatico", value).apply() }
 
+    /** Volume del gioco (D-046): 0 = muto … 5 = pieno. */
+    var volume: Int
+        get() = prefs.getInt("volume", 5)
+        set(value) { prefs.edit().putInt("volume", value).apply() }
+
     /** Lato del pulsante laterale che fa comparire i pulsanti durante il gioco: "destra" o "sinistra" (D-037). */
     var panelSide: String
         get() = prefs.getString("lato_pulsanti", "destra") ?: "destra"
