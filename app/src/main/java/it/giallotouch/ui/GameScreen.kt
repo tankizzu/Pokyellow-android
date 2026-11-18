@@ -144,6 +144,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var trainerCard by remember { mutableStateOf(false) }   // scheda allenatore del gioco sullo schermo (D-045)
     var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
     var battleMenu by remember { mutableStateOf(false) }   // menu di lotta del gioco sullo schermo (si può scegliere)
+    var battleGameMenu by remember { mutableStateOf(false) }   // in lotta: squadra/borsa del gioco aperte
     /** Voce del riquadro dei pulsanti (D-046): 0 POKéMON, 1 allenatore, 2 POKéDEX, 3 OPZIONI, 4 BORSA, 5 SALVA. */
     fun panelActivate(i: Int) {
         panelCursor = i
@@ -154,7 +155,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             2 -> dexOpen = true
             3 -> optionsOpen = true
             4 -> bagOpen = true
-            else -> message = if (session.saveManual()) "Partita salvata in questo punto" else "Salvataggio non riuscito"
+            else -> message = if (session.saveManual()) "Partita salvata" else "Salvataggio non riuscito"
         }
     }
     fun startMenuChoose(entry: StartMenuLayout.Entry, items: Int) {
@@ -179,16 +180,17 @@ fun GameScreen(session: GameSession, settings: Settings) {
             trainerCard = session.trainerCardShown
             yesNo = session.yesNo
             battleMenu = session.battleMenuShown
+            battleGameMenu = session.battleGameMenu
             session.tileSheet.get()?.let { if (it !== sheet) sheet = it }
             if (itemRequested && !session.itemBusy) {
                 itemRequested = false
-                if (session.itemResult == false) message = "Non sono riuscito: continua dal menu del gioco"
+                if (session.itemResult == false) message = "Non riuscito: usa il menu del gioco"
             }
             if (nameRequested && !session.nameBusy) {
                 nameRequested = false
                 if (session.nameResult == false) {
                     namingDismissed = true
-                    message = "Non sono riuscito a scrivere il nome: usa la tastiera del gioco"
+                    message = "Nome non scritto: usa la tastiera del gioco"
                 }
             }
             delay(100)
@@ -267,12 +269,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
                                     } else (size.height - h) / 2f
                                     val p = change.position
                                     // Con la vista estesa si possono toccare anche persone e cartelli sopra e sotto l'inquadratura originale.
-                                    if (s.freeRoam && (session.extendedActive || (p.y >= top && p.y < top + h))) {
-                                        val tx = s.x + (p.x / (w / 10f)).toInt() - 4
-                                        // floor: sopra l'inquadratura originale i valori sono negativi
-                                        val ty = s.y + kotlin.math.floor((p.y - top) / (h / 9f)).toInt() - 4
-                                        if (tx == s.x && ty == s.y) tapped = NativeCore.KEY_A else session.walkTo(tx, ty)
-                                    } else tapped = NativeCore.KEY_A
+                                    // Il personaggio si muove solo con la levetta (D-049): un tocco ovunque, vicino a una
+                                    // persona o a un cartello, fa partire il dialogo; altrimenti è il tasto A.
+                                    if (s.freeRoam) session.talkNearby() else tapped = NativeCore.KEY_A
                                 }
                                 break
                             }
@@ -343,7 +342,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // Squadra in alto, con i dati letti dalla memoria del gioco (nascosta durante la lotta).
         val battleMon = snapshot.battleMon
-        if (snapshot.inBattle && battleMon != null && sheet != null) {
+        if (snapshot.inBattle && battleGameMenu) {
+            // Squadra o borsa del gioco aperte in lotta: si usa il menu del gioco, senza i riquadri dell'app.
+        } else if (snapshot.inBattle && battleMon != null && sheet != null) {
             GameBattlePanel(
                 sheet = sheet!!,
                 moves = battleMon.moves.map { slot ->
@@ -534,8 +535,22 @@ fun GameScreen(session: GameSession, settings: Settings) {
             }
         }
 
-        message?.let {
-            Box(
+        message?.let { text ->
+            val sh = sheet
+            if (sh != null) {
+                // Messaggi dell'app nello stile del gioco (D-049): riquadro alla riga del dialogo, righe da 18 lettere.
+                val lines = wrapGameText(text, 18).take(2)
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val unit = with(density) { maxWidth.toPx() } / 160f
+                    TileImage(
+                        sh, 20, 6, unit, key = text,
+                        modifier = Modifier.offset { IntOffset(0, (GameRenderer.DIALOG_ROW * 8 * unit).toInt()) }
+                    ) {
+                        box(0, 0, 19, 5)
+                        lines.forEachIndexed { i, l -> text(l, 1, 2 + 2 * i) }
+                    }
+                }
+            } else Box(
                 Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
@@ -543,7 +558,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .background(Cream, RoundedCornerShape(14.dp))
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
-                Text(it, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(text, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             }
         }
     }
@@ -700,4 +715,19 @@ private fun BarButton(label: String, icon: ImageVector? = null, modifier: Modifi
         if (icon != null) Icon(icon, contentDescription = null, tint = Cream, modifier = Modifier.size(22.dp))
         Text(label, color = Cream, fontWeight = FontWeight.SemiBold, fontSize = if (icon != null) 11.sp else 15.sp, maxLines = 1)
     }
+}
+
+/** Divide un testo in righe di al massimo [width] lettere, andando a capo tra le parole. */
+fun wrapGameText(text: String, width: Int): List<String> {
+    val lines = mutableListOf<String>()
+    var cur = ""
+    for (w in text.split(' ')) {
+        cur = when {
+            cur.isEmpty() -> w.take(width)
+            cur.length + 1 + w.length <= width -> "$cur $w"
+            else -> { lines += cur; w.take(width) }
+        }
+    }
+    if (cur.isNotEmpty()) lines += cur
+    return lines
 }

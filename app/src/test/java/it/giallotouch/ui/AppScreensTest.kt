@@ -240,6 +240,21 @@ abstract class AppScreensHarness {
         shot("09d-si-cammina")
     }
 
+    /** In lotta BORSA apre il menu del gioco e i riquadri di lotta dell'app spariscono; indietro tornano (D-049). */
+    fun lottaBorsa() {
+        val s = start(auto = "giallo.state") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue("menu di lotta", waitFor(20_000) { s.battleMenuShown && !s.commandBusy })
+        tapTile(15f, it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f)   // BORSA
+        assertTrue("borsa del gioco aperta", waitFor(15_000) { s.battleGameMenu })
+        assertTrue("riquadri di lotta spariti", shotUntil("09e-lotta-borsa") { b -> !boxAt(b, 0, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW, 20, 11) })
+        var k = 0
+        while (s.battleGameMenu && k++ < 10) { press(s, NativeCore.KEY_B); pump(500) }
+        assertTrue("di nuovo il menu di lotta", waitFor(15_000) { s.battleMenuShown })
+        assertTrue("riquadri di lotta tornati", shotUntil("09f-lotta-di-nuovo") { b -> boxAt(b, 0, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW, 20, 11) })
+    }
+
     /** Scheda allenatore (D-045): START → nome del giocatore apre la scheda del gioco ridisposta; INDIETRO chiude. */
     fun schedaAllenatore() {
         val s = start(auto = "giallo.state.squadra") ?: return assumeTrue(false)
@@ -249,6 +264,8 @@ abstract class AppScreensHarness {
         tapTile(10f, rows() - 2f)
         assertTrue("menu aperto", shotUntil("10-menu-allenatore") { boxAt(it, 0, rows() - 15, 20, 11) })
         tapTile(14f, rows() - 13f)   // nome del giocatore (a destra di POKéMON)
+        // Durante il passaggio dal menu START del gioco non si vede nessun menu vecchio (D-049): foto da guardare.
+        for (i in 0 until 4) { pump(250); shot("10b-passaggio-$i") }
         assertTrue("scheda del gioco aperta", waitFor(20_000) { s.trainerCardShown })
         assertTrue("riquadri della scheda", shotUntil("11-scheda-allenatore", 30_000) { boxAt(it, 0, 28, 20, 9) && boxAt(it, 5, 39, 10, 4) })
         tapTile(9f, 40.5f)           // INDIETRO
@@ -264,6 +281,11 @@ abstract class AppScreensHarness {
         assertTrue("in partita", waitFor(20_000) { s.inGame && s.latestSnapshot.get().freeRoam })
         tapTile(10f, rows() - 2f)
         assertTrue("START aperto", shotUntil("13-start") { boxAt(it, 0, 28, 20, 11) && boxAt(it, 0, 2, 20, 8) })
+        tapTile(15f, 36f)            // SALVA
+        assertTrue("messaggio nello stile del gioco", shotUntil("13b-salvata") { boxAt(it, 0, 9, 20, 6) })
+        pump(2500)
+        tapTile(10f, rows() - 2f)
+        assertTrue("START aperto di nuovo", shotUntil("13c-start") { boxAt(it, 0, 28, 20, 11) })
         tapTile(4f, 30f)             // POKéMON
         assertTrue("squadra", shotUntil("14-squadra") { boxAt(it, 0, 7, 20, 32) && boxAt(it, 0, 39, 10, 4) && boxAt(it, 10, 39, 10, 4) })
         tapTile(4f, 9f)              // primo compagno
@@ -341,4 +363,8 @@ class AppBattleFullTest : AppScreensHarness() {
 
 class AppBattlePanelTapTest : AppScreensHarness() {
     @Test fun testiAvantiToccandoIRiquadri() = lottaCompleta(onlyPanel = true)
+}
+
+class AppBattleBagTest : AppScreensHarness() {
+    @Test fun borsaInLotta() = lottaBorsa()
 }

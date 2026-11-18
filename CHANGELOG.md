@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.6.2-prototipo: richieste sulla 0.6.1 (D-049)
+- Movimento solo con la levetta; tocco vicino a persone e cartelli = dialogo.
+- Scheda allenatore e azioni della Borsa senza mostrare i menu vecchi del gioco.
+- "Partita salvata" e gli altri messaggi nello stile del gioco.
+- In lotta, SQUADRA e BORSA mostrano il menu del gioco senza i riquadri dell'app sopra (verificato, 77 prove).
+
 ## 2026-11-18 – 0.6.1-prototipo: correzioni della lotta (B-005, B-006)
 - Un tocco sulla mossa la usa subito, anche cambiando mossa al turno dopo.
 - Durante i testi della lotta un tocco ovunque (anche sui riquadri) manda avanti; dopo la vittoria sul rivale i

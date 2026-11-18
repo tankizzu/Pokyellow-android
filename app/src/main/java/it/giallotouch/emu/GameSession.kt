@@ -72,6 +72,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Lotta a tutto schermo: true quando la schermata di lotta va mostrata divisa (scena + riquadro del testo). */
     @Volatile var battleSplit = false
         private set
+    /** In lotta è aperto un menu del gioco diverso da quello di lotta (squadra, borsa…). */
+    @Volatile var battleGameMenu = false
+        private set
     private val frameTiles = ByteArray(MenuReader.SCREEN_SIZE)
     private val frameVars = ByteArray(MenuReader.MENU_VARS_SIZE)
 
@@ -218,8 +221,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         itemBusy = true
         itemResult = null
         if (action is ItemAction.OpenTrainer) holdSheet = true
-        tasks.add(Runnable { walker.cancel(); itemExecutor.start(action) })
+        tasks.add(Runnable { walker.cancel(); itemExecutor.start(action); currentItemAction = action })
     }
+    private var currentItemAction: ItemAction? = null
+
+    /**
+     * Menu originali del gioco attraversati dall'app da sola (menu START, lista degli strumenti, chiusura della scheda):
+     * non si vedono (D-049), resta l'immagine di prima. [trainerOpening]: fotogrammi di attesa della scheda allenatore.
+     */
+    private var trainerOpening = 0
+    private fun hidingOldMenus(): Boolean = !trainerCardShown && (itemExecutor.busy || closingFrames > 0 || trainerOpening > 0)
 
     /**
      * Sulla scheda allenatore il gioco riusa le caselle dei riquadri per la cornice della scheda: finché la scheda è
@@ -242,6 +253,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         if (!itemExecutor.busy) {
             itemResult = itemExecutor.result == ItemActionExecutor.Result.DONE
             itemBusy = false
+            if (currentItemAction is ItemAction.OpenTrainer && itemResult == true) trainerOpening = 120
+            currentItemAction = null
         }
         return keys
     }
@@ -255,6 +268,25 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
 
     private fun readBytes(address: Int, n: Int): ByteArray = ByteArray(n).also { NativeCore.nativeReadRange(handle, address, it) }
+
+    /** Tocco sullo schermo mentre si cammina (D-049): parla con chi è vicino, altrimenti tasto A. */
+    fun talkNearby() {
+        tasks.add(Runnable { planTalk() })
+    }
+
+    private fun planTalk() {
+        val grid = MapGrid.build(::readBytes, rom) ?: run { pendingA = 8; return }
+        val px = NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD)
+        val py = NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD)
+        for (dy in -2..2) for (dx in -2..2) {
+            val t = (px + dx) to (py + dy)
+            if (!grid.isInteractive(t.first, t.second)) continue
+            val face = grid.interactionSpots(t.first, t.second)[px to py] ?: continue
+            walker.start(emptyList(), face)
+            return
+        }
+        pendingA = 8
+    }
 
     private fun planWalk(tx: Int, ty: Int) {
         val grid = MapGrid.build(::readBytes, rom) ?: return
@@ -462,6 +494,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val frameMenu = MenuReader.read(frameVars, frameTiles)
                 mainMenuItems = if (frameMenu.kind == MenuKind.MAIN_MENU) frameMenu.items else 0
                 battleMenuShown = frameMenu.kind == MenuKind.BATTLE_MAIN || frameMenu.kind == MenuKind.BATTLE_MOVES
+                // In lotta, un altro menu del gioco con il cursore (squadra, borsa, cambio): si mostra il gioco intero e
+                // i riquadri di lotta dell'app spariscono (D-049).
+                battleGameMenu = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && !battleMenuShown &&
+                    frameTiles.any { (it.toInt() and 0xFF) == 0xED }
+                if (battleGameMenu) battleSplit = false
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
                 namingShown = NamingReader.looksLikeNaming(frameTiles)
@@ -469,14 +506,17 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = dialog || yn != null
+                val onScreen = dialog || yn != null || hidingOldMenus()
                 if (dialog && !frameMask.ready) dialog = false
                 if (dialog) {
                     System.arraycopy(back, 96 * NativeCore.WIDTH, stripA, 0, stripA.size)
                     dialogStrip = stripA
                     val t = stripA; stripA = stripB; stripB = t
                 } else dialogStrip = null
+                if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
+                val hide = hidingOldMenus()
                 val boxes = buildList {
+                    if (hide && frameMask.ready) add(BoxMask.Box(0, 0, 19, 17))
                     if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
                     if (dialog) add(BoxMask.Box(0, 12, 19, 17))
                 }
