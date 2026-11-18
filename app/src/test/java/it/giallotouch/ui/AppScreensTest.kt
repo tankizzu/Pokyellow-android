@@ -648,12 +648,18 @@ class ZzScenarioTest : AppScreensHarness() {
         while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < max) {
             // domanda Sì/No (per esempio "Vuoi dare un soprannome?"): sempre NO; schermata del nome: FINE col nome proposto
             if (s.yesNo != null) tapTile(14f, 39f)
-            else if (s.latestSnapshot.get().naming != null) tapTile(15f, rows() - 5f)
+            else if (s.latestSnapshot.get().naming != null) skipNaming()
             else tapTile(10f, 2f)
             if (k % 20 == 0) log("testo, tocco $k")
         }
         if (s.latestSnapshot.get().inBattle) fightIfNeeded()
     }
+    /** Schermata del nome (soprannome): START e poi A, come nel gioco: resta il nome della specie. */
+    private fun skipNaming() {
+        log("schermata del nome: START, A")
+        press(s, NativeCore.KEY_START); pump(500); press(s, NativeCore.KEY_A); pump(1500)
+    }
+
     private fun save(name: String) {
         val dir = java.io.File(System.getProperty("giallo.scenario")!!)
         assertTrue(s.saveStateForTest(java.io.File(dir, name)))
@@ -755,6 +761,7 @@ class ZzScenarioTest : AppScreensHarness() {
                     tapTile(4f, 25.5f + 3 * ball)                                             // POKé BALL
                     waitFor(30_000) { !s.battleBusy }
                 } else if (s.yesNo != null) tapTile(14f, 39f)        // soprannome? NO
+                else if (s.latestSnapshot.get().naming != null) skipNaming()
                 else tapTile(10f, 2f)
             }
             textThrough()
