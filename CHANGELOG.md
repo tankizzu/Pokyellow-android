@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.5.0-prototipo consegnata
+- Contiene D-043, D-044, D-045 (START, Borsa nello stile del gioco, tocco nel vuoto, scheda allenatore, lotta).
+- Verificata col banco di prova dell'interfaccia (70 prove) prima della consegna.
+- Inviato al committente il mockup completo modificabile (14 schermate, privato) per i dettagli dei menu;
+  Squadra, scheda Pokémon e Pokédex sono proposte da confermare.
+
 ## 2026-11-18 – scheda allenatore, START e lotta dal mockup (D-045)
 - **START aperto**: squadra in alto, riquadro in basso con il nome del giocatore, POKéDEX, OPZIONI, BORSA, SALVA.
 - **Scheda allenatore**: tocco sul nome → l'app apre la scheda vera del gioco e la ridispone (dati, medaglie), con
