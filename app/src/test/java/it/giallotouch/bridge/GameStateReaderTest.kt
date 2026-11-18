@@ -60,6 +60,17 @@ class GameStateReaderTest {
     }
 
     @Test
+    fun borsa() {
+        val b = block()
+        b.put(M.BAG_COUNT, 2, 0x14, 3, 0x46, 1, 0xFF)
+        assertEquals(listOf(BagItem(0x14, 3), BagItem(0x46, 1)), GameStateReader.read(b).bag)
+        val c = block()
+        c.put(M.BAG_COUNT, 2, 0x14, 3, 0x46, 1, 0x00)   // manca la chiusura 0xFF: memoria non pronta
+        assertTrue(GameStateReader.read(c).bag.isEmpty())
+        assertTrue(Items.isKeyItem(0x46) && Items.isKeyItem(0xC4) && !Items.isKeyItem(0x14) && !Items.isKeyItem(0xC9))
+    }
+
+    @Test
     fun datiNonPlausibili_squadraVuota() {
         val b = block()
         b.put(M.PARTY_COUNT, 9)                          // più di 6: memoria non inizializzata
@@ -76,5 +87,20 @@ class GameStateReaderTest {
         assertEquals(Status.SLEEP, Status.fromByte(0x03))
         assertEquals(Status.PARALYSIS, Status.fromByte(0x40))
         assertEquals(Status.NONE, Status.fromByte(0x00))
+    }
+}
+
+class PokedexReadTest {
+    @org.junit.Test
+    fun vistiEPresi() {
+        val b = ByteArray(GameStateReader.BLOCK_SIZE)
+        fun put(a: Int, v: Int) { b[a - M.BLOCK_START] = v.toByte() }
+        put(M.POKEDEX_SEEN + 3, 0x01)       // n. 25
+        put(M.POKEDEX_SEEN + 16, 0x10)      // n. 133
+        put(M.POKEDEX_OWNED + 3, 0x01)
+        put(M.POKEDEX_SEEN + 18, 0xFF)      // bit oltre il 151 ignorati
+        val s = GameStateReader.read(b)
+        org.junit.Assert.assertEquals(listOf(25, 133, 145, 146, 147, 148, 149, 150, 151), s.pokedexSeen)
+        org.junit.Assert.assertEquals(listOf(25), s.pokedexOwned)
     }
 }

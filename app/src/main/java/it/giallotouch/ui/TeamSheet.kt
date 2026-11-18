@@ -37,10 +37,9 @@ import it.giallotouch.bridge.PartyMember
 import it.giallotouch.bridge.RomData
 import it.giallotouch.bridge.Status
 
-private val SheetBg = Color(0xFF171624)
-private val Row1 = Color(0xFF282540)
-private val Line = Color(0xFF403C62)
-private val Dim = Color(0xFFAAA4C8)
+private val Row1 = SheetRow
+private val Line = SheetLine
+private val Dim = SheetDim
 
 /**
  * Menu Squadra nativo, a tutto schermo (D-007, D-008, D-012): elenco dei compagni con livello, stato e PS;
@@ -55,59 +54,24 @@ fun TeamSheet(
     onSelect: (Int?) -> Unit,
     onClose: () -> Unit,
 ) {
-    BackHandler { if (selected != null) onSelect(null) else onClose() }
     val member = selected?.let { party.getOrNull(it) }
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(SheetBg)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+    FullSheet(
+        title = if (member != null) "Scheda" else "Squadra",
+        onBack = if (member != null) ({ onSelect(null) }) else null,
+        onClose = onClose,
     ) {
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (member != null) SheetIconButton(AppIcons.Back, "Indietro") { onSelect(null) }
+        when {
+            party.isEmpty() -> Text("Non hai ancora compagni di squadra.", color = Cream, fontSize = 16.sp)
+            member != null -> MemberCard(party, selected, member, romData, onSelect)
+            else -> {
+                party.forEachIndexed { i, m -> MemberRow(m, romData) { onSelect(i) } }
                 Text(
-                    if (member != null) "Scheda" else "Squadra",
-                    color = Cream, fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f).padding(start = if (member != null) 10.dp else 2.dp)
+                    "Tocca un compagno per vedere la sua scheda. Per cambiare l'ordine o usare uno strumento " +
+                        "usa per ora il menu del gioco (Menu → POKéMON).",
+                    color = Dim, fontSize = 12.sp
                 )
-                SheetIconButton(AppIcons.Close, "Chiudi", onClose)
-            }
-            Column(
-                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                when {
-                    party.isEmpty() -> Text("Non hai ancora compagni di squadra.", color = Cream, fontSize = 16.sp)
-                    member != null -> MemberCard(party, selected, member, romData, onSelect)
-                    else -> {
-                        party.forEachIndexed { i, m -> MemberRow(m, romData) { onSelect(i) } }
-                        Text(
-                            "Tocca un compagno per vedere la sua scheda. Per cambiare l'ordine o usare uno strumento " +
-                                "usa per ora il menu del gioco (Menu → POKéMON).",
-                            color = Dim, fontSize = 12.sp
-                        )
-                    }
-                }
             }
         }
-    }
-}
-
-@Composable
-private fun SheetIconButton(icon: ImageVector, description: String, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(46.dp)
-            .background(Row1, RoundedCornerShape(14.dp))
-            .border(1.dp, Line, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, contentDescription = description, tint = Cream, modifier = Modifier.size(22.dp))
     }
 }
 

@@ -11,6 +11,9 @@ class RomData private constructor(
     private val moveInfo: List<MoveInfo>,
     private val typeNames: List<String>,
     private val speciesNames: List<String> = emptyList(),
+    private val itemNames: List<String> = emptyList(),
+    /** Numero del Pokédex per indice interno (posizione 0 = indice 1). */
+    private val dexOrder: List<Int> = emptyList(),
 ) {
     data class MoveInfo(val type: Int, val maxPp: Int)
 
@@ -19,6 +22,22 @@ class RomData private constructor(
     /** PP massimi con i PP Su usati: ognuno aggiunge un quinto dei PP di base (come nel gioco). */
     fun maxPp(id: Int, ppUps: Int): Int? = moveInfo(id)?.let { it.maxPp + it.maxPp / 5 * ppUps }
     fun typeName(type: Int): String = typeNames.getOrNull(type) ?: ""
+    /** Nome dello strumento; le macchine nascoste e tecniche hanno nome e numero (MN01, MT01…). */
+    fun itemName(id: Int): String = when {
+        id >= M.TM01 -> "MT%02d".format(id - M.TM01 + 1)
+        id >= M.HM01 -> "MN%02d".format(id - M.HM01 + 1)
+        else -> itemNames.getOrNull(id - 1) ?: "STRUMENTO $id"
+    }
+
+    /** Nome della specie dal numero del Pokédex (1–151), vuoto se sconosciuto. */
+    fun speciesNameForDex(dex: Int): String {
+        val i = dexOrder.indexOf(dex)
+        return if (dex in 1..M.NUM_POKEDEX && i >= 0) speciesName(i + 1) else ""
+    }
+
+    /** Numero del Pokédex di una specie (indice interno), 0 se sconosciuto. */
+    fun dexNumber(index: Int): Int = dexOrder.getOrNull(index - 1) ?: 0
+
     /** Nome della specie dall'indice interno del gioco (quello della squadra), vuoto se sconosciuto. */
     fun speciesName(index: Int): String = speciesNames.getOrNull(index - 1) ?: ""
 
@@ -31,6 +50,9 @@ class RomData private constructor(
                 moveNames = readNameList(rom, M.ROM_MOVE_NAMES, M.NUM_MOVES) ?: emptyList(),
                 moveInfo = readMoveData(rom, M.ROM_MOVE_DATA, M.NUM_MOVES) ?: emptyList(),
                 typeNames = readPointedNames(rom, M.ROM_TYPE_NAME_POINTERS, M.NUM_TYPE_IDS) ?: emptyList(),
+                dexOrder = if (M.ROM_POKEDEX_ORDER + M.NUM_SPECIES_INDEXES <= rom.size)
+                    List(M.NUM_SPECIES_INDEXES) { u8(rom, M.ROM_POKEDEX_ORDER + it) } else emptyList(),
+                itemNames = readNameList(rom, M.ROM_ITEM_NAMES, M.NUM_ITEM_NAMES) ?: emptyList(),
                 speciesNames = readFixedNames(rom, M.ROM_SPECIES_NAMES, M.NUM_SPECIES_INDEXES, M.SPECIES_NAME_LENGTH) ?: emptyList(),
             )
         }

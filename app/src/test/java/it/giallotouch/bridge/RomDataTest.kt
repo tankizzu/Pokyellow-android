@@ -46,5 +46,13 @@ class RomDataTest {
         // nomi delle specie: tutti presenti, al massimo 10 caratteri; PP massimi con i PP Su (30 + 6 × 3)
         assertEquals(true, (1..190).all { data.speciesName(it).length in 1..10 })
         assertEquals(48, data.maxPp(0x54, 3))
+        // strumenti: 97 nomi dalla ROM; macchine con numero
+        assertEquals(true, (1..0x61).all { data.itemName(it).length in 1..13 && !data.itemName(it).startsWith("STRUMENTO") })
+        assertEquals("MN01", data.itemName(0xC4))
+        assertEquals("MT50", data.itemName(0xFA))
+        // Pokédex: Pikachu (indice interno 0x54) è il n. 25; tutti i 151 numeri hanno un nome
+        assertEquals(25, data.dexNumber(0x54))
+        assertEquals(data.speciesName(0x54), data.speciesNameForDex(25))
+        assertEquals(true, (1..151).all { data.speciesNameForDex(it).isNotEmpty() })
     }
 }

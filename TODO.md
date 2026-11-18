@@ -31,7 +31,10 @@
 - [x] Sì/No nativi nelle domande del gioco
 - [x] Tipo e PP massimi delle mosse dalla ROM
 - [x] Menu nativo Squadra con scheda (sola lettura) e barra con icone (D-035)
-- [ ] **Menu nativi – prossimo passo**: Borsa (lista strumenti dalla memoria), poi Pokédex e Scheda Allenatore; Negozio e PC sul posto
+- [x] Menu nativi Borsa e Pokédex (sola lettura), barra D-036
+- [ ] **Prossimo passo – azioni nei menu nativi** tramite il menu originale (esecutore): Usa/Getta strumento, Sposta compagno
+- [ ] Pokédex: scheda della specie (descrizione, altezza, peso) dalla ROM, solo per le specie prese
+- [ ] Negozio e PC sul posto (D-010)
 - [ ] Squadra: "Sposta" e strumenti tramite il menu originale (esecutore)
 
 ## Prova del motore su computer

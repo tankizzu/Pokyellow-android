@@ -59,7 +59,7 @@ dependencies {
 // uno stato salvato e la libreria del motore compilata per il computer, per esempio:
 // ./gradlew testDebugUnitTest -Pgiallo.rom=/percorso/gioco.gb -Pgiallo.state=/percorso/stato.state -Pgiallo.hostlib=/percorso/cartella
 tasks.withType<Test>().configureEach {
-    listOf("giallo.rom", "giallo.state", "giallo.state.yesno", "giallo.state.pallet", "giallo.zip", "giallo.state.text", "giallo.state.naming").forEach { key ->
+    listOf("giallo.rom", "giallo.state", "giallo.state.yesno", "giallo.state.pallet", "giallo.zip", "giallo.state.text", "giallo.state.naming", "giallo.state.bag").forEach { key ->
         providers.gradleProperty(key).orNull?.let { systemProperty(key, it) }
     }
     providers.gradleProperty("giallo.hostlib").orNull?.let { jvmArgs("-Djava.library.path=$it") }

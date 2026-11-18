@@ -68,7 +68,8 @@ internal val Cream = Color(0xFFFFF7DC)
  * - levetta che compare dove appoggi il dito (4 direzioni, come il Game Boy);
  * - tocco veloce senza trascinare = tasto A (parla, esamina, fa avanzare i dialoghi);
  * - gesto "indietro" di Android = tasto B;
- * - in basso, icona e nome: Squadra (menu nativo), Menu (START), Testo auto, Select, Salva (salvataggio dell'app);
+ * - in basso, icona e nome: Squadra, Borsa, Pokédex (menu nativi), Menu (START), Testo auto, Salva (salvataggio dell'app);
+ *   Select compare sopra la barra solo quando è aperto un menu del gioco;
  * - nel menu iniziale del gioco: "Carica partita" per i salvataggi dell'app.
  */
 @Composable
@@ -102,6 +103,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var loadOpen by remember { mutableStateOf(false) }     // schermata "Carica partita"
     var slots by remember { mutableStateOf(emptyList<SlotEntry>()) }
     var teamOpen by remember { mutableStateOf(false) }    // menu Squadra nativo
+    var bagOpen by remember { mutableStateOf(false) }     // menu Borsa nativo
+    var dexOpen by remember { mutableStateOf(false) }     // Pokédex nativo
     var teamSelected by remember { mutableStateOf<Int?>(null) }  // scheda aperta (null = elenco)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
@@ -268,14 +271,38 @@ fun GameScreen(session: GameSession, settings: Settings) {
             BarButton("Squadra", AppIcons.Team, Modifier.weight(1f)) {
                 if (inGame) { teamSelected = null; teamOpen = true } else message = "Prima inizia o carica una partita"
             }
+            BarButton("Borsa", AppIcons.Bag, Modifier.weight(1f)) {
+                if (inGame) bagOpen = true else message = "Prima inizia o carica una partita"
+            }
+            BarButton("Pokédex", AppIcons.Dex, Modifier.weight(1f)) {
+                if (inGame) dexOpen = true else message = "Prima inizia o carica una partita"
+            }
             BarButton("Menu", AppIcons.Menu, Modifier.weight(1f)) { tapped = NativeCore.KEY_START }
             AutoTextButton(autoText, Modifier.weight(1f)) { autoText = (autoText + 1) % 4 }
-            BarButton("Select", AppIcons.Select, Modifier.weight(1f)) { tapped = NativeCore.KEY_SELECT }
             BarButton("Salva", AppIcons.Save, Modifier.weight(1f)) {
                 message = when {
                     !inGame -> "Prima inizia o carica una partita"
                     session.saveManual() -> "Partita salvata in questo punto"
                     else -> "Salvataggio non riuscito"
+                }
+            }
+        }
+
+        // SELECT serve solo dentro i menu del gioco (per spostare strumenti e mosse): compare solo lì, sopra la barra.
+        if (!snapshot.freeRoam && !snapshot.inBattle && snapshot.naming == null && snapshot.menu.kind != MenuKind.MAIN_MENU) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 14.dp, bottom = 86.dp)
+                    .background(Glass, RoundedCornerShape(50))
+                    .border(1.dp, Color(0xFF403C62), RoundedCornerShape(50))
+                    .clickable { tapped = NativeCore.KEY_SELECT }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(AppIcons.Select, contentDescription = null, tint = Cream, modifier = Modifier.size(16.dp))
+                    Text("  Select", color = Cream, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -323,6 +350,13 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 onSelect = { teamSelected = it },
                 onClose = { teamOpen = false }
             )
+        }
+
+        if (bagOpen && !snapshot.inBattle) {
+            BagSheet(snapshot.bag, session.romData) { bagOpen = false }
+        }
+        if (dexOpen && !snapshot.inBattle) {
+            PokedexSheet(snapshot.pokedexSeen, snapshot.pokedexOwned, session.romData) { dexOpen = false }
         }
 
         // Schermata dei nomi del gioco: coperta dalla tastiera del telefono.

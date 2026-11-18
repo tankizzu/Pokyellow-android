@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-11-18 – menu Borsa e Pokédex nativi
+- **Borsa** a tutto schermo: un'unica lista nello stesso ordine del gioco, con le quantità; gli strumenti chiave
+  (come nel gioco) senza quantità. Nomi dalla ROM dell'utente (0x45B8), macchine come MN01/MT01.
+- **Pokédex** a tutto schermo: visti e presi, elenco fino al numero più alto visto; le specie non viste restano senza nome.
+- Barra in basso: Squadra, Borsa, Pokédex, Menu, Testo, Salva. **Select** compare sopra la barra solo quando è aperto
+  un menu del gioco (serve solo lì).
+- Memoria italiana verificata: borsa D321/D322 (Pozione ritirata dal PC della cameretta), Pokédex presi D2FB, visti D30E.
+- 57 test superati (nuovo sul gioco vero: borsa con la Pozione).
+
 ## 2026-11-18 (promemoria 07:17 UTC) – menu Squadra nativo
 - **Menu Squadra** a tutto schermo (D-007, D-008, D-012): elenco dei compagni (nome, specie, livello, stato, PS)
   e **scheda** di ognuno (tipi, PS, attacco, difesa, velocità, speciale, mosse con tipo e PP). Solo lettura.

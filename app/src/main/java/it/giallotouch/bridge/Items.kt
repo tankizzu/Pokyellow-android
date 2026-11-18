@@ -1,0 +1,16 @@
+package it.giallotouch.bridge
+
+/**
+ * Strumenti chiave (non si possono gettare e il gioco non ne mostra la quantità), stessa tabella del gioco:
+ * mappa, bicicletta, Pokédex, medaglie, fossili, biglietti, canne da pesca… e tutte le macchine nascoste (MN).
+ */
+object Items {
+    private val KEY_ITEMS = setOf(
+        0x05, 0x06, 0x07, 0x08, 0x09,
+        0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C,
+        0x1F, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x30, 0x3F, 0x40,
+        0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4C, 0x4D, 0x4E,
+    )
+
+    fun isKeyItem(id: Int): Boolean = id in KEY_ITEMS || id in MemoryMapIt.HM01 until MemoryMapIt.TM01
+}

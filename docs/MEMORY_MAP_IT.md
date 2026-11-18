@@ -110,11 +110,21 @@ Sprite (C100 + 16·n): +0 immagine, +2 indice immagine (0xFF = non disegnato), +
 (0 giù, 4 su, 8 sinistra, 12 destra). C200 + 16·n: +4 Y mappa (+4), +5 X mappa (+4), +7 erba (0x80), +0x0E grafica (base).
 Tile della grafica: (base − 1) × 12 (0x7C per base 0x0C); ferma giù 0–3, su 4–7, sinistra 8–11, destra = sinistra ribaltata.
 
+## Borsa e Pokédex (verificati sul gioco vero)
+| Cosa | Indirizzo | Note |
+|---|---|---|
+| Numero di strumenti | D321 | max 20 |
+| Strumenti | D322 | coppie (strumento, quantità), chiuse da 0xFF; Pozione = 0x14 |
+| Pokédex presi | D2FB (19 byte) | bit n−1 = numero n; Pikachu = byte 3 bit 0 |
+| Pokédex visti | D30E (19 byte) | Eevee (133) = byte 16 bit 4 dopo la lotta col rivale |
+
 ## Struttura di una creatura in squadra (D16F + 44·n, verificata con Pikachu L5/L6)
 specie +0, PS +1 (2 byte, big-endian), stato +4, tipi +5/+6, mosse +8…+11, PP +29…+32 (bit 0–5 PP, bit 6–7 PP Su),
 livello +33, PS massimi +34, attacco +36, difesa +38, velocità +40, speciale +42.
 
 ## Tabelle nella ROM (lette a ogni avvio dalla ROM dell'utente, mai copiate nell'app)
+- Nomi degli strumenti: 0x45B8 (banco 1), 97 nomi chiusi da 0x50 (0x01–0x61); 0xBC = "é" (POKé).
+- Numero del Pokédex per indice interno: 0x41043, 190 byte (Pikachu 0x54 → 25).
 - Nomi delle specie: 0xE8000, 190 voci da 10 byte riempite con 0x50, per indice interno (1 = primo).
 | Tabella | Offset nella ROM | Stato | Note |
 |---|---|---|---|

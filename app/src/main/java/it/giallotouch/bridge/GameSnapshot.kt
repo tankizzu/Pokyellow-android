@@ -18,6 +18,11 @@ data class GameSnapshot(
     val freeRoam: Boolean = false,
     /** Schermata dei nomi del gioco, se è aperta (per mostrare la tastiera del telefono). */
     val naming: NamingScreen? = null,
+    /** Strumenti nella borsa, nello stesso ordine del gioco. */
+    val bag: List<BagItem> = emptyList(),
+    /** Numeri del Pokédex visti e presi, in ordine. */
+    val pokedexSeen: List<Int> = emptyList(),
+    val pokedexOwned: List<Int> = emptyList(),
 ) {
     val inBattle: Boolean get() = battleType != 0
 
@@ -35,6 +40,8 @@ data class BattleMon(
 )
 
 /** Mossa con PP attuali e numero di PP Su usati (bit alti del byte dei PP). */
+data class BagItem(val id: Int, val quantity: Int)
+
 data class MoveSlot(val id: Int, val pp: Int, val ppUps: Int = 0)
 
 data class PartyMember(

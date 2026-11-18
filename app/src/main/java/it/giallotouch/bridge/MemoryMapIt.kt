@@ -24,6 +24,13 @@ object MemoryMapIt {
     /** Tabella dei nomi delle mosse nella ROM italiana: 165 nomi chiusi da 0x50, a partire da questo offset. */
     const val ROM_MOVE_NAMES = 0xBC000
     const val NUM_MOVES = 165
+    /** Nomi degli strumenti 0x01–0x61: elenco chiuso da 0x50 (banco 1). MN (macchine nascoste) da 0xC4, MT da 0xC9. */
+    const val ROM_ITEM_NAMES = 0x45B8
+    const val NUM_ITEM_NAMES = 0x61
+    /** Numero del Pokédex per ogni indice interno (190 byte, 0 = nessuno). */
+    const val ROM_POKEDEX_ORDER = 0x41043
+    const val HM01 = 0xC4
+    const val TM01 = 0xC9
     /** Nomi delle specie: 190 voci da 10 byte (riempite con 0x50), in ordine di indice interno (1 = RHYDON). */
     const val ROM_SPECIES_NAMES = 0xE8000
     const val SPECIES_NAME_LENGTH = 10
@@ -41,8 +48,15 @@ object MemoryMapIt {
     const val PARTY_MONS = 0xD16F
     const val PARTY_MON_OT = 0xD277
     const val PARTY_MON_NICKS = 0xD2B9
-    const val NUM_BAG_ITEMS = 0xD321
+    /** Borsa: numero di strumenti (max 20), poi coppie (strumento, quantità) chiuse da 0xFF. Verificata con la Pozione del PC. */
+    const val BAG_COUNT = 0xD321
     const val BAG_ITEMS = 0xD322
+    const val BAG_CAPACITY = 20
+    /** Pokédex: 151 bit (19 byte) per "presi" e per "visti"; bit n-1 = numero n. Verificati con Pikachu ed Eevee. */
+    const val POKEDEX_OWNED = 0xD2FB
+    const val POKEDEX_SEEN = 0xD30E
+    const val POKEDEX_BYTES = 19
+    const val NUM_POKEDEX = 151
     const val PLAYER_MONEY = 0xD34B
     const val OPTIONS = 0xD359
     /** Medaglie ottenute: un bit per medaglia (US wObtainedBadges + 5). */
