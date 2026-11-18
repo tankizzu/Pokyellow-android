@@ -3,47 +3,41 @@
 **Ultimo aggiornamento:** 2026-11-18
 
 ## Dove siamo
-- **0.3.0-prototipo (consegnato il 2026-11-18): gioco a tutto schermo + tastiera del telefono per i nomi.**
-  In esplorazione la mappa riempie lo schermo verticale (con le persone fuori inquadratura); in lotta lo sfondo
-  riempie lo schermo con scena in alto e testo sopra i pulsanti; menu a tutto schermo e transizioni mostrano
-  l'immagine originale 10:9. Quando il gioco chiede un nome compare la tastiera del telefono.
-- 0.2.2 consegnata (testo automatico a 3 velocità, testo veloce tenendo premuto). 0.2.1 ha corretto B-001 (ZIP):
-  il committente conferma che il gioco parte.
-- 60 test superati (20 sul gioco vero, solo in locale con la ROM dell'utente).
+- **0.6.1-prototipo (consegnata il 2026-11-18)**: tutta l'interfaccia nello stile del gioco, dai mockup del
+  committente (D-039…D-048), e correzioni della lotta (B-005, B-006).
+- 76 prove superate (le prove sul gioco vero e il banco di prova dell'interfaccia girano solo in locale con la ROM).
 
 ## Cosa c'è nell'app
 - Scelta del file del gioco (anche ZIP), controllo SHA-1 e intestazione.
-- Vista estesa a tutto schermo in esplorazione (ARCHITECTURE.md §7, D-031).
-- Levetta ovunque (4 direzioni); tocco veloce = A; tocco su persone/oggetti/cartelli/banconi = vai lì e parla
-  (anche nella mappa aggiunta); gesto indietro = B.
-- Squadra in alto con dati veri; in lotta pulsanti mosse (tipo, PP), Squadra, Borsa, Fuga; Sì/No nativi.
-- Pulsante laterale: Squadra, Borsa, Pokédex, Menu (START), Testo auto (No/Lento/Medio/Veloce), Salva; Select solo nei menu del gioco.
-- Nomi: tastiera del telefono al posto di quella del gioco (D-029, D-032).
-- Menu nativi Squadra (con scheda), Borsa (con Usa/Getta tramite il menu del gioco) e Pokédex.
-- Prima di giocare nessun pulsante dell'app; durante il gioco pulsante laterale con i pulsanti in colonna (D-037).
-- Avvio come sul Game Boy (D-034): introduzione, titolo, menu iniziale del gioco + pulsante nativo CARICA PARTITA.
-- Salvataggi: del gioco (CONTINUA, batteria ogni 20 s se cambiata); dell'app: "Salva" (manuale) e automatico
-  all'uscita durante una partita, con miniatura e scheda; scritture atomiche con .bak.
+- Avvio come sul Game Boy; menu iniziale ridisegnato (CONTINUA, CARICA PARTITA, OPZIONI, NUOVO GIOCO); Carica
+  partita con i riquadri dei salvataggi.
+- Gioco: vista estesa a tutto schermo; levetta; tocco = vai lì e parla, tocco nel vuoto vicino a qualcuno = parla;
+  START in basso (nascosto in dialoghi e lotta); SELECT solo con un menu del gioco aperto.
+- Dialoghi alla riga 9 (D-048); SÌ/NO in due riquadri in basso; schermata dei nomi del gioco mai visibile, nome con la
+  tastiera del telefono.
+- START aperto: squadra con icone dalla ROM; POKéMON, nome (scheda allenatore vera ridisposta), POKéDEX, OPZIONI,
+  BORSA, SALVA. Schermate SQUADRA, scheda del Pokémon (immagine dalla ROM), POKéDEX, BORSA (USA/GETTA, SELECT e
+  trascinamento), OPZIONI (comparsa testo, volume).
+- Lotta: testo in alto, scena, SQUADRA/BORSA, mosse con PP, FUGA; un tocco = la mossa; i testi vanno avanti col tocco.
+- Salvataggi: del gioco (batteria ogni 20 s se cambiata); dell'app manuale e automatico; scritture atomiche con .bak.
 
 ## Limiti noti
-- Persone fuori inquadratura: disegnate ferme nella loro direzione (il gioco stesso le blocca fuori schermo).
-- Al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
-- L'app non è stata provata qui su un telefono (nessun emulatore Android): verificati motore e logica su computer.
+- Spostare i Pokémon della squadra: non ancora (serve una partita di prova con almeno 2 Pokémon); lo scambio degli
+  strumenti è provato solo con la logica (serve una partita con almeno 2 strumenti). Chiesto al committente un .sav.
+- Partita caricata a dialogo aperto: quel dialogo resta in basso (manca l'immagine della mappa senza dialogo).
+- Persone fuori inquadratura disegnate ferme; al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
+- Nessun telefono qui: l'app è provata sul computer con il banco di prova (telefono simulato), non su un telefono vero.
 
 ## Regola prima di ogni APK (D-042)
 Far girare il banco di prova dell'interfaccia e guardare le foto:
 `./gradlew testDebugUnitTest --tests '*Screen*Test*' -Pgiallo.rom=ROM -Pgiallo.state=STATO_LOTTA -Pgiallo.battery=SALVATAGGIO.sav
- -Pgiallo.state.squadra=STATO_CON_SQUADRA -Pgiallo.state.naming=STATO_NOME -Pgiallo.shots=CARTELLA_FOTO -Pgiallo.hostlib=LIB`
+ -Pgiallo.state.squadra=STATO_CON_SQUADRA -Pgiallo.state.naming=STATO_NOME -Pgiallo.state.yesno=STATO_DOMANDA -Pgiallo.state.text=STATO_DIALOGO -Pgiallo.shots=CARTELLA_FOTO -Pgiallo.hostlib=LIB`
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
-## Fatto dopo la 0.4.1 (non ancora in un APK)
-- D-043/D-044/D-045: START, Borsa nello stile del gioco, tocco nel vuoto per parlare, colori, scheda allenatore,
-  menu START e lotta come nel mockup. Banco di prova: avvio, gioco, nome, lotta, scheda allenatore (70 prove).
-
-## Prossimo passo – RISCONTRO SULLA 0.4.1
-1. Il committente prova la 0.4.1 (avvio ridisegnato verificato sull'app vera).
-2. Poi: Squadra, Borsa, Pokédex nello stile del gioco (oggi ancora scuri), Select e messaggi; prova dei percorsi
-   NUOVO GIOCO → nome e del cursore con la levetta nel banco di prova.
+## Prossimo passo
+1. Riscontro del committente sulla 0.6.1 (dialoghi in alto, lotta corretta).
+2. Con un .sav del committente: spostamento dei Pokémon nel menu del gioco e prova dello scambio di strumenti.
+3. Risposta sul colore dell'immagine del Pokémon nella scheda.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.
