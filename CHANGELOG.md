@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-11-18 – avvio pulito e pulsante laterale (richiesta del committente)
+- **Prima di iniziare a giocare non c'è nessun pulsante dell'app**: titolo, menu iniziale, introduzione e nome mostrano
+  solo il gioco (più CARICA PARTITA nel menu iniziale e la tastiera del telefono per il nome).
+- **Durante il gioco i pulsanti compaiono da un pulsante laterale** (linguetta sul bordo, a destra; si può spostare a
+  sinistra dal pannello stesso): Squadra, Borsa, Pokédex, Menu, Testo auto, Salva in colonna. Toccare un pulsante
+  o il gioco richiude il pannello. La lotta mantiene i suoi pulsanti.
+- Nuovo **Laboratorio d'avvio** (`docs/demo/laboratorio-avvio.html`): sei schermate dall'accensione alla cameretta,
+  elementi da spostare e ridimensionare, scelte di stile "in tema" (riquadro del gioco, giallo Pikachu, scuro attuale),
+  carattere a pixel, lato e forma del pulsante laterale, disposizione dei pulsanti; invio delle scelte a Claude.
+- Lo stile grafico definitivo "in tema" si applicherà dopo le scelte del committente nel Laboratorio.
+
 ## 2026-11-18 – Borsa: Usa e Getta
 - Nella Borsa nativa, toccando uno strumento compaiono **Usa** e (se non è uno strumento chiave) **Getta** con la quantità.
 - L'app esegue l'azione nel menu originale, come farebbe il giocatore: START → STRUM. → strumento → USA/GETTA;

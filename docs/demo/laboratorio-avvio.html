@@ -1,0 +1,517 @@
+<title>Laboratorio d'avvio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400;600;700&family=Silkscreen:wght@400;700&display=swap">
+<style>
+/* Concetto: un banco di prova "in tema" Game Boy Color giallo — telefono a sinistra, scelte a destra (una colonna sul telefono).
+   Un solo aspetto voluto (carta crema, inchiostro scuro, giallo): stesso aspetto con tema chiaro o scuro del visualizzatore. */
+:root{
+  --paper:#f7efd2; --panel:#fffbea; --ink:#1d1812; --line:#3b3226; --muted:#6f6450;
+  --yellow:#f6c935; --yellow-deep:#d9a21a; --red:#cf4126; --screen-bg:#0d0c10;
+  --px:'Press Start 2P', 'Courier New', monospace;
+  --ui:'Pixelify Sans', ui-rounded, system-ui, sans-serif;
+  --sk:'Silkscreen', 'Courier New', monospace;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:16px;line-height:1.4;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:18px 28px}
+h1{font-family:var(--px);font-size:clamp(15px,3.6vw,22px);line-height:1.5;margin:0;text-wrap:balance;letter-spacing:.02em}
+h2{font-family:var(--px);font-size:12px;letter-spacing:.06em;margin:0 0 10px;text-transform:uppercase}
+p{margin:0}
+button,select,textarea,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.top{display:flex;flex-direction:column;gap:6px;max-width:1100px;margin:0 auto 14px}
+.top p{color:var(--muted);max-width:68ch}
+.work{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:22px;max-width:1100px;margin:0 auto;align-items:start}
+@media (max-width:780px){.work{grid-template-columns:minmax(0,1fr)}}
+/* riquadro "del gioco" per i pannelli della pagina */
+.gbox{background:var(--panel);border:3px solid var(--ink);border-radius:6px;box-shadow:inset 0 0 0 3px var(--panel), inset 0 0 0 5px var(--ink);padding:16px 16px 14px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{border:2px solid var(--ink);background:var(--panel);border-radius:999px;padding:6px 11px;font-size:14px;line-height:1.1}
+.chip[aria-pressed="true"]{background:var(--yellow);font-weight:700}
+.chip:hover{background:#fff2b8}
+.rowbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn{border:2px solid var(--ink);background:var(--panel);border-radius:10px;padding:8px 12px;font-weight:600;box-shadow:0 3px 0 var(--ink)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.btn.pri{background:var(--yellow)}
+.btn[aria-pressed="true"]{background:var(--red);color:#fff}
+.hint{color:var(--muted);font-size:14px}
+/* ---------- telefono ---------- */
+.phonecol{position:sticky;top:12px}
+.phone{position:relative;width:min(100%,360px);margin:0 auto;aspect-ratio:9/20;background:#111;border-radius:30px;padding:9px;box-shadow:0 0 0 3px var(--ink),0 10px 0 -2px rgba(0,0,0,.15)}
+.stage{position:relative;width:100%;height:100%;overflow:hidden;border-radius:22px;background:var(--screen-bg);container-type:size;touch-action:none;user-select:none;-webkit-user-select:none}
+.cap{margin:10px auto 0;text-align:center;font-size:14px;color:var(--muted);max-width:360px}
+/* immersivo */
+.imm{position:fixed;inset:0;z-index:50;background:#14110c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(10px, env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(10px, env(safe-area-inset-left,0px))}
+.imm .phone{width:auto;height:calc(100% - 64px);max-width:100%;border-radius:0;padding:0;box-shadow:none;background:none}
+.imm .stage{border-radius:0}
+.immbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.immbar .btn{background:#fffbea}
+/* ---------- elementi sul telefono ---------- */
+.el{position:absolute}
+.game{image-rendering:pixelated}
+.game canvas{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+.bands{position:absolute;inset:0}
+.editing .ed{outline:2px dashed #ff4fa0;outline-offset:-1px;cursor:move}
+.editing .ed::after{content:attr(data-label);position:absolute;left:0;top:0;transform:translateY(-100%);background:#ff4fa0;color:#fff;font:600 10px/1.3 var(--ui);padding:1px 5px;border-radius:4px 4px 0 0;white-space:nowrap;pointer-events:none}
+.handle{display:none;position:absolute;right:-7px;bottom:-7px;width:18px;height:18px;border-radius:50%;background:#ff4fa0;border:2px solid #fff;cursor:nwse-resize;z-index:5}
+.editing .ed .handle{display:block}
+/* temi degli elementi nativi */
+.nat{display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.25;font-size:calc(var(--k,3.6) * 1cqw)}
+.th-gioco .nat{background:#f8f8f0;color:#181818;border:max(2px,.8cqw) solid #181818;border-radius:1.2cqw;box-shadow:inset 0 0 0 max(2px,.7cqw) #f8f8f0, inset 0 0 0 max(3px,1.2cqw) #181818}
+.th-pika .nat{background:#f8d030;color:#2a1c0c;border:max(2px,.8cqw) solid #2a1c0c;border-radius:3cqw;box-shadow:0 1cqw 0 #8a5a18}
+.th-scuro .nat{background:rgba(40,37,64,.88);color:#fff7dc;border:1px solid #403c62;border-radius:3.6cqw}
+.f-press .nat,.f-press .natf{font-family:var(--px);letter-spacing:.02em}
+.f-pixel .nat,.f-pixel .natf{font-family:var(--ui);font-weight:600}
+.f-silk .nat,.f-silk .natf{font-family:var(--sk)}
+.th-scuro.f-sys .nat,.f-sys .nat,.f-sys .natf{font-family:system-ui,sans-serif;font-weight:700}
+.nat .cur{visibility:hidden;margin-right:.6em}
+.nat:active .cur,.nat.focus .cur{visibility:visible}
+.carica.sep{border-radius:3cqw}
+/* pulsante laterale */
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1cqw;cursor:pointer}
+.th-gioco .tab.nat,.th-pika .tab.nat{padding:0}
+.tab .lines{width:46%;display:grid;gap:9%}
+.tab .lines i{display:block;height:1.1cqw;background:currentColor}
+.side-destra .tab.linguetta{border-top-right-radius:0;border-bottom-right-radius:0}
+.side-sinistra .tab.linguetta{border-top-left-radius:0;border-bottom-left-radius:0}
+.tab.tondo{border-radius:50%}
+.tab small{font-size:2.4cqw;line-height:1}
+.panel{display:grid;gap:1.8cqw;padding:2cqw;background:transparent}
+.panel.colonna{grid-template-columns:1fr}
+.panel.griglia{grid-template-columns:1fr 1fr}
+.panel.barra{grid-template-columns:repeat(6,1fr)}
+.pbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6cqw;min-height:0;font-size:2.9cqw;padding:1cqw}
+.panel.colonna .pbtn{flex-direction:row;justify-content:flex-start;gap:2.4cqw;padding:0 3cqw;font-size:3.2cqw}
+.pbtn svg{width:5.4cqw;height:5.4cqw;flex:none}
+.panel.barra .pbtn{font-size:2.3cqw}
+/* schermata nome */
+.kbd{position:absolute;left:0;right:0;bottom:0;height:38%;background:#d9d6cf;display:grid;place-items:center;color:#5d5a52;font:600 3.4cqw/1.2 system-ui,sans-serif}
+.kbd > div{width:100%}
+.kbd .keys{margin:0 auto;display:grid;grid-template-columns:repeat(10,1fr);gap:1.2cqw;width:92%}
+.kbd .keys i{display:block;height:7cqw;background:#fff;border-radius:1.2cqw}
+.dim{position:absolute;inset:0;background:#f8f8f0}
+.th-pika .dim{background:#fff4c4}
+.th-scuro .dim{background:#171624}
+.field{justify-content:flex-start;padding:0 4cqw;gap:.2em}
+.field .caret{display:inline-block;width:.5em;height:1.1em;background:currentColor;animation:blink 1s steps(1) infinite;vertical-align:middle}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.field .caret{animation:none}}
+/* carica partita */
+.load{display:flex;flex-direction:column;gap:2.4cqw;padding:3cqw;align-items:stretch;justify-content:flex-start;text-align:left}
+.load .lt{font-size:4.2cqw}
+.slot{display:flex;gap:3cqw;align-items:center;padding:2.4cqw;font-size:3cqw;line-height:1.35}
+.th-gioco .slot{border:max(2px,.6cqw) solid #181818;border-radius:1cqw}
+.th-pika .slot{background:#fff4c4;border:max(2px,.6cqw) solid #2a1c0c;border-radius:2.4cqw}
+.th-scuro .slot{background:#352f58;border-radius:2.4cqw}
+.slot canvas{width:26cqw;height:23.4cqw;image-rendering:pixelated;flex:none;background:#000}
+.slot b{display:block;font-size:3.4cqw}
+.slot .sm{opacity:.75}
+.load .back{align-self:center;padding:2cqw 6cqw;font-size:3.4cqw}
+.th-gioco .load .back{border:max(2px,.6cqw) solid #181818;border-radius:1cqw}
+.th-pika .load .back{background:#fff4c4;border:max(2px,.6cqw) solid #2a1c0c;border-radius:2.4cqw}
+.th-scuro .load .back{background:#352f58;border-radius:2.4cqw}
+.toast{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);background:#fffbea;color:#1d1812;border:2px solid #1d1812;border-radius:8px;padding:1.4cqw 3cqw;font:600 3cqw/1.3 var(--ui);white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+/* ---------- colonna delle scelte ---------- */
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+fieldset{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+legend{font-weight:700;margin-bottom:4px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{position:relative}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt span{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);border-radius:10px;padding:6px 10px;background:var(--panel);font-size:15px;cursor:pointer}
+.opt input:checked + span{background:var(--yellow);font-weight:700}
+.opt input:focus-visible + span{outline:3px solid var(--red);outline-offset:2px}
+.rec{font-size:11px;font-family:var(--px);color:var(--red);letter-spacing:.02em}
+.why{font-size:14px;color:var(--muted)}
+.qgrid{display:grid;gap:14px}
+textarea{width:100%;min-height:90px;border:2px solid var(--ink);border-radius:10px;background:#fff;padding:8px 10px;resize:vertical}
+#sendStatus{font-size:14px;color:var(--muted)}
+#sendStatus.ok{color:#2e7d32;font-weight:600}
+#summary{margin-top:8px;font-size:13px;min-height:140px}
+.screeninfo{font-size:15px}
+.screeninfo strong{font-family:var(--px);font-size:11px;letter-spacing:.04em;display:block;margin-bottom:6px}
+</style>
+
+<header class="top">
+  <h1>Laboratorio d'avvio</h1>
+  <p>Dall'accensione fino alla cameretta. Scorri le schermate, prova i pulsanti e, con «Sposta e ridimensiona», trascina gli elementi e allarga l'angolo rosa. Le immagini del gioco qui sono segnaposto disegnati apposta: sul telefono ci sarà il gioco vero.</p>
+</header>
+
+<main class="work">
+  <section class="phonecol" aria-label="Anteprima sul telefono">
+    <div class="steps" id="steps" role="toolbar" aria-label="Schermate"></div>
+    <div id="phoneHost">
+      <div class="phone" id="phone"><div class="stage" id="stage"></div></div>
+    </div>
+    <p class="cap" id="cap"></p>
+    <div class="rowbtns" style="justify-content:center">
+      <button class="btn" id="prevBtn" type="button">◀ Indietro</button>
+      <button class="btn" id="nextBtn" type="button">Avanti ▶</button>
+      <button class="btn" id="editBtn" type="button" aria-pressed="false">Sposta e ridimensiona</button>
+      <button class="btn" id="immBtn" type="button">Schermo intero</button>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="gbox screeninfo" id="info"></div>
+
+    <div class="gbox">
+      <h2>Ragioniamo sulle scelte</h2>
+      <div class="qgrid" id="questions"></div>
+    </div>
+
+    <div class="gbox">
+      <h2>Invia a Claude</h2>
+      <label for="note" class="why">Note (cosa cambieresti, cosa non ti piace, idee):</label>
+      <textarea id="note" placeholder="Per esempio: il pulsante laterale più in basso, la scritta più grande…"></textarea>
+      <div class="rowbtns">
+        <button class="btn pri" id="sendBtn" type="button">Invia le scelte</button>
+        <button class="btn" id="resetBtn" type="button">Ripristina predefiniti</button>
+      </div>
+      <p id="sendStatus" role="status"></p>
+      <textarea id="summary" hidden readonly aria-label="Riepilogo da copiare"></textarea>
+    </div>
+  </aside>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------------- Schermate (ordine reale dell'avvio) ---------------- */
+const SCREENS = [
+  { id:'titolo', l:'Titolo', info:'Accensione e schermata del titolo del gioco. Nessun pulsante dell\'app: un tocco fa avanzare come il tasto A. Puoi spostare o ingrandire l\'immagine del gioco e scegliere il colore dello spazio libero.' },
+  { id:'menu', l:'Menu iniziale', info:'Il menu del gioco (CONTINUA, NUOVO GIOCO, OPZIONI) e la voce aggiunta CARICA PARTITA per i salvataggi dell\'app. Prova le due versioni nelle scelte qui a destra.' },
+  { id:'carica', l:'Carica partita', info:'Elenco dei salvataggi dell\'app, nello stile scelto. Toccare un salvataggio riprende la partita.' },
+  { id:'intro', l:'Introduzione', info:'Il Professore presenta il mondo. Tocco = avanti, dito tenuto premuto = testo più veloce. Nessun pulsante, salvo un suggerimento facoltativo la prima volta.' },
+  { id:'nome', l:'Il tuo nome', info:'Quando il gioco chiede il nome compare la tastiera del telefono. Puoi spostare titolo, campo e pulsante OK.' },
+  { id:'cameretta', l:'Cameretta', info:'Inizia il gioco: la mappa riempie lo schermo. I pulsanti compaiono solo toccando il pulsante laterale. Toccalo per aprire e chiudere.' },
+];
+
+const BTN = [
+  { id:'squadra', l:'SQUADRA' }, { id:'borsa', l:'BORSA' }, { id:'pokedex', l:'POKéDEX' },
+  { id:'menu', l:'MENU' }, { id:'testo', l:'TESTO' }, { id:'salva', l:'SALVA' },
+];
+
+/* Icone pixel (10×10) disegnate per l'app. */
+const PIX = {
+  squadra:['..........','.##....##.','####..####','####..####','.##....##.','..........','####..####','####..####','####..####','..........'],
+  borsa:['...####...','..#....#..','..#....#..','.########.','#........#','#..####..#','#........#','#........#','#........#','.########.'],
+  pokedex:['.########.','#........#','#.######.#','#.#....#.#','#.######.#','#........#','#.##..##.#','#.##.....#','#........#','.########.'],
+  menu:['..........','##########','##########','..........','##########','##########','..........','##########','##########','..........'],
+  testo:['.########.','#........#','#.######.#','#........#','#.####...#','#........#','.###.####.','...##.....','...#......','..........'],
+  salva:['#########.','#.#####.##','#.#####..#','#.#####..#','#........#','#.######.#','#.#....#.#','#.#....#.#','#.######.#','##########'],
+};
+const pixSvg = id => {
+  let r = '';
+  PIX[id].forEach((row, y) => [...row].forEach((c, x) => { if (c === '#') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }));
+  return `<svg viewBox="0 0 10 10" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">${r}</svg>`;
+};
+
+/* ---------------- Configurazione ---------------- */
+const FRAME_H = 100 * 0.9 * 9 / 20;   // altezza dell'immagine 10:9 a tutta larghezza, in % dell'altezza dello schermo
+const DEF = {
+  theme:'gioco', font:'press', carica:'integrato', bands:'gioco', hint:'no',
+  side:'destra', tab:'linguetta', panel:'colonna', autoClose:'si',
+  layout:{
+    game:{ x:0, y:(100 - FRAME_H) / 2, w:100, h:FRAME_H },
+    carica:{ x:0, y:(100 - FRAME_H) / 2 + FRAME_H * 8 / 18, w:75, h:FRAME_H * 3 / 18 },
+    lista:{ x:4, y:8, w:92, h:84 },
+    hint:{ x:10, y:76, w:80, h:6 },
+    nTitolo:{ x:6, y:8, w:88, h:8 },
+    nCampo:{ x:6, y:19, w:88, h:8 },
+    nOk:{ x:56, y:30, w:38, h:6.5 },
+    tab:{ x:88, y:56, w:12, h:12 },
+    panel:{ x:44, y:30, w:44, h:52 },
+  },
+};
+const PANEL_DEF = {
+  colonna:{ x:44, y:30, w:44, h:52 },
+  griglia:{ x:30, y:44, w:58, h:38 },
+  barra:{ x:2, y:86, w:96, h:10 },
+};
+let cfg = clone(DEF);
+let hadLocal = false;
+try { const s = localStorage.getItem('lab-avvio-cfg'); if (s) { cfg = merge(clone(DEF), JSON.parse(s)); hadLocal = true; } } catch(e){}
+function merge(a, b){ for (const k in b){ if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && a[k] && typeof a[k] === 'object') merge(a[k], b[k]); else if (k in a) a[k] = b[k]; } return a; }
+function save(){ try { localStorage.setItem('lab-avvio-cfg', JSON.stringify(cfg)); } catch(e){} }
+
+let screen = 0, editMode = false, panelOpen = true;
+const stage = $('#stage');
+
+/* ---------------- Domande ---------------- */
+const QUESTIONS = [
+  { k:'theme', l:'Stile dei pulsanti e dei riquadri dell\'app', why:'«In tema» vuol dire che sembrano parte del gioco.', rec:'gioco',
+    o:[['gioco','Riquadro del gioco (bianco, doppio bordo)'],['pika','Giallo Pikachu (giallo, bordo scuro)'],['scuro','Come ora (scuro moderno)']] },
+  { k:'font', l:'Carattere delle scritte', why:'Tutti a pixel e liberi da usare nell\'app, tranne «Normale».', rec:'press',
+    o:[['press','Pixel 8×8 (come i menu del gioco)'],['pixel','Pixel arrotondato (più leggibile)'],['silk','Pixel stretto'],['sys','Normale del telefono']] },
+  { k:'carica', l:'CARICA PARTITA nel menu iniziale', why:'Integrata sembra una voce in più del menu del gioco.', rec:'integrato',
+    o:[['integrato','Riquadro sotto il menu, stesso stile'],['separato','Pulsante a parte']] },
+  { k:'bands', l:'Spazio sopra e sotto l\'immagine (titolo, menu, introduzione)', why:'Su un telefono lungo l\'immagine 10:9 lascia spazio libero.', rec:'gioco',
+    o:[['gioco','Colore del bordo del gioco'],['nero','Nero'],['tema','Crema del tema']] },
+  { k:'hint', l:'Suggerimento nell\'introduzione', why:'«Tocca: avanti · Tieni premuto: più veloce».', rec:'prima',
+    o:[['no','Mai'],['prima','Solo la prima volta'],['sempre','Sempre']] },
+  { k:'side', l:'Lato del pulsante laterale', why:'Si potrà cambiare anche nelle impostazioni dell\'app.', rec:'destra',
+    o:[['destra','Destra'],['sinistra','Sinistra']] },
+  { k:'tab', l:'Forma del pulsante laterale', why:'', rec:'linguetta',
+    o:[['linguetta','Linguetta attaccata al bordo'],['tondo','Tondo staccato']] },
+  { k:'panel', l:'Come compaiono i pulsanti', why:'La colonna resta sotto il pollice dal lato scelto.', rec:'colonna',
+    o:[['colonna','Colonna accanto al pulsante'],['griglia','Griglia 2×3'],['barra','Barra in basso']] },
+  { k:'autoClose', l:'Dopo aver toccato un pulsante, il pannello si chiude?', why:'', rec:'si',
+    o:[['si','Sì, torna il gioco pulito'],['no','No, resta aperto']] },
+];
+function renderQuestions(){
+  const host = $('#questions');
+  host.innerHTML = QUESTIONS.map(q => `<fieldset><legend>${q.l}</legend>${q.why ? `<p class="why">${q.why}</p>` : ''}
+    <div class="opts">${q.o.map(([v, t]) => `<label class="opt"><input type="radio" name="q-${q.k}" value="${v}" ${cfg[q.k] === v ? 'checked' : ''}><span>${t}${q.rec === v ? ' <em class="rec">consigliato</em>' : ''}</span></label>`).join('')}</div></fieldset>`).join('');
+  host.querySelectorAll('input').forEach(inp => inp.addEventListener('change', () => {
+    const k = inp.name.slice(2);
+    if (k === 'side' && cfg.side !== inp.value){ mirror('tab'); mirror('panel'); }
+    if (k === 'panel' && cfg.panel !== inp.value){ cfg.layout.panel = clone(PANEL_DEF[inp.value]); if (cfg.side === 'sinistra') mirror('panel'); }
+    cfg[k] = inp.value; save(); render();
+  }));
+}
+function mirror(id){ const r = cfg.layout[id]; r.x = Math.max(0, 100 - r.x - r.w); }
+
+/* ---------------- Disegni segnaposto dell'immagine del gioco (160×144) ---------------- */
+const GB = { white:'#f8f8f0', light:'#c8d8a0', mid:'#6a8a4a', dark:'#181818', yellow:'#f8e070', sky:'#a8c8f0' };
+function box(c, x, y, w, h){
+  c.fillStyle = GB.white; c.fillRect(x, y, w, h);
+  c.fillStyle = GB.dark; c.fillRect(x + 1, y + 1, w - 2, 2); c.fillRect(x + 1, y + h - 3, w - 2, 2); c.fillRect(x + 1, y + 1, 2, h - 2); c.fillRect(x + w - 3, y + 1, 2, h - 2);
+  c.fillRect(x + 4, y + 4, w - 8, 1); c.fillRect(x + 4, y + h - 5, w - 8, 1); c.fillRect(x + 4, y + 4, 1, h - 8); c.fillRect(x + w - 5, y + 4, 1, h - 8);
+}
+function txt(c, s, x, y, size){ c.fillStyle = GB.dark; c.font = `${size || 8}px "Press Start 2P", monospace`; c.textBaseline = 'top'; c.fillText(s, x, y); }
+function person(c, x, y, col){
+  // personaggio di prova (disegno dell'app), 16×16
+  const P = ['......####......','....########....','...##########...','...#.######.#...','...#.#.##.#.#...','....########....','.....######.....','....########....','...##########...','..##.######.##..','..#..######..#..','.....######.....','.....##..##.....','.....##..##.....','....###..###....','................'];
+  c.fillStyle = col || GB.dark;
+  P.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') c.fillRect(x + i, y + j, 1, 1); }));
+}
+function drawGame(c, id){
+  c.imageSmoothingEnabled = false;
+  c.fillStyle = GB.white; c.fillRect(0, 0, 160, 144);
+  if (id === 'titolo'){
+    c.fillStyle = GB.sky; c.fillRect(0, 0, 160, 144);
+    c.fillStyle = GB.yellow; c.fillRect(0, 86, 160, 58);
+    c.fillStyle = GB.dark; c.fillRect(0, 86, 160, 2);
+    box(c, 14, 14, 132, 40); txt(c, 'TITOLO', 32, 22, 16); txt(c, 'DEL GIOCO', 44, 40, 8);
+    person(c, 72, 66);
+    txt(c, 'immagine', 48, 100, 8); txt(c, 'del gioco', 44, 112, 8);
+  } else if (id === 'menu' || id === 'carica'){
+    box(c, 0, 0, 120, 64);
+    txt(c, '▶', 8, 16, 8); txt(c, 'CONTINUA', 18, 16); txt(c, 'NUOVO GIOCO', 18, 32); txt(c, 'OPZIONI', 18, 48);
+  } else if (id === 'intro'){
+    person(c, 72, 34); person(c, 72, 34);
+    c.fillStyle = GB.dark; c.fillRect(64, 52, 32, 2);
+    box(c, 0, 96, 160, 48); txt(c, '[testo del', 10, 108); txt(c, 'Professore]', 10, 124); txt(c, '▼', 144, 128);
+  } else if (id === 'nome'){
+    txt(c, 'NOME?', 8, 8);
+    box(c, 0, 32, 160, 88);
+    for (let r = 0; r < 5; r++) for (let k = 0; k < 9; k++) txt(c, String.fromCharCode(65 + (r * 9 + k) % 26), 14 + k * 16, 44 + r * 14);
+  }
+}
+/* Cameretta estesa: stanza disegnata dall'app intorno all'inquadratura originale. */
+function drawRoom(c, w, h){
+  c.imageSmoothingEnabled = false;
+  c.fillStyle = '#000'; c.fillRect(0, 0, w, h);
+  const rx = 0, rw = 160, rh = 128, ry = Math.round(h / 2 - 72);
+  for (let y = 0; y < rh; y += 8) for (let x = 0; x < rw; x += 8){
+    c.fillStyle = ((x + y) / 8) % 2 ? '#e8e0f8' : '#f0e8ff'; c.fillRect(rx + x, ry + y, 8, 8);
+    c.fillStyle = '#c8b8e8'; c.fillRect(rx + x + 7 - (y / 8 % 8), ry + y + 3, 1, 1);
+  }
+  c.fillStyle = '#b090d0'; c.fillRect(rx, ry, rw, 16);
+  c.fillStyle = '#6a50a0'; c.fillRect(rx + 8, ry + 2, 24, 14); c.fillRect(rx + 40, ry + 2, 32, 14);   // mobili
+  c.fillStyle = '#80b0e0'; c.fillRect(rx + 74, ry + 52, 18, 14); c.fillStyle = '#404060'; c.fillRect(rx + 76, ry + 54, 14, 10); // tv
+  c.fillStyle = '#e0d0f0'; c.fillRect(rx + 0, ry + 88, 16, 32); c.fillStyle = '#6a50a0'; c.fillRect(rx + 0, ry + 88, 16, 3);    // letto
+  c.fillStyle = '#5a9a5a'; c.fillRect(rx + 140, ry + 92, 14, 18);                                                               // pianta
+  person(c, rx + 48, ry + 60, '#6a3a8a');
+}
+
+/* ---------------- Disegno della schermata ---------------- */
+function rectStyle(r){ return `left:${r.x}%;top:${r.y}%;width:${r.w}%;height:${r.h}%`; }
+function ed(id, label){ return editMode ? ` ed" data-id="${id}" data-label="${label}` : `" data-id="${id}`; }
+function bandColor(){ return cfg.bands === 'nero' ? '#000' : cfg.bands === 'tema' ? '#f7efd2' : GB.white; }
+
+function render(){
+  const sc = SCREENS[screen].id, L = cfg.layout;
+  stage.className = `stage th-${cfg.theme} f-${cfg.font} side-${cfg.side}` + (editMode ? ' editing' : '');
+  let h = '';
+  if (sc === 'cameretta'){
+    h += `<canvas class="el game" id="roomCv" style="left:0;top:0;width:100%;height:100%"></canvas>`;
+    h += `<div class="el nat tab ${cfg.tab}${ed('tab', 'Pulsante laterale')}" style="${rectStyle(L.tab)}" role="button" tabindex="0" aria-label="Mostra i pulsanti" id="tabEl"><span class="lines">${panelOpen ? '<i></i><i></i>' : '<i></i><i></i><i></i>'}</span><span class="handle"></span></div>`;
+    if (panelOpen || editMode){
+      h += `<div class="el panel ${cfg.panel}${ed('panel', 'Pulsanti')}" style="${rectStyle(L.panel)}">` +
+        BTN.map(b => `<button type="button" class="nat pbtn" data-b="${b.id}">${pixSvg(b.id)}<span>${b.l}</span></button>`).join('') +
+        `<span class="handle"></span></div>`;
+    }
+  } else {
+    h += `<div class="bands" style="background:${bandColor()}"></div>`;
+    h += `<div class="el game${ed('game', 'Immagine del gioco')}" style="${rectStyle(L.game)}"><canvas id="gameCv" width="160" height="144"></canvas><span class="handle"></span></div>`;
+    if (sc === 'menu'){
+      h += `<div class="el nat carica ${cfg.carica === 'separato' ? 'sep' : ''}${ed('carica', 'Carica partita')}" style="${rectStyle(L.carica)}" role="button" tabindex="0"><span class="cur">▶</span><span>CARICA PARTITA</span><span class="handle"></span></div>`;
+    }
+    if (sc === 'carica'){
+      h += `<div class="el nat load${ed('lista', 'Elenco salvataggi')}" style="${rectStyle(L.lista)}">
+        <div class="lt natf">CARICA PARTITA</div>
+        ${[['SALVATAGGIO','18 nov · 21:40','LUCA · 2 medaglie','PIKACHU L.14, ROSSO L.9'],['AUTOMATICO','18 nov · 22:05','LUCA · 2 medaglie','PIKACHU L.15, ROSSO L.9']].map((s, i) =>
+          `<div class="slot natf"><canvas width="160" height="144" data-slot="${i}"></canvas><div><b>${s[0]}</b><span class="sm">${s[1]}</span><br>${s[2]}<br><span class="sm">${s[3]}</span></div></div>`).join('')}
+        <div class="back natf">INDIETRO</div><span class="handle"></span></div>`;
+    }
+    if (sc === 'intro' && cfg.hint !== 'no'){
+      h += `<div class="el nat${ed('hint', 'Suggerimento')}" style="${rectStyle(L.hint)};--k:2.8">Tocca: avanti · Tieni premuto: più veloce<span class="handle"></span></div>`;
+    }
+    if (sc === 'nome'){
+      h += `<div class="dim"></div>`;
+      h += `<div class="el nat${ed('nTitolo', 'Titolo')}" style="${rectStyle(L.nTitolo)};--k:3.8">COME TI CHIAMI?<span class="handle"></span></div>`;
+      h += `<div class="el nat field${ed('nCampo', 'Campo del nome')}" style="${rectStyle(L.nCampo)};--k:4.6"><span>LUCA</span><span class="caret"></span><span class="handle"></span></div>`;
+      h += `<div class="el nat${ed('nOk', 'OK')}" style="${rectStyle(L.nOk)};--k:3.8" role="button" tabindex="0"><span class="cur">▶</span>OK<span class="handle"></span></div>`;
+      h += `<div class="kbd" aria-hidden="true"><div><div style="text-align:center;margin-bottom:2cqw">tastiera del telefono</div><div class="keys">${'<i></i>'.repeat(30)}</div></div></div>`;
+    }
+  }
+  h += `<div class="toast" id="toast"></div>`;
+  stage.innerHTML = h;
+  // disegni
+  const gc = $('#gameCv'); if (gc) drawGame(gc.getContext('2d'), sc);
+  const rc = $('#roomCv'); if (rc){ const r = stage.getBoundingClientRect(); const hh = Math.max(144, Math.round(160 * r.height / Math.max(1, r.width))); rc.width = 160; rc.height = hh; drawRoom(rc.getContext('2d'), 160, hh); }
+  stage.querySelectorAll('canvas[data-slot]').forEach(cv => { const c = cv.getContext('2d'); drawRoom(c, 160, 144); });
+  // passi e testi
+  $('#steps').innerHTML = SCREENS.map((s, i) => `<button type="button" class="chip" aria-pressed="${i === screen}" data-i="${i}">${i + 1}. ${s.l}</button>`).join('');
+  $('#cap').textContent = `${screen + 1} di ${SCREENS.length} · ${SCREENS[screen].l}`;
+  $('#info').innerHTML = `<strong>${screen + 1}. ${SCREENS[screen].l.toUpperCase()}</strong>${SCREENS[screen].info}`;
+  $('#prevBtn').disabled = screen === 0; $('#nextBtn').disabled = screen === SCREENS.length - 1;
+  bindStage();
+}
+
+function toast(msg){ const t = $('#toast'); if (!t) return; t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1600); }
+
+function bindStage(){
+  const tab = $('#tabEl');
+  if (tab && !editMode){
+    const tog = () => { panelOpen = !panelOpen; render(); };
+    tab.addEventListener('click', tog);
+    tab.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); tog(); } });
+  }
+  stage.querySelectorAll('.pbtn').forEach(b => b.addEventListener('click', () => {
+    if (editMode) return;
+    const lbl = BTN.find(x => x.id === b.dataset.b).l;
+    if (cfg.autoClose === 'si'){ panelOpen = false; render(); }
+    toast(lbl + ' si apre a tutto schermo');
+  }));
+  const car = stage.querySelector('.carica');
+  if (car && !editMode) car.addEventListener('click', () => { screen = 2; render(); });
+  const back = stage.querySelector('.load .back');
+  if (back && !editMode) back.addEventListener('click', () => { screen = 1; render(); });
+}
+
+/* ---------------- Sposta e ridimensiona ---------------- */
+let drag = null;
+stage.addEventListener('pointerdown', e => {
+  if (!editMode) return;
+  const el = e.target.closest('.ed'); if (!el) return;
+  e.preventDefault();
+  const id = el.dataset.id, r = cfg.layout[id], sr = stage.getBoundingClientRect();
+  drag = { id, el, resize: !!e.target.closest('.handle'), sx:e.clientX, sy:e.clientY, r0:clone(r), sw:sr.width, sh:sr.height };
+  el.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = (e.clientX - drag.sx) / drag.sw * 100, dy = (e.clientY - drag.sy) / drag.sh * 100;
+  const r = cfg.layout[drag.id], o = drag.r0;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  if (drag.resize){
+    r.w = clamp(o.w + dx, 6, 100 - o.x);
+    if (drag.id === 'game'){ r.w = clamp(r.w, 30, 100); r.h = r.w * 0.9 * drag.sw / drag.sh; }
+    else r.h = clamp(o.h + dy, 3, 100 - o.y);
+  } else {
+    r.x = clamp(o.x + dx, 0, 100 - r.w);
+    r.y = clamp(o.y + dy, 0, 100 - r.h);
+  }
+  r.x = Math.round(r.x * 2) / 2; r.y = Math.round(r.y * 2) / 2; r.w = Math.round(r.w * 2) / 2; r.h = Math.round(r.h * 2) / 2;
+  drag.el.style.cssText = rectStyle(r) + (drag.el.style.getPropertyValue('--k') ? `;--k:${drag.el.style.getPropertyValue('--k')}` : '');
+});
+const endDrag = () => { if (drag){ drag = null; save(); } };
+stage.addEventListener('pointerup', endDrag);
+stage.addEventListener('pointercancel', endDrag);
+
+function setEdit(on){
+  editMode = on;
+  for (const b of document.querySelectorAll('#editBtn, #immEdit')){ b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Fine spostamenti' : 'Sposta e ridimensiona'; }
+  render();
+}
+
+/* ---------------- Comandi ---------------- */
+$('#steps').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b){ screen = +b.dataset.i; panelOpen = true; render(); } });
+$('#prevBtn').addEventListener('click', () => { if (screen > 0){ screen--; render(); } });
+$('#nextBtn').addEventListener('click', () => { if (screen < SCREENS.length - 1){ screen++; panelOpen = true; render(); } });
+$('#editBtn').addEventListener('click', () => setEdit(!editMode));
+
+/* Schermo intero: il telefono riempie lo schermo, con i comandi essenziali. */
+let immHost = null;
+$('#immBtn').addEventListener('click', () => {
+  immHost = document.createElement('div'); immHost.className = 'imm';
+  immHost.innerHTML = `<div class="immbar"><button class="btn" type="button" id="immPrev">◀</button><button class="btn" type="button" id="immNext">▶</button><button class="btn" type="button" id="immEdit" aria-pressed="${editMode}">${editMode ? 'Fine spostamenti' : 'Sposta e ridimensiona'}</button><button class="btn" type="button" id="immClose">Chiudi</button></div>`;
+  immHost.appendChild($('#phone'));
+  document.body.appendChild(immHost);
+  document.body.style.overflow = 'hidden';
+  $('#immPrev').addEventListener('click', () => $('#prevBtn').click());
+  $('#immNext').addEventListener('click', () => $('#nextBtn').click());
+  $('#immEdit').addEventListener('click', () => setEdit(!editMode));
+  $('#immClose').addEventListener('click', () => { $('#phoneHost').appendChild($('#phone')); immHost.remove(); immHost = null; document.body.style.overflow = ''; render(); });
+  render();
+});
+
+/* ---------------- Invio a Claude ---------------- */
+let dbP;
+try { dbP = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('db') : Promise.resolve(null); } catch(e){ dbP = Promise.resolve(null); }
+function summary(){
+  const name = (k) => { const q = QUESTIONS.find(x => x.k === k); const o = q.o.find(x => x[0] === cfg[k]); return o ? o[1] : cfg[k]; };
+  const L = cfg.layout, f = r => `x ${r.x}%, y ${r.y}%, ${r.w}×${r.h}%`;
+  return [
+    ...QUESTIONS.map(q => `${q.l}: ${name(q.k)}.`),
+    `Posizioni (in % dello schermo): immagine del gioco ${f(L.game)}; CARICA PARTITA ${f(L.carica)}; elenco salvataggi ${f(L.lista)}; suggerimento ${f(L.hint)}; nome: titolo ${f(L.nTitolo)}, campo ${f(L.nCampo)}, OK ${f(L.nOk)}; pulsante laterale ${f(L.tab)}; pulsanti ${f(L.panel)}.`,
+  ].join('\n');
+}
+$('#sendBtn').addEventListener('click', async () => {
+  const st = $('#sendStatus'), btn = $('#sendBtn');
+  st.className = ''; st.textContent = 'Invio in corso…'; btn.disabled = true;
+  const note = $('#note').value.trim().slice(0, 2000);
+  let db = null; try { db = await dbP; } catch(e){}
+  const fallback = msg => { st.textContent = msg; const s = $('#summary'); s.hidden = false; s.value = summary() + (note ? '\nNote: ' + note : ''); btn.disabled = false; };
+  if (!db) return fallback('Da questa vista non riesco a inviare. Copia il riepilogo qui sotto e incollalo in chat.');
+  const payload = { cfg:clone(cfg), riepilogo:summary(), nota:note, schermata:SCREENS[screen].id, inviatoIl:new Date().toISOString() };
+  const attempt = () => db.collection('invii').add(payload);
+  try { await attempt(); }
+  catch(e){
+    if (e && e.code === 'unavailable'){ try { await new Promise(r => setTimeout(r, 900)); await attempt(); } catch(e2){ return fallback('Invio non riuscito. Copia il riepilogo qui sotto e incollalo in chat.'); } }
+    else return fallback('Invio non riuscito. Copia il riepilogo qui sotto e incollalo in chat.');
+  }
+  st.className = 'ok'; st.textContent = 'Inviato alle ' + new Date().toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) + '. Claude può leggerlo.'; btn.disabled = false;
+});
+$('#resetBtn').addEventListener('click', () => { cfg = clone(DEF); save(); renderQuestions(); render(); $('#sendStatus').textContent = 'Predefiniti ripristinati.'; });
+/* Su un dispositivo nuovo riprende l'ultima configurazione inviata. */
+dbP.then(async db => {
+  if (!db || hadLocal) return;
+  try {
+    const q = await db.collection('invii').orderBy('inviatoIl', 'desc').limit(1).get();
+    if (q.empty) return;
+    const d = q.docs[0].data();
+    if (d && d.cfg && typeof d.cfg === 'object'){ cfg = merge(clone(DEF), d.cfg); save(); renderQuestions(); render(); }
+  } catch(e){}
+}).catch(() => {});
+
+/* ---------------- Avvio ---------------- */
+renderQuestions();
+render();
+window.addEventListener('resize', () => { if (SCREENS[screen].id === 'cameretta') render(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+})();
+</script>

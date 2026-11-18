@@ -17,9 +17,10 @@
 - Levetta ovunque (4 direzioni); tocco veloce = A; tocco su persone/oggetti/cartelli/banconi = vai lì e parla
   (anche nella mappa aggiunta); gesto indietro = B.
 - Squadra in alto con dati veri; in lotta pulsanti mosse (tipo, PP), Squadra, Borsa, Fuga; Sì/No nativi.
-- Barra in basso: Squadra, Borsa, Pokédex, Menu (START), Testo auto (No/Lento/Medio/Veloce), Salva; Select solo nei menu del gioco.
+- Pulsante laterale: Squadra, Borsa, Pokédex, Menu (START), Testo auto (No/Lento/Medio/Veloce), Salva; Select solo nei menu del gioco.
 - Nomi: tastiera del telefono al posto di quella del gioco (D-029, D-032).
-- Menu nativi Squadra (con scheda), Borsa (con Usa/Getta tramite il menu del gioco) e Pokédex; barra in basso con icone (D-036).
+- Menu nativi Squadra (con scheda), Borsa (con Usa/Getta tramite il menu del gioco) e Pokédex.
+- Prima di giocare nessun pulsante dell'app; durante il gioco pulsante laterale con i pulsanti in colonna (D-037).
 - Avvio come sul Game Boy (D-034): introduzione, titolo, menu iniziale del gioco + pulsante nativo CARICA PARTITA.
 - Salvataggi: del gioco (CONTINUA, batteria ogni 20 s se cambiata); dell'app: "Salva" (manuale) e automatico
   all'uscita durante una partita, con miniatura e scheda; scritture atomiche con .bak.
@@ -29,14 +30,13 @@
 - Al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
 - L'app non è stata provata qui su un telefono (nessun emulatore Android): verificati motore e logica su computer.
 
-## Prossimo passo – USA CON SCELTA DEL COMPAGNO E "SPOSTA"
-1. Preparare uno stato di prova con squadra e Pozione (Pikachu + Pozione dal PC), studiare il menu POKéMON del gioco
-   (scelta del compagno, PS recuperati, "SPOSTA").
-2. Usa: per gli strumenti da usare su un compagno, sceglierlo nell'app e far completare l'azione all'esecutore.
-3. Squadra: "Sposta" per cambiare l'ordine, tramite il menu POKéMON.
-Poi: scheda della specie nel Pokédex; Negozio e PC sul posto; copia di sicurezza dei salvataggi.
-Da provare sul telefono (0.3.0 consegnata): avvio dal titolo e CARICA PARTITA, vista estesa, lotta a tutto schermo,
-tastiera dei nomi, menu Squadra, Borsa, Pokédex.
+## Prossimo passo – AVVIO "IN TEMA" (richiesta del committente)
+Si lavora sulla parte dall'accensione all'ingresso nella cameretta, con il committente.
+1. Laboratorio d'avvio: https://claude.ai/artifact/8sMG68hS9aFD7wJWH7A535 (file `docs/demo/laboratorio-avvio.html`),
+   scelte inviate nella raccolta "invii" (leggere con ArtifactData).
+2. Applicare all'app lo stile scelto (D-038): riquadri e pulsanti come il gioco, carattere a pixel incluso nell'app,
+   posizioni e dimensioni scelte per CARICA PARTITA, schermata "Carica partita", nome, pulsante laterale e pannello.
+3. Poi riprendere: Usa con scelta del compagno, "Sposta" nella Squadra.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.
