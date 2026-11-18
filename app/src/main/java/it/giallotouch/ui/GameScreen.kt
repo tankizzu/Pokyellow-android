@@ -113,8 +113,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var dexOpen by remember { mutableStateOf(false) }     // Pokédex nativo
     var itemRequested by remember { mutableStateOf(false) }  // Usa/Getta in corso nel menu del gioco
     var panelOpen by remember { mutableStateOf(false) }   // pulsanti del pulsante laterale visibili
-    var panelSide by remember { mutableStateOf(settings.panelSide) }
-    var panelCursor by remember { mutableStateOf(0) }   // voce indicata dal cursore ▶ nel riquadro dei pulsanti
+    var optionsOpen by remember { mutableStateOf(false) }   // OPZIONI nello stile del gioco
     var sheet by remember { mutableStateOf<IntArray?>(null) }   // tile del gioco per le aggiunte "come il gioco"
     var teamSelected by remember { mutableStateOf<Int?>(null) }  // scheda aperta (null = elenco)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
@@ -182,7 +181,11 @@ fun GameScreen(session: GameSession, settings: Settings) {
                                     val s = snapshot
                                     val w = size.width.toFloat()
                                     val h = w * NativeCore.HEIGHT / NativeCore.WIDTH
-                                    val top = (size.height - h) / 2f
+                                    // Inquadratura originale: al centro, oppure dove la mette la vista estesa (spostata in basso).
+                                    val top = if (session.extendedActive && session.extendedHeight > 0) {
+                                        val unit = w / NativeCore.WIDTH
+                                        (size.height - session.extendedHeight * unit) / 2f + session.extendedFrameTop * unit
+                                    } else (size.height - h) / 2f
                                     val p = change.position
                                     // Con la vista estesa si possono toccare anche persone e cartelli sopra e sotto l'inquadratura originale.
                                     if (s.freeRoam && (session.extendedActive || (p.y >= top && p.y < top + h))) {
@@ -277,66 +280,29 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )
         } else if (inGame && sheet != null) {
-            // Pulsante laterale (D-037) disegnato con i tile del gioco (D-039): linguetta 3×5 caselle attaccata al bordo,
-            // e riquadro dei pulsanti come il menu START del gioco. Tocco lungo sulla linguetta = cambia lato.
-            val tiles = sheet!!
-            val right = panelSide == "destra"
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                val density = LocalDensity.current
-                val unit = with(density) { maxWidth.toPx() } / 160f
-                val tilePx = 8 * unit
-                val rowsOnScreen = (with(density) { maxHeight.toPx() } / tilePx).toInt()
-                val tabRow = (rowsOnScreen * 0.61f).toInt()
-                val tabCol = if (right) 17 else 0
-                fun off(col: Int, row: Int) = IntOffset((col * tilePx).toInt(), (row * tilePx).toInt())
-                if (panelOpen) {
-                    val items = listOf("SQUADRA", "BORSA", "POKéDEX", "MENU", "TESTO " + "-123"[autoText], "SALVA", "ESCI")
-                    val boxCol = if (right) 7 else 3
-                    val boxRow = tabRow + 4 - 15
-                    TileImage(
-                        tiles, 10, 16, unit, key = Triple(items, panelCursor, right),
-                        modifier = Modifier
-                            .offset { off(boxCol, boxRow) }
-                            .pointerInput(items) {
-                                detectTapGestures { pos ->
-                                    val i = (((pos.y / tilePx).toInt() - 1) / 2).coerceIn(0, items.size - 1)
-                                    panelCursor = i
-                                    when (i) {
-                                        0 -> { panelOpen = false; teamSelected = null; teamOpen = true }
-                                        1 -> { panelOpen = false; bagOpen = true }
-                                        2 -> { panelOpen = false; dexOpen = true }
-                                        3 -> { panelOpen = false; tapped = NativeCore.KEY_START }
-                                        4 -> autoText = (autoText + 1) % 4
-                                        5 -> { panelOpen = false; message = if (session.saveManual()) "Partita salvata in questo punto" else "Salvataggio non riuscito" }
-                                        else -> panelOpen = false
-                                    }
-                                }
-                            }
-                    ) {
-                        box(0, 0, 9, 15)
-                        text("▶", 1, 2 + 2 * panelCursor)
-                        items.forEachIndexed { i, label -> text(label, 2, 2 + 2 * i) }
-                    }
-                }
-                TileImage(
-                    tiles, 3, 5, unit, key = "linguetta",
-                    modifier = Modifier
-                        .offset { off(tabCol, tabRow) }
-                        .pointerInput(right) {
-                            detectTapGestures(
-                                onTap = { panelOpen = !panelOpen },
-                                onLongPress = {
-                                    panelSide = if (right) "sinistra" else "destra"
-                                    settings.panelSide = panelSide
-                                    message = if (right) "Pulsanti a sinistra" else "Pulsanti a destra"
-                                }
-                            )
-                        }
-                ) {
-                    box(0, 0, 2, 4)
-                    for (r in 1..3) tile(TileCanvas.HORIZONTAL, 1, r)
-                }
-            }
+            // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
+            GamePanel(
+                sheet = sheet!!,
+                open = panelOpen,
+                party = snapshot.party,
+                romData = session.romData,
+                onToggle = { panelOpen = !panelOpen },
+                onPokedex = { panelOpen = false; dexOpen = true },
+                onBag = { panelOpen = false; bagOpen = true },
+                onOptions = { panelOpen = false; optionsOpen = true },
+                onSave = { panelOpen = false; message = if (session.saveManual()) "Partita salvata in questo punto" else "Salvataggio non riuscito" },
+                onMember = { i -> panelOpen = false; teamSelected = i; teamOpen = true },
+            )
+        }
+        if (optionsOpen && sheet != null) {
+            BackHandler { optionsOpen = false }
+            GameOptions(
+                sheet = sheet!!,
+                autoText = autoText,
+                onAutoText = { autoText = (autoText + 1) % 4 },
+                onGameMenu = { optionsOpen = false; tapped = NativeCore.KEY_START },
+                onBack = { optionsOpen = false },
+            )
         }
 
         // SELECT serve solo dentro i menu del gioco (per spostare strumenti e mosse): compare solo lì, sopra la barra.

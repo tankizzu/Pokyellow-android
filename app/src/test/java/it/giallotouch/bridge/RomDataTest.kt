@@ -54,5 +54,7 @@ class RomDataTest {
         assertEquals(25, data.dexNumber(0x54))
         assertEquals(data.speciesName(0x54), data.speciesNameForDex(25))
         assertEquals(true, (1..151).all { data.speciesNameForDex(it).isNotEmpty() })
+        // velocità di crescita: Pikachu media veloce (0)
+        assertEquals(0, data.growthRate(0x54))
     }
 }

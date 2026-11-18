@@ -29,8 +29,11 @@ object NativeCore {
     @JvmStatic external fun nativeRunFrame(handle: Long, pixels: IntArray, audio: ShortArray): Int
     @JvmStatic external fun nativeReadMemory(handle: Long, address: Int): Int
     @JvmStatic external fun nativeReadRange(handle: Long, address: Int, out: ByteArray)
-    /** Vista estesa: riempie [out] (160 × height) e restituisce 1 se lo schermo mostra la mappa, 0 altrimenti. */
-    @JvmStatic external fun nativeRenderExtended(handle: Long, out: IntArray, height: Int): Int
+    /**
+     * Vista estesa: riempie [out] (160 × height) con l'inquadratura originale alla riga [frameTop] (−1 = al centro);
+     * restituisce 1 se lo schermo mostra la mappa, 0 altrimenti.
+     */
+    @JvmStatic external fun nativeRenderExtended(handle: Long, out: IntArray, height: Int, frameTop: Int): Int
     const val EXT_MAX_HEIGHT = 512
     /** Foglio 128×128 dei tile del gioco (carattere, riquadri) con i colori dei riquadri di testo: 1 = colori dallo schermo. */
     @JvmStatic external fun nativeGameTiles(handle: Long, out: IntArray): Int

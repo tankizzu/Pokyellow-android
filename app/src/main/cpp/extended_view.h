@@ -18,7 +18,8 @@ typedef struct {
 void ev_reset(EVState *st);
 
 /*
- * Disegna in out (160 × out_h, ARGB) la mappa estesa con al centro il fotogramma originale (160 × 144).
+ * Disegna in out (160 × out_h, ARGB) la mappa estesa con il fotogramma originale (160 × 144) alla riga frame_top
+ * (−1 = al centro).
  * Restituisce 1 se la vista estesa è attiva, 0 se lo schermo non mostra la mappa (out non modificato).
  */
-int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h, EVState *st);
+int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h, int frame_top, EVState *st);

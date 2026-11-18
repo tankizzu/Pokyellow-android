@@ -83,7 +83,7 @@ static uint32_t ext_out[160 * 512];
 
 static void ext_dump(const char *name, int h) {
     if (h < 144 || h > 512) return;
-    int ok = ev_render(gb, pixels, ext_out, h, &ev);
+    int ok = ev_render(gb, pixels, ext_out, h, -1, &ev);
     printf("  vista estesa %s: base %d,%d\n", ok ? "ATTIVA" : "spenta", ev.base_x, ev.base_y);
     if (!ok) return;
     char path[1024]; snprintf(path, sizeof path, "%s/%s.ppm", outdir, name);

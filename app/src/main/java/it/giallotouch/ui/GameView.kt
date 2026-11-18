@@ -64,7 +64,7 @@ class GameView(context: Context) : View(context) {
         if (ext.active && eb != null && ext.height == eb.height) {
             eb.setPixels(ext.pixels, 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, ext.height)
             val h = (w.toLong() * ext.height / NativeCore.WIDTH).toInt()
-            val top = (height - h) / 2
+            val top = (height - h) / 2   // la mappa estesa copre lo schermo; l'inquadratura dentro è già spostata dal motore
             dst.set(0, top, w, top + h)
             canvas.drawBitmap(eb, null, dst, paint)
             return

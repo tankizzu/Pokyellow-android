@@ -14,6 +14,8 @@ class RomData private constructor(
     private val itemNames: List<String> = emptyList(),
     /** Numero del Pokédex per indice interno (posizione 0 = indice 1). */
     private val dexOrder: List<Int> = emptyList(),
+    /** Velocità di crescita per numero del Pokédex (posizione 0 = n. 1). */
+    private val growthRates: List<Int> = emptyList(),
 ) {
     data class MoveInfo(val type: Int, val maxPp: Int)
 
@@ -35,6 +37,9 @@ class RomData private constructor(
         return if (dex in 1..M.NUM_POKEDEX && i >= 0) speciesName(i + 1) else ""
     }
 
+    /** Velocità di crescita della specie (indice interno), null se sconosciuta. */
+    fun growthRate(index: Int): Int? = growthRates.getOrNull(dexNumber(index) - 1)
+
     /** Numero del Pokédex di una specie (indice interno), 0 se sconosciuto. */
     fun dexNumber(index: Int): Int = dexOrder.getOrNull(index - 1) ?: 0
 
@@ -52,6 +57,9 @@ class RomData private constructor(
                 typeNames = readPointedNames(rom, M.ROM_TYPE_NAME_POINTERS, M.NUM_TYPE_IDS) ?: emptyList(),
                 dexOrder = if (M.ROM_POKEDEX_ORDER + M.NUM_SPECIES_INDEXES <= rom.size)
                     List(M.NUM_SPECIES_INDEXES) { u8(rom, M.ROM_POKEDEX_ORDER + it) } else emptyList(),
+                growthRates = if (M.ROM_BASE_STATS + 151 * M.BASE_STATS_SIZE <= rom.size)
+                    List(151) { u8(rom, M.ROM_BASE_STATS + it * M.BASE_STATS_SIZE + 19) }.takeIf { r -> r.all { it in 0..5 } } ?: emptyList()
+                    else emptyList(),
                 itemNames = readNameList(rom, M.ROM_ITEM_NAMES, M.NUM_ITEM_NAMES) ?: emptyList(),
                 speciesNames = readFixedNames(rom, M.ROM_SPECIES_NAMES, M.NUM_SPECIES_INDEXES, M.SPECIES_NAME_LENGTH) ?: emptyList(),
             )

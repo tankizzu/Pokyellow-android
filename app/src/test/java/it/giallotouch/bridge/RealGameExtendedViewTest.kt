@@ -34,7 +34,7 @@ class RealGameExtendedViewTest {
                 // fotogramma da fermo, poi a metà di un passo verso destra
                 NativeCore.nativeSetKeys(h, if (step == 1) Keys.RIGHT else 0)
                 repeat(if (step == 1) 5 else 20) { NativeCore.nativeRunFrame(h, frame, audio) }
-                assertEquals("vista estesa attiva", 1, NativeCore.nativeRenderExtended(h, out, height))
+                assertEquals("vista estesa attiva", 1, NativeCore.nativeRenderExtended(h, out, height, -1))
                 val top = (height - 144) / 2
                 assertArrayEquals(frame, out.copyOfRange(top * 160, (top + 144) * 160))
             }
@@ -48,7 +48,7 @@ class RealGameExtendedViewTest {
             assumeTrue(ok)
             val frame = IntArray(160 * 144); val audio = ShortArray(8192)
             NativeCore.nativeRunFrame(h, frame, audio)
-            assertEquals(0, NativeCore.nativeRenderExtended(h, IntArray(160 * 354), 354))
+            assertEquals(0, NativeCore.nativeRenderExtended(h, IntArray(160 * 354), 354, -1))
         } finally { NativeCore.nativeDestroy(h) }
     }
 }

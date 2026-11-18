@@ -55,6 +55,8 @@ data class PartyMember(
     val types: List<Int> = emptyList(),
     val moves: List<MoveSlot> = emptyList(),
     val stats: Stats? = null,
+    /** Punti esperienza totali (struttura +14, 3 byte). */
+    val exp: Int = 0,
 )
 
 /** Statistiche calcolate dal gioco (struttura della squadra +36…+43). */

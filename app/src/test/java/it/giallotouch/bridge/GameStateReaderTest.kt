@@ -104,3 +104,14 @@ class PokedexReadTest {
         org.junit.Assert.assertEquals(listOf(25), s.pokedexOwned)
     }
 }
+
+class ExperienceTest {
+    @org.junit.Test
+    fun formuleDelGioco() {
+        org.junit.Assert.assertEquals(125, Experience.forLevel(0, 5))       // media veloce: n³
+        org.junit.Assert.assertEquals(135, Experience.forLevel(3, 5))       // media lenta: 6/5·125 − 375 + 500 − 140
+        org.junit.Assert.assertEquals(1_250_000, Experience.forLevel(5, 100))
+        org.junit.Assert.assertEquals(0.5f, Experience.progress(0, 5, 125 + 91 / 2 + 1), 0.02f)  // L5→L6: 125→216
+        org.junit.Assert.assertEquals(1f, Experience.progress(0, 100, 0))
+    }
+}

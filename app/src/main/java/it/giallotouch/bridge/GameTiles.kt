@@ -23,6 +23,34 @@ class TileCanvas(val widthTiles: Int, val heightTiles: Int, private val sheet: I
 
     fun text(s: String, tx: Int, ty: Int) = GameText.encode(s).forEachIndexed { i, t -> tile(t, tx + i, ty) }
 
+    /** Tile in una posizione in pixel (anche fuori dalla griglia, per centrare una scritta). */
+    fun tileAt(t: Int, px: Int, py: Int) {
+        val sx = (t and 15) * 8
+        val sy = ((t shr 4) and 15) * 8
+        for (y in 0 until 8) for (x in 0 until 8) {
+            val dx = px + x; val dy = py + y
+            if (dx in 0 until width && dy in 0 until height) pixels[dy * width + dx] = sheet[(sy + y) * 128 + sx + x]
+        }
+    }
+
+    fun textAt(s: String, px: Int, py: Int) = GameText.encode(s).forEachIndexed { i, t -> tileAt(t, px + i * 8, py) }
+
+    /** Rettangolo pieno in pixel (barre di vita ed esperienza). */
+    fun fill(x: Int, y: Int, w: Int, h: Int, color: Int) {
+        for (yy in y until y + h) for (xx in x until x + w) if (xx in 0 until width && yy in 0 until height) pixels[yy * width + xx] = color
+    }
+
+    /** Colore "inchiostro" del gioco (colore 3 del carattere) e "carta" (colore 0). */
+    val ink: Int get() = inkColor()
+    private fun inkColor(): Int {
+        // il primo pixel scuro della lettera "A" (0x80) è l'inchiostro
+        val sx = (0x80 and 15) * 8; val sy = (0x80 shr 4) * 8
+        val paper = sheet[blankOffset()]
+        for (y in 0 until 8) for (x in 0 until 8) { val c = sheet[(sy + y) * 128 + sx + x]; if (c != paper) return c }
+        return 0xFF000000.toInt()
+    }
+    val paper: Int get() = sheet[blankOffset()]
+
     /** Riquadro del gioco da (x0, y0) a (x1, y1), angoli compresi. */
     fun box(x0: Int, y0: Int, x1: Int, y1: Int) {
         for (ty in y0..y1) for (tx in x0..x1) {

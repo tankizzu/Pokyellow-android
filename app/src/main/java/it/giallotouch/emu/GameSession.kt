@@ -55,6 +55,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Vista estesa a tutto schermo: altezza richiesta dalla vista (0 = spenta) e ultimo fotogramma esteso. */
     class ExtFrame(val pixels: IntArray, var height: Int = 0, var active: Boolean = false)
     @Volatile var extendedHeight = 0
+    /** Riga dell'inquadratura originale nella vista estesa: al centro più [MAP_SHIFT] pixel del gioco (scelta del committente). */
+    val extendedFrameTop: Int get() = ((extendedHeight - NativeCore.HEIGHT) / 2 + MAP_SHIFT).coerceIn(0, maxOf(0, extendedHeight - NativeCore.HEIGHT))
     val latestExtended = AtomicReference(ExtFrame(IntArray(NativeCore.WIDTH * NativeCore.EXT_MAX_HEIGHT)))
     private var extBack = ExtFrame(IntArray(NativeCore.WIDTH * NativeCore.EXT_MAX_HEIGHT))
     /** true quando lo schermo mostra la mappa estesa (serve ai tocchi fuori dall'inquadratura originale). */
@@ -357,7 +359,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     run { NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles); BattleLayout.textBoxAtBottom(frameTiles) }
                 val eh = extendedHeight
                 if (eh > NativeCore.HEIGHT) {
-                    val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh) == 1
+                    val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop) == 1
                     extBack.height = eh
                     extBack.active = active
                     extendedActive = active
@@ -432,6 +434,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         private const val AUTOSAVE_FRAMES = 60L * 20
         private const val SNAPSHOT_FRAMES = 15L
         private const val SHEET_FRAMES = 30L
+        /** La mappa è 5 caselle (40 pixel del gioco) più in basso del centro, per lasciare posto alla squadra in alto. */
+        const val MAP_SHIFT = 40
         /** Scelta del committente nel Laboratorio (D-012): toccare il terreno NON fa camminare. */
         private const val TAP_WALKS_TO_GROUND = false
     }

@@ -181,9 +181,9 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
 
 void ev_reset(EVState *st) { memset(st, 0, sizeof(*st)); st->map_id = -1; }
 
-int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h, EVState *st) {
+int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h, int frame_top, EVState *st) {
     if (out_h < FRAME_H) return 0;
-    int off_top = (out_h - FRAME_H) / 2;
+    int off_top = (frame_top < 0 || frame_top > out_h - FRAME_H) ? (out_h - FRAME_H) / 2 : frame_top;
     uint8_t lcdc = rd(gb, 0xFF40);
     if (!(lcdc & 0x80)) { st->valid = false; return 0; }
 

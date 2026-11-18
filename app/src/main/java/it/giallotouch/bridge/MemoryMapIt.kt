@@ -29,6 +29,9 @@ object MemoryMapIt {
     /** Nomi degli strumenti 0x01–0x61: elenco chiuso da 0x50 (banco 1). MN (macchine nascoste) da 0xC4, MT da 0xC9. */
     const val ROM_ITEM_NAMES = 0x45B8
     const val NUM_ITEM_NAMES = 0x61
+    /** Statistiche di base: 151 voci da 28 byte in ordine di Pokédex; +19 = velocità di crescita (0–5). */
+    const val ROM_BASE_STATS = 0x383DE
+    const val BASE_STATS_SIZE = 28
     /** Numero del Pokédex per ogni indice interno (190 byte, 0 = nessuno). */
     const val ROM_POKEDEX_ORDER = 0x41043
     const val HM01 = 0xC4

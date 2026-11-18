@@ -89,6 +89,7 @@ object GameStateReader {
                     if (id in 1..M.NUM_MOVES) MoveSlot(id, u8(base + 29 + k) and 0x3F, u8(base + 29 + k) shr 6) else null
                 },
                 stats = Stats(u16be(base + 36), u16be(base + 38), u16be(base + 40), u16be(base + 42)),
+                exp = (u8(base + 14) shl 16) or (u8(base + 15) shl 8) or u8(base + 16),
             )
         }
         return members

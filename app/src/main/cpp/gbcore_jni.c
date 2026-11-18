@@ -156,11 +156,11 @@ Java_it_giallotouch_emu_NativeCore_nativeReadMemory(JNIEnv *env, jclass cls, jlo
 
 /* Vista estesa a tutto schermo: 1 se attiva (out riempito con 160 × height pixel), 0 altrimenti. */
 JNIEXPORT jint JNICALL
-Java_it_giallotouch_emu_NativeCore_nativeRenderExtended(JNIEnv *env, jclass cls, jlong handle, jintArray out, jint height) {
+Java_it_giallotouch_emu_NativeCore_nativeRenderExtended(JNIEnv *env, jclass cls, jlong handle, jintArray out, jint height, jint frameTop) {
     (void)cls;
     Core *core = as_core(handle);
     if (height < HEIGHT || height > EXT_MAX_HEIGHT || (*env)->GetArrayLength(env, out) < WIDTH * height) return 0;
-    if (!ev_render(core->gb, core->pixels, core->ext, height, &core->ev)) return 0;
+    if (!ev_render(core->gb, core->pixels, core->ext, height, frameTop, &core->ev)) return 0;
     (*env)->SetIntArrayRegion(env, out, 0, WIDTH * height, (const jint *)core->ext);
     return 1;
 }

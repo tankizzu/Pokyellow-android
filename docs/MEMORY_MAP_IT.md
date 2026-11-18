@@ -133,10 +133,11 @@ non sullo sfondo. I tile del carattere 0x80–0xFF stanno a 0x8800; i riquadri 0
 Altre variabili: CC2B ultima voce squadra/PC, CC2C ultima voce della borsa, CC2D ultima voce START, CC36 scorrimento.
 
 ## Struttura di una creatura in squadra (D16F + 44·n, verificata con Pikachu L5/L6)
-specie +0, PS +1 (2 byte, big-endian), stato +4, tipi +5/+6, mosse +8…+11, PP +29…+32 (bit 0–5 PP, bit 6–7 PP Su),
+specie +0, PS +1 (2 byte, big-endian), stato +4, tipi +5/+6, mosse +8…+11, esperienza +14 (3 byte), PP +29…+32 (bit 0–5 PP, bit 6–7 PP Su),
 livello +33, PS massimi +34, attacco +36, difesa +38, velocità +40, speciale +42.
 
 ## Tabelle nella ROM (lette a ogni avvio dalla ROM dell'utente, mai copiate nell'app)
+- Statistiche di base: 0x383DE, 151 voci da 28 byte in ordine di Pokédex (+19 = velocità di crescita 0–5).
 - Nomi degli strumenti: 0x45B8 (banco 1), 97 nomi chiusi da 0x50 (0x01–0x61); 0xBC = "é" (POKé).
 - Numero del Pokédex per indice interno: 0x41043, 190 byte (Pikachu 0x54 → 25).
 - Nomi delle specie: 0xE8000, 190 voci da 10 byte riempite con 0x50, per indice interno (1 = primo).

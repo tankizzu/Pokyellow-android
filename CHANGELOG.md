@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-18 – pulsanti di gioco come nel mockup del committente (D-040)
+- MENU in basso al centro, disegnato con i tile del gioco; aperto mostra in alto la **squadra completa in piccolo**
+  (nome, livello, barra della vita con i colori del gioco e PS, barra dell'esperienza) e sotto il riquadro
+  **POKéDEX / BORSA / OPZIONI / SALVA**. Nessun cursore: si tocca la voce. Toccare un compagno apre la sua scheda.
+- **OPZIONI** nello stile del gioco: testo automatico (NO/LENTO/MEDIO/VELOCE) e accesso al menu originale del gioco.
+- La **mappa** è 5 caselle più in basso (il motore sposta l'inquadratura e riempie lo spazio con la mappa); i tocchi
+  su persone e cartelli seguono lo spostamento.
+- Esperienza come nel gioco: velocità di crescita dalla ROM (statistiche di base a 0x383DE) e formule del gioco.
+- 62 test superati.
+
 ## 2026-11-18 (promemoria 08:16 UTC) – aggiunte disegnate con i tile del gioco
 - Il motore fornisce all'app i **tile veri del gioco** (carattere, riquadri, cursore ▶) con i colori dei riquadri
   di testo, letti dalla memoria video (sfondo e finestra). Nuovo disegnatore `TileCanvas` sulla griglia di 8 pixel.
