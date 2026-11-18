@@ -30,3 +30,12 @@ Prova: `AppBattleFullTest` (lotta col rivale fino alla fine, una mossa diversa a
 Durante i testi della lotta i riquadri SQUADRA/BORSA/mosse prendevano il tocco senza fare niente: sembrava bloccato
 (anche nei dialoghi dopo la vittoria sul rivale). Ora un tocco sui riquadri, quando il gioco non mostra il menu di lotta,
 manda avanti il testo. Prova: `AppBattlePanelTapTest` (lotta fino alla fine toccando solo i riquadri).
+
+## B-007 – Dialoghi a volte bloccati, soprattutto ricevendo oggetti (correzione possibile, 0.6.3)
+Segnalato dal committente sulla 0.6.2. Trovato un caso in cui un tocco poteva andare perso: con lo stato dell'interfaccia
+vecchio di qualche fotogramma (per esempio appena parte un dialogo o il messaggio di un oggetto ricevuto), il tocco
+diventava "parla con chi è vicino" e l'azione veniva annullata perché il gioco era già in un dialogo. Ora l'app controlla
+nel gioco, in quel momento, se si cammina davvero; altrimenti il tocco è sempre il tasto A.
+Prova: `AppReceiveItemTest` (dopo la lotta col rivale si va sulla Strada 1, si parla col commesso, si riceve la Pozione
+solo toccando lo schermo; anche con un Pokémon selvatico lungo la strada). Il blocco del committente non è stato
+riprodotto con certezza: da ricontrollare sul telefono.

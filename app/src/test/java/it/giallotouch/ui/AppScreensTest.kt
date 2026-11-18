@@ -240,6 +240,85 @@ abstract class AppScreensHarness {
         shot("09d-si-cammina")
     }
 
+    /**
+     * Ricevere un oggetto (segnalazione del committente: dialoghi bloccati, soprattutto quando si riceve un oggetto):
+     * dopo la lotta col rivale si esce dal laboratorio, si va sulla Strada 1 e si parla con chi regala la Pozione,
+     * poi si va avanti solo toccando lo schermo. Il dialogo deve finire e la Pozione essere nella borsa.
+     */
+    fun riceviOggetto() {
+        val s = start(auto = "giallo.state") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        // lotta: prima mossa e tocchi fino a tornare a camminare
+        var guard = 0
+        while (!(s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle) && guard++ < 500) {
+            if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f)
+            else tapTile(10f, 2f)
+        }
+        assertTrue("di nuovo in giro", s.latestSnapshot.get().freeRoam)
+        fun walkHeld(key: Int, until: () -> Boolean, max: Int = 40) {
+            var k = 0
+            while (!until() && k++ < max) { s.setKeys(key); pump(260); s.setKeys(0); pump(80) }
+        }
+        // Cammina lungo il percorso più breve con il camminatore dell'app (passi precisi a fotogrammi).
+        fun goTo(x: Int, y: Int) {
+            val map = s.positionForTest().first
+            s.walkPathForTest(x, y)
+            waitFor(30_000) { s.positionForTest().let { it.first != map || (it.second == x && it.third == y) } }
+        }
+        val lab = s.positionForTest().first
+        // uscita del laboratorio: la casella percorribile più in basso, al centro
+        val g = s.mapGridForTest()!!
+        val door = (g.height - 1 downTo 0).firstNotNullOf { y -> (0 until g.width).sortedBy { kotlin.math.abs(it - g.width / 2) }.firstOrNull { g.isFree(it, y) }?.let { it to y } }
+        goTo(door.first, door.second)
+        walkHeld(NativeCore.KEY_DOWN, { s.positionForTest().first != lab })
+        pump(1500)
+        // Biancavilla: verso l'uscita a nord (casella percorribile più in alto)
+        val town = s.positionForTest().first
+        val g2 = s.mapGridForTest()!!
+        // uscita a nord: il varco nella fila di alberi (riga 1), al centro
+        val north = (0 until g2.width).sortedBy { kotlin.math.abs(it - g2.width / 2) }.first { g2.isFree(it, 1) && !g2.isFree(it - 1, 1).and(false) } to 1
+        goTo(north.first, north.second)
+        walkHeld(NativeCore.KEY_UP, { s.positionForTest().first != town })
+        pump(1500)
+        shot("20a-strada")
+        // Strada 1: la persona più vicina; ci si va vicino e la si tocca (D-049: tocco = parla)
+        val bag0 = s.latestSnapshot.get().bag.size
+        // Sulla Strada 1 c'è l'erba alta: un Pokémon selvatico può attaccare. Si lotta e si riprova.
+        fun fightIfNeeded() {
+            var g = 0
+            while (s.latestSnapshot.get().inBattle && g++ < 300) {
+                if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
+            }
+            waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        }
+        var attempts = 0
+        while (s.latestSnapshot.get().bag.size == bag0 && attempts++ < 4) {
+            // La persona cammina: ci si mette accanto, girati verso di lei; poi un tocco sullo schermo.
+            var tries = 0
+            while (s.latestSnapshot.get().freeRoam && tries++ < 8) {
+                val g4 = s.mapGridForTest()!!
+                val here = s.positionForTest()
+                val p = g4.people.minByOrNull { kotlin.math.abs(it.first - here.second) + kotlin.math.abs(it.second - here.third) } ?: break
+                val spot = g4.interactionSpots(p.first, p.second).entries.minByOrNull { kotlin.math.abs(it.key.first - here.second) + kotlin.math.abs(it.key.second - here.third) } ?: break
+                goTo(spot.key.first, spot.key.second)
+                fightIfNeeded()
+                s.setKeys(spot.value.key); pump(100); s.setKeys(0); pump(300)
+                tapTile(10f, 20f)
+                waitFor(3_000) { !s.latestSnapshot.get().freeRoam }
+            }
+            if (s.latestSnapshot.get().inBattle) { fightIfNeeded(); continue }
+            shot("20-riceve-oggetto")
+            // tocchi ravvicinati, anche mentre parte il messaggio dell'oggetto: il dialogo deve finire
+            var taps = 0
+            while (!s.latestSnapshot.get().freeRoam && taps++ < 60) tapTile(10f, 20f)
+            assertTrue("il dialogo finisce toccando lo schermo", s.latestSnapshot.get().freeRoam || s.latestSnapshot.get().inBattle)
+            fightIfNeeded()
+        }
+        shot("21-dopo-oggetto")
+        assertTrue("oggetto nella borsa", s.latestSnapshot.get().bag.size > bag0)
+    }
+
     /** In lotta BORSA apre il menu del gioco e i riquadri di lotta dell'app spariscono; indietro tornano (D-049). */
     fun lottaBorsa() {
         val s = start(auto = "giallo.state") ?: return assumeTrue(false)
@@ -252,6 +331,14 @@ abstract class AppScreensHarness {
         var k = 0
         while (s.battleGameMenu && k++ < 10) { press(s, NativeCore.KEY_B); pump(500) }
         assertTrue("di nuovo il menu di lotta", waitFor(15_000) { s.battleMenuShown })
+        // anche SQUADRA: menu del gioco senza i riquadri dell'app
+        waitFor(5_000) { !s.commandBusy }
+        tapTile(3f, it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f)
+        assertTrue("squadra del gioco aperta", waitFor(15_000) { s.battleGameMenu })
+        assertTrue("riquadri spariti (squadra)", shotUntil("09g-lotta-squadra") { b -> !boxAt(b, 0, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW, 20, 11) })
+        k = 0
+        while (s.battleGameMenu && k++ < 10) { press(s, NativeCore.KEY_B); pump(500) }
+        assertTrue("di nuovo il menu di lotta (2)", waitFor(15_000) { s.battleMenuShown })
         assertTrue("riquadri di lotta tornati", shotUntil("09f-lotta-di-nuovo") { b -> boxAt(b, 0, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW, 20, 11) })
     }
 
@@ -367,4 +454,8 @@ class AppBattlePanelTapTest : AppScreensHarness() {
 
 class AppBattleBagTest : AppScreensHarness() {
     @Test fun borsaInLotta() = lottaBorsa()
+}
+
+class AppReceiveItemTest : AppScreensHarness() {
+    @Test fun riceviPozione() = riceviOggetto()
 }

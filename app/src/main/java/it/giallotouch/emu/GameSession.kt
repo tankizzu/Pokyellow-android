@@ -275,6 +275,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
 
     private fun planTalk() {
+        // Si controlla adesso, nel gioco, se si cammina davvero: lo stato letto dall'interfaccia può essere vecchio di
+        // qualche fotogramma (per esempio appena parte un dialogo o il messaggio di un oggetto ricevuto). Se il gioco
+        // è in un dialogo o in un menu, il tocco è sempre il tasto A: non va mai perso.
+        NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+        val free = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 &&
+            NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && FreeRoam.screenIsMap(tileMap)
+        if (!free) { pendingA = 8; return }
         val grid = MapGrid.build(::readBytes, rom) ?: run { pendingA = 8; return }
         val px = NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD)
         val py = NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD)
@@ -452,6 +459,33 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             storage.writeAtomic(storage.batteryFile, battery)
             lastBattery = battery
         }
+    }
+
+    /** Solo per il banco di prova: mappa del luogo attuale (passaggi, persone, cartelli), letta nel filo del gioco. */
+    fun mapGridForTest(): MapGrid? {
+        var g: MapGrid? = null
+        runOnGameThread { g = MapGrid.build(::readBytes, rom) }
+        return g
+    }
+
+    /** Solo per il banco di prova: cammina fino a (x, y) con il camminatore dell'app (passi precisi). */
+    fun walkPathForTest(x: Int, y: Int) {
+        tasks.add(Runnable {
+            val grid = MapGrid.build(::readBytes, rom) ?: return@Runnable
+            val px = NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD)
+            val py = NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD)
+            grid.path(px, py, setOf(x to y))?.let { walker.start(it, null) }
+        })
+    }
+
+    /** Solo per il banco di prova: luogo e posizione del giocatore (mappa, x, y). */
+    fun positionForTest(): Triple<Int, Int, Int> {
+        var p = Triple(0, 0, 0)
+        runOnGameThread {
+            p = Triple(NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP), NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD),
+                NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD))
+        }
+        return p
     }
 
     private fun runOnGameThread(action: () -> Unit): Boolean {

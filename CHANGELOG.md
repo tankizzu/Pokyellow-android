@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.6.3-prototipo
+- Tocchi mai persi durante i dialoghi (B-007); nuova prova sul gioco vero: ricevere la Pozione sulla Strada 1.
+- Prova: in lotta anche SQUADRA apre il menu del gioco senza i riquadri dell'app.
+- Inviato al committente il mockup decisionale per SQUADRA e BORSA in lotta (privato). 78 prove.
+
 ## 2026-11-18 – 0.6.2-prototipo: richieste sulla 0.6.1 (D-049)
 - Movimento solo con la levetta; tocco vicino a persone e cartelli = dialogo.
 - Scheda allenatore e azioni della Borsa senza mostrare i menu vecchi del gioco.
