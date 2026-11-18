@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 2026-11-18 – strumenti su un Pokémon dalla BORSA (D-051)
+## 2026-11-18 – 0.7.1-prototipo: strumenti su un Pokémon dalla BORSA (D-051)
 - BORSA → strumento → USA → schermata "SU CHI?" dell'app → il gioco usa lo strumento senza mostrare i suoi menu, poi
   si torna a camminare. Verificato sul gioco vero: Pikachu ferito da un selvatico, fuga, Pozione dalla BORSA, vita
   salita, Pozione consumata, nessun menu vecchio rimasto.
