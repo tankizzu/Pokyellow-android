@@ -41,6 +41,8 @@ object MemoryMapIt {
     const val BAG_ITEMS = 0xD322
     const val PLAYER_MONEY = 0xD34B
     const val OPTIONS = 0xD359
+    /** Medaglie ottenute: un bit per medaglia (US wObtainedBadges + 5). */
+    const val BADGES = 0xD35A
     const val CUR_MAP = 0xD362
     const val Y_COORD = 0xD365
     const val X_COORD = 0xD366

@@ -15,18 +15,35 @@ class SaveStorage(context: Context) {
 
     val romFile = File(dir, "gioco.rom")
     val batteryFile = File(dir, "salvataggio.sav")
-    val stateFile = File(dir, "ripresa.state")
+    /** Copia del salvataggio del gioco fatta prima di caricare una partita dell'app (che lo riporta a quel momento). */
+    val batteryBeforeLoadFile = File(dir, "salvataggio.prima-di-carica.sav")
 
     fun hasRom(): Boolean = romFile.isFile && romFile.length() > 0
 
-    /** Cancella il punto di ripresa (e la sua copia di riserva). */
-    fun deleteResumeState() {
-        for (f in listOf(stateFile, File(dir, stateFile.name + ".bak"))) f.delete()
+    fun slotFiles(slot: SaveSlot) = SlotFiles(dir, slot)
+
+    /** Cancella un salvataggio dell'app (stato, scheda, miniatura e copie di riserva). */
+    fun deleteSlot(slot: SaveSlot) {
+        val f = slotFiles(slot)
+        for (base in listOf(f.state, f.info, f.thumbnail)) {
+            base.delete()
+            File(dir, base.name + ".bak").delete()
+        }
     }
 
-    /** Dimentica un file del gioco non valido, con ripresa e salvataggio creati da quel file. */
+    /** Salvataggi dell'app presenti, dal più recente. Senza scheda (versioni precedenti) si usa la data del file. */
+    fun listSlots(): List<SlotEntry> = SaveSlot.entries.mapNotNull { slot ->
+        val files = slotFiles(slot)
+        val stateFile = listOf(files.state, File(dir, files.state.name + ".bak")).firstOrNull { it.isFile && it.length() > 0 }
+            ?: return@mapNotNull null
+        val info = readWithBackup(files.info)?.let { SlotInfo.decode(String(it, Charsets.UTF_8)) } ?: SlotInfo(stateFile.lastModified())
+        SlotEntry(slot, info, readWithBackup(files.thumbnail))
+    }.sortedByDescending { it.info.savedAt }
+
+    /** Dimentica un file del gioco non valido, con i salvataggi creati da quel file. */
     fun forgetGameFile() {
-        for (base in listOf(romFile, stateFile, batteryFile)) {
+        val slotFiles = SaveSlot.entries.flatMap { slotFiles(it).let { f -> listOf(f.state, f.info, f.thumbnail) } }
+        for (base in listOf(romFile, batteryFile) + slotFiles) {
             base.delete()
             File(dir, base.name + ".bak").delete()
             File(dir, base.name + ".tmp").delete()

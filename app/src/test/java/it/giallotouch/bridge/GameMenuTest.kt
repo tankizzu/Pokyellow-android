@@ -49,7 +49,7 @@ class GameMenuTest {
                     Keys.B -> MenuState(MenuKind.BATTLE_MAIN, 0, 0)
                     else -> s
                 }
-                MenuKind.NONE, MenuKind.YES_NO -> s
+                MenuKind.NONE, MenuKind.YES_NO, MenuKind.MAIN_MENU -> s
             }
         }
     }
@@ -125,5 +125,25 @@ class GameMenuTest {
         ex.start(GameCommand.Fight(0))
         repeat(40) { ex.step(MenuState.NONE, inBattle = true) }
         assertFalse(ex.busy)
+    }
+}
+
+class MainMenuTest {
+    private fun screen(maxItem: Int, cursor: Int): Pair<ByteArray, ByteArray> {
+        val t = ByteArray(360) { 0x7F }
+        fun put(x: Int, y: Int, v: Int) { t[y * 20 + x] = v.toByte() }
+        put(0, 0, 0x79); put(14, 0, 0x7B); put(0, 2 * maxItem + 3, 0x7D); put(14, 2 * maxItem + 3, 0x7E)
+        put(1, 2 + 2 * cursor, 0xED)
+        return byteArrayOf(2, 1, cursor.toByte(), 0x7F, maxItem.toByte(), 0x0B, 0) to t
+    }
+
+    @org.junit.Test
+    fun menuIniziale() {
+        val (v, t) = screen(1, 0)
+        org.junit.Assert.assertEquals(MenuState(MenuKind.MAIN_MENU, item = 0, items = 2), MenuReader.read(v, t))
+        val (v3, t3) = screen(2, 1)
+        org.junit.Assert.assertEquals(MenuState(MenuKind.MAIN_MENU, item = 1, items = 3), MenuReader.read(v3, t3))
+        v3[5] = 0x03 // altri tasti osservati: non è il menu iniziale
+        org.junit.Assert.assertEquals(MenuKind.NONE, MenuReader.read(v3, t3).kind)
     }
 }

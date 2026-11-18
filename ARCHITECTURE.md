@@ -47,7 +47,7 @@ tasti, verificando ogni passaggio.
 │        │ immagini 160×144                       │ audio                        │
 │        ▼                                        ▼                             │
 │ Renderer (OpenGL ES, scala nitida)       Audio (AAudio / AudioTrack)          │
-│ Salvataggi: SRAM .sav (atomico, con copie) + istantanea di ripresa rapida     │
+│ Salvataggi: SRAM .sav (atomico, con copie) + salvataggi dell'app (D-034)     │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -81,7 +81,7 @@ memoria durante il gioco) con test automatici. È un prerequisito del ponte.
 app/        Activity, navigazione, schermate Compose, renderer, audio
 core-emu/   SameBoy (C) + wrapper JNI
 bridge/     lettore stato, mappa memoria IT, pathfinding, esecutore comandi
-storage/    salvataggi .sav, ripresa rapida, import/export
+storage/    salvataggi .sav, salvataggi dell'app (manuale, automatico), import/export
 tools/      strumenti di analisi ROM per lo sviluppo (mai inclusi nell'APK)
 ```
 

@@ -14,10 +14,13 @@ package it.giallotouch.bridge
  * - menu delle mosse: Y = 0x0C, X = 0x05; elemento 1 = prima mossa; righe distanziate di 1.
  * - domanda Sì/No: tasti osservati = A|B (0x03), elemento massimo 1, righe distanziate di 2;
  *   accanto al cursore le lettere "S" (0x92) e "N" (0x8D). Nella domanda del soprannome: Y = 0x08, X = 0x0F.
+ * - menu iniziale (CONTINUA / NUOVO GIOCO / OPZIONI): Y = 2, X = 1, tasti osservati A|B|START (0x0B),
+ *   elemento massimo 1 o 2; riquadro dall'angolo (0,0) 0x79 a (14, 2·max+3) 0x7E.
  */
-enum class MenuKind { NONE, BATTLE_MAIN, BATTLE_MOVES, YES_NO }
+enum class MenuKind { NONE, BATTLE_MAIN, BATTLE_MOVES, YES_NO, MAIN_MENU }
 
-data class MenuState(val kind: MenuKind, val column: Int = 0, val item: Int = 0) {
+/** [items]: numero di voci, usato per il menu iniziale (2 senza salvataggio del gioco, 3 con "CONTINUA"). */
+data class MenuState(val kind: MenuKind, val column: Int = 0, val item: Int = 0, val items: Int = 0) {
     companion object {
         val NONE = MenuState(MenuKind.NONE)
     }
@@ -51,6 +54,10 @@ object MenuReader {
         if (watchedKeys == 0x03 && maxItem == 1 && current <= 1 && tile(topX, topY + 2 * current) == CURSOR &&
             tile(topX + 1, topY) == LETTER_S && tile(topX + 1, topY + 2) == LETTER_N) {
             return MenuState(MenuKind.YES_NO, item = current)
+        }
+        if (watchedKeys == 0x0B && topY == 2 && topX == 1 && maxItem in 1..2 && current <= maxItem &&
+            tile(0, 0) == 0x79 && tile(14, 0) == 0x7B && tile(14, 2 * maxItem + 3) == 0x7E && tile(1, 2 + 2 * current) == CURSOR) {
+            return MenuState(MenuKind.MAIN_MENU, item = current, items = maxItem + 1)
         }
         return MenuState.NONE
     }
@@ -126,7 +133,7 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
 
         /** Prossimo tasto da premere per avvicinarsi al comando; null = aspettare (testo in corso). */
         fun decide(cmd: GameCommand, menu: MenuState): Decision? = when (menu.kind) {
-            MenuKind.NONE -> null
+            MenuKind.NONE, MenuKind.MAIN_MENU -> null
             MenuKind.YES_NO -> if (cmd is GameCommand.Answer) {
                 val target = if (cmd.yes) 0 else 1
                 when {

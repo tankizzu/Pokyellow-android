@@ -18,6 +18,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import it.giallotouch.emu.GameSession
 import it.giallotouch.storage.RomLoader
+import it.giallotouch.storage.SaveSlot
 import it.giallotouch.storage.SaveStorage
 import it.giallotouch.storage.Settings
 import it.giallotouch.ui.GameScreen
@@ -80,7 +81,7 @@ class MainActivity : ComponentActivity() {
     /**
      * La versione 0.1 salvava il file così com'era scelto: se era uno ZIP, il gioco non poteva partire.
      * Qui si ripara: se il file salvato è uno ZIP si estrae il gioco; se non è valido lo si scarta
-     * (con il punto di ripresa, che non può essere buono) e si chiede di sceglierlo di nuovo.
+     * (con il salvataggio automatico, che non può essere buono) e si chiede di sceglierlo di nuovo.
      */
     private fun checkStoredRomAndStart() {
         val stored = storage.readWithBackup(storage.romFile)
@@ -90,7 +91,7 @@ class MainActivity : ComponentActivity() {
                 val rom = if (result is RomLoader.Result.Supported) result.rom else (result as RomLoader.Result.OtherGame).rom
                 if (!rom.contentEquals(stored)) {
                     storage.writeAtomic(storage.romFile, rom)
-                    storage.deleteResumeState()
+                    storage.deleteSlot(SaveSlot.AUTO)
                 }
                 startSession()
             }

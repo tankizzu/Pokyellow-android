@@ -20,7 +20,12 @@ import it.giallotouch.bridge.NameExecutor
 import it.giallotouch.bridge.NamingReader
 import it.giallotouch.bridge.RomData
 import it.giallotouch.bridge.TextAssist
+import it.giallotouch.storage.SaveSlot
 import it.giallotouch.storage.SaveStorage
+import it.giallotouch.storage.SlotEntry
+import it.giallotouch.storage.SlotInfo
+import android.graphics.Bitmap
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -65,24 +70,25 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Dati letti dalla ROM dell'utente (nomi delle mosse), solo per la versione italiana supportata. */
     val romData: RomData = RomData.load(rom, SaveStorage.sha1(rom) == SaveStorage.SUPPORTED_SHA1)
 
-    /** true se all'avvio è stata ripresa la partita dal punto esatto in cui era stata lasciata. */
-    var resumedFromState = false
-        private set
-
+    /**
+     * Avvio come sul Game Boy (D-034): a ogni apertura il gioco riparte da capo, con il salvataggio del gioco
+     * (batteria) già inserito, e mostra introduzione, titolo e menu iniziale. I salvataggi dell'app si caricano
+     * da lì con "Carica partita".
+     */
     init {
         NativeCore.nativeLoadRom(handle, rom)
         storage.readWithBackup(storage.batteryFile)?.let {
             NativeCore.nativeLoadBattery(handle, it)
             lastBattery = it
         }
-        val state = storage.readWithBackup(storage.stateFile)
-        if (state != null) {
-            resumedFromState = NativeCore.nativeLoadState(handle, state)
-            if (!resumedFromState) {
-                storage.backupOf(storage.stateFile)?.let { resumedFromState = NativeCore.nativeLoadState(handle, it) }
-            }
-        }
     }
+
+    /**
+     * true quando si sta giocando una partita (si è camminato sulla mappa almeno una volta, o si è caricato
+     * un salvataggio): solo allora si salva in automatico all'uscita e si mostra la squadra.
+     */
+    @Volatile var inGame = false
+        private set
 
     /** Tasti premuti dal giocatore (levetta, tocchi); applicati a ogni fotogramma dal thread del gioco. */
     @Volatile private var userKeys = 0
@@ -210,21 +216,63 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         paused = false
     }
 
-    /** Salva subito stato completo e salvataggio del gioco. Attende fino a 3 secondi. */
-    fun saveNow(): Boolean = runOnGameThread {
-        persist()
-    }
+    /** Salvataggi dell'app presenti sul telefono (per "Carica partita"). */
+    fun savedSlots(): List<SlotEntry> = storage.listSlots()
+
+    /** Pulsante "Salva": salvataggio dell'app in questo punto. Attende fino a 3 secondi. */
+    fun saveManual(): Boolean = inGame && runOnGameThread { persist(SaveSlot.MANUAL) }
+
+    /** Uscita dall'app: salvataggio automatico (solo durante una partita) e salvataggio del gioco se cambiato. */
+    fun saveNow(): Boolean = runOnGameThread { persist(if (inGame) SaveSlot.AUTO else null) }
 
     /** Salva, poi ferma definitivamente la sessione. */
     fun close() {
-        runOnGameThread { persist() }
+        runOnGameThread { persist(if (inGame) SaveSlot.AUTO else null) }
         running = false
         thread?.join(2000)
     }
 
-    private fun persist() {
-        storage.writeAtomic(storage.stateFile, NativeCore.nativeSaveState(handle))
+    /**
+     * "Carica partita": riporta il gioco al salvataggio scelto. Lo stato contiene anche il salvataggio del gioco
+     * di quel momento (com'era la cartuccia): quello attuale viene prima copiato a parte, per sicurezza.
+     */
+    fun loadSlot(slot: SaveSlot): Boolean = runOnGameThread {
+        val files = storage.slotFiles(slot)
+        val state = storage.readWithBackup(files.state) ?: error("salvataggio mancante")
+        val ok = NativeCore.nativeLoadState(handle, state) ||
+            (storage.backupOf(files.state)?.let { NativeCore.nativeLoadState(handle, it) } ?: false)
+        check(ok) { "salvataggio non leggibile" }
+        lastBattery?.let { storage.writeAtomic(storage.batteryBeforeLoadFile, it) }
+        walker.cancel(); executor.cancel(); nameExecutor.cancel()
+        inGame = true
+        readSnapshot()
+    }
+
+    private fun persist(slot: SaveSlot?) {
+        if (slot != null) {
+            val files = storage.slotFiles(slot)
+            storage.writeAtomic(files.state, NativeCore.nativeSaveState(handle))
+            val snap = latestSnapshot.get()
+            val info = SlotInfo(
+                savedAt = System.currentTimeMillis(),
+                playerName = snap.playerName,
+                money = snap.money,
+                badges = Integer.bitCount(NativeCore.nativeReadMemory(handle, MemoryMapIt.BADGES)),
+                party = snap.party.map { it.name to it.level },
+            )
+            storage.writeAtomic(files.info, info.encode().toByteArray(Charsets.UTF_8))
+            runCatching { storage.writeAtomic(files.thumbnail, thumbnailPng()) }
+        }
         saveBatteryIfChanged()
+    }
+
+    private fun thumbnailPng(): ByteArray {
+        val bitmap = Bitmap.createBitmap(latestFrame.get(), NativeCore.WIDTH, NativeCore.HEIGHT, Bitmap.Config.ARGB_8888)
+        return ByteArrayOutputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            bitmap.recycle()
+            out.toByteArray()
+        }
     }
 
     private fun saveBatteryIfChanged() {
@@ -307,6 +355,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             val base = GameStateReader.read(stateBlock)
             val joyIgnore = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE)
             val freeRoam = joyIgnore == 0 && !base.inBattle && FreeRoam.screenIsMap(tileMap)
+            if (freeRoam) inGame = true
             val snapshot = base.copy(menu = MenuReader.read(menuVars, tileMap), freeRoam = freeRoam, naming = naming)
             if (snapshot != latestSnapshot.get()) latestSnapshot.set(snapshot)
         }.onFailure { Log.e(TAG, "Lettura stato non riuscita", it) }

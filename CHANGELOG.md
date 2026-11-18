@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-11-18 – avvio come sul Game Boy e "Carica partita" (richiesta del committente)
+- A ogni apertura il gioco riparte da capo: introduzione, titolo e menu iniziale del gioco (NUOVO GIOCO, OPZIONI,
+  e CONTINUA se c'è un salvataggio del gioco). Tornando all'app dopo averla solo messa da parte, il gioco resta dov'era.
+- Nel menu iniziale, sotto il riquadro del gioco, il pulsante **CARICA PARTITA** apre i salvataggi dell'app:
+  "Salvataggio" (pulsante Salva) e "Automatico" (all'uscita dall'app), con miniatura, data, nome, medaglie, squadra e soldi.
+- "Salva" e il salvataggio automatico funzionano solo durante una partita (non sul titolo); la squadra in alto
+  compare solo durante una partita.
+- Il vecchio punto di ripresa delle versioni precedenti diventa il salvataggio "Automatico".
+- Prima di caricare, il salvataggio del gioco attuale viene copiato a parte (`salvataggio.prima-di-carica.sav`).
+- 54 test superati (nuovo sul gioco vero: dall'accensione al menu iniziale riconosciuto).
+
 ## 2026-11-18 (promemoria 06:16 UTC) – lotta a tutto schermo
 - **Lotta a tutto schermo** (D-018): lo sfondo della lotta riempie lo schermo; la scena (creature e barre, 96 righe)
   sta in alto e il riquadro del testo (48 righe) subito sopra i pulsanti nativi, alla stessa scala, senza deformazioni.

@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import it.giallotouch.bridge.GameCommand
 import it.giallotouch.bridge.TextAssist
 import it.giallotouch.storage.Settings
+import it.giallotouch.storage.SlotEntry
 import it.giallotouch.bridge.MenuKind
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.width
@@ -65,7 +66,8 @@ private val Cream = Color(0xFFFFF7DC)
  * - levetta che compare dove appoggi il dito (4 direzioni, come il Game Boy);
  * - tocco veloce senza trascinare = tasto A (parla, esamina, fa avanzare i dialoghi);
  * - gesto "indietro" di Android = tasto B;
- * - in basso: Menu (START), Select, Salva.
+ * - in basso: Menu (START), Select, Testo auto, Salva (salvataggio dell'app);
+ * - nel menu iniziale del gioco: "Carica partita" per i salvataggi dell'app.
  */
 @Composable
 fun GameScreen(session: GameSession, settings: Settings) {
@@ -91,12 +93,12 @@ fun GameScreen(session: GameSession, settings: Settings) {
     LaunchedEffect(message) {
         if (message != null) { delay(2000); message = null }
     }
-    LaunchedEffect(Unit) {
-        if (session.resumedFromState) message = "Partita ripresa da dove l'avevi lasciata"
-    }
     var snapshot by remember { mutableStateOf(session.latestSnapshot.get()) }
     var commandBusy by remember { mutableStateOf(false) }
     var battleReserved by remember { mutableStateOf(0) }   // altezza dei pulsanti di lotta, per la lotta a tutto schermo
+    var inGame by remember { mutableStateOf(false) }       // partita in corso (non titolo o menu iniziale)
+    var loadOpen by remember { mutableStateOf(false) }     // schermata "Carica partita"
+    var slots by remember { mutableStateOf(emptyList<SlotEntry>()) }
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
     var namingDismissed by remember { mutableStateOf(false) }
@@ -104,6 +106,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
         while (true) {
             snapshot = session.latestSnapshot.get()
             commandBusy = session.commandBusy
+            inGame = session.inGame
             if (nameRequested && !session.nameBusy) {
                 nameRequested = false
                 if (session.nameResult == false) {
@@ -213,7 +216,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
         }
 
         // Squadra in alto, con i dati letti dalla memoria del gioco (nascosta durante la lotta).
-        if (snapshot.party.isNotEmpty() && !snapshot.inBattle) {
+        if (inGame && snapshot.party.isNotEmpty() && !snapshot.inBattle) {
             TeamStrip(
                 snapshot.party,
                 Modifier
@@ -261,8 +264,46 @@ fun GameScreen(session: GameSession, settings: Settings) {
             BarButton("Select", Modifier.weight(1f)) { tapped = NativeCore.KEY_SELECT }
             AutoTextButton(autoText, Modifier.weight(1f)) { autoText = (autoText + 1) % 4 }
             BarButton("Salva", Modifier.weight(1f)) {
-                message = if (session.saveNow()) "Partita salvata in questo punto" else "Salvataggio non riuscito"
+                message = when {
+                    !inGame -> "Prima inizia o carica una partita"
+                    session.saveManual() -> "Partita salvata in questo punto"
+                    else -> "Salvataggio non riuscito"
+                }
             }
+        }
+
+        // Menu iniziale del gioco (NUOVO GIOCO, OPZIONI, ev. CONTINUA): sotto il riquadro la voce "Carica partita" (D-034).
+        if (snapshot.menu.kind == MenuKind.MAIN_MENU && !loadOpen) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val imageTop = (maxHeight - maxWidth * 0.9f) / 2
+                val tile = maxWidth / 20
+                val boxRows = 2 * (snapshot.menu.items - 1) + 4
+                Box(
+                    Modifier
+                        .padding(top = imageTop + tile * boxRows + 10.dp, start = tile * 0.5f)
+                        .width(tile * 14)
+                        .height(48.dp)
+                        .background(Cream, RoundedCornerShape(12.dp))
+                        .border(3.dp, Ink, RoundedCornerShape(12.dp))
+                        .clickable {
+                            slots = session.savedSlots()
+                            loadOpen = true
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("CARICA PARTITA", color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                }
+            }
+        }
+        if (loadOpen) {
+            LoadScreen(
+                entries = slots,
+                onLoad = { entry ->
+                    loadOpen = false
+                    message = if (session.loadSlot(entry.slot)) "Partita caricata" else "Caricamento non riuscito"
+                },
+                onClose = { loadOpen = false }
+            )
         }
 
         // Schermata dei nomi del gioco: coperta dalla tastiera del telefono.

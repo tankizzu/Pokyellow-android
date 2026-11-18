@@ -58,5 +58,6 @@ yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platform-tool
 ```
 
 ## Più avanti
-- [ ] Più slot di salvataggio e schermata di caricamento (D-002)
+- [x] Schermata "Carica partita" dal menu iniziale, salvataggio manuale + automatico (D-034)
+- [ ] Più slot di salvataggio manuali (D-002)
 - [ ] Layout orizzontale (bassa priorità)

@@ -9,7 +9,7 @@
   l'immagine originale 10:9. Quando il gioco chiede un nome compare la tastiera del telefono.
 - 0.2.2 consegnata (testo automatico a 3 velocità, testo veloce tenendo premuto). 0.2.1 ha corretto B-001 (ZIP):
   il committente conferma che il gioco parte.
-- 50 test superati (15 sul gioco vero, solo in locale con la ROM dell'utente).
+- 54 test superati (16 sul gioco vero, solo in locale con la ROM dell'utente).
 
 ## Cosa c'è nell'app
 - Scelta del file del gioco (anche ZIP), controllo SHA-1 e intestazione.
@@ -19,7 +19,9 @@
 - Squadra in alto con dati veri; in lotta pulsanti mosse (tipo, PP), Squadra, Borsa, Fuga; Sì/No nativi.
 - Barra in basso: Menu (START), Select, Testo auto (No/Lento/Medio/Veloce), Salva.
 - Nomi: tastiera del telefono al posto di quella del gioco (D-029, D-032).
-- Salvataggi: ripresa esatta all'uscita, batteria ogni 20 s se cambiata, scritture atomiche con .bak.
+- Avvio come sul Game Boy (D-034): introduzione, titolo, menu iniziale del gioco + pulsante nativo CARICA PARTITA.
+- Salvataggi: del gioco (CONTINUA, batteria ogni 20 s se cambiata); dell'app: "Salva" (manuale) e automatico
+  all'uscita durante una partita, con miniatura e scheda; scritture atomiche con .bak.
 
 ## Limiti noti
 - Persone fuori inquadratura: disegnate ferme nella loro direzione (il gioco stesso le blocca fuori schermo).
@@ -31,7 +33,8 @@
 2. Barra di icone in basso come nel Laboratorio (D-012): Squadra, Borsa, Pokédex, Scheda, Negozio, PC.
 3. Primo menu: Squadra in sola lettura (scheda di ogni creatura); le azioni che cambiano il gioco
    (scambiare l'ordine, usare strumenti) passano dal menu originale tramite esecutore a circuito chiuso.
-Da provare sul telefono: vista estesa con le persone, lotta a tutto schermo, tastiera dei nomi.
+Da provare sul telefono: avvio dal titolo e CARICA PARTITA, vista estesa con le persone, lotta a tutto schermo,
+tastiera dei nomi.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.
