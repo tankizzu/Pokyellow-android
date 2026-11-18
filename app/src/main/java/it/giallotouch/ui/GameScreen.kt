@@ -516,7 +516,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             // SQUADRA e scheda del Pokémon nello stile del gioco (D-046).
             val sel = teamSelected
             val member = sel?.let { snapshot.party.getOrNull(it) }
-            if (member != null) GameMonScreen(sheet!!, member, session.romData) { teamSelected = null }
+            if (member != null) GameMonScreen(sheet!!, member, session.romData, onClose = { teamSelected = null }, color = !blackWhite)
             else GameTeamScreen(
                 sheet = sheet!!, party = snapshot.party, romData = session.romData,
                 onOpen = { teamSelected = it },
@@ -600,7 +600,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         }
         if (dexOpen && !snapshot.inBattle && sheet != null) {
-            GameDexScreen(sheet!!, snapshot.pokedexSeen, snapshot.pokedexOwned, session.romData) { dexOpen = false }
+            GameDexScreen(sheet!!, snapshot.pokedexSeen, snapshot.pokedexOwned, session.romData, onClose = { dexOpen = false }, color = !blackWhite)
         } else if (dexOpen && !snapshot.inBattle) {
             PokedexSheet(snapshot.pokedexSeen, snapshot.pokedexOwned, session.romData) { dexOpen = false }
         }

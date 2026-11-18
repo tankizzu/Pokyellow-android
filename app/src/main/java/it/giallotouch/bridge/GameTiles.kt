@@ -93,9 +93,9 @@ class TileCanvas(val widthTiles: Int, val heightTiles: Int, private val sheet: I
     }
 
     /** Immagine di un Pokémon ([MonPic]) in pixel; il colore 0 resta trasparente. */
-    fun pic(p: MonPic, px: Int, py: Int) {
+    fun pic(p: MonPic, px: Int, py: Int, palette: IntArray? = null) {
         val i = ink; val pa = paper
-        val colors = intArrayOf(pa, blend(pa, i, 0.33f), blend(pa, i, 0.66f), i)
+        val colors = palette ?: intArrayOf(pa, blend(pa, i, 0.33f), blend(pa, i, 0.66f), i)
         for (y in 0 until p.height) for (x in 0 until p.width) {
             val c = p.pixels[y * p.width + x]; val dx = px + x; val dy = py + y
             if (c != 0 && dx in 0 until width && dy in 0 until height) pixels[dy * width + dx] = colors[c]

@@ -104,6 +104,21 @@ class RomData private constructor(
         DexEntry(cat.toIntArray(), h, w, lines)
     }.getOrNull()
 
+    /** Colori dell'immagine della specie (indice interno) come nel gioco a colori (D-054): 4 colori ARGB, dal chiaro allo scuro. */
+    fun monPalette(index: Int): IntArray? {
+        val r = rom ?: return null
+        val dex = dexNumber(index)
+        if (dex !in 1..151 || M.ROM_MON_PALETTE_IDS + dex >= r.size) return null
+        val pal = u8(r, M.ROM_MON_PALETTE_IDS + dex)
+        val o = M.ROM_CGB_PALETTES + 8 * pal
+        if (o + 8 > r.size) return null
+        return IntArray(4) { i ->
+            val c = u8(r, o + 2 * i) or (u8(r, o + 2 * i + 1) shl 8)
+            fun ch(v: Int) = (v * 255 / 31)
+            (0xFF shl 24) or (ch(c and 31) shl 16) or (ch((c shr 5) and 31) shl 8) or ch((c shr 10) and 31)
+        }
+    }
+
     /** Indice interno della specie con quel numero del Pokédex (0 se sconosciuto). */
     fun indexForDex(dex: Int): Int = dexOrder.indexOf(dex) + 1
 

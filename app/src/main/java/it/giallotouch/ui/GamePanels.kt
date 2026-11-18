@@ -555,15 +555,15 @@ fun GameTeamScreen(
 
 /** Scheda del Pokémon nello stile del gioco (D-046): icona, nome, livello, vita, tipi, statistiche e mosse con PP. */
 @Composable
-fun GameMonScreen(sheet: IntArray, m: PartyMember, romData: RomData, onClose: () -> Unit) {
+fun GameMonScreen(sheet: IntArray, m: PartyMember, romData: RomData, onClose: () -> Unit, color: Boolean = false) {
     BackHandler { onClose() }
     BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
         val density = LocalDensity.current
         val unit = with(density) { maxWidth.toPx() } / 160f
-        TileImage(sheet, 20, 35, unit, key = m) {
+        TileImage(sheet, 20, 35, unit, key = Pair(m, color)) {
             // Immagine del Pokémon dalla ROM, in basso e al centro di un riquadro 7×7 come nel gioco (D-047).
             val pic = romData.frontPic(m.species)
-            if (pic != null) pic(pic, 8 + (56 - pic.width + 1) / 2, 24 + 56 - pic.height)
+            if (pic != null) pic(pic, 8 + (56 - pic.width + 1) / 2, 24 + 56 - pic.height, if (color) romData.monPalette(m.species) else null)
             else romData.partyIcon(m.species)?.let { icon(it, 8, 24, scale = 3) }
             text(m.name.take(10), 9, 4)
             text("L${m.level}", 9, 6)
@@ -593,10 +593,10 @@ fun GameMonScreen(sheet: IntArray, m: PartyMember, romData: RomData, onClose: ()
 /** POKéDEX nello stile del gioco (D-046): lista dei numeri fino all'ultimo visto (scorre col dito), visti e presi;
  *  tocco su una specie vista = sua scheda (D-054). */
 @Composable
-fun GameDexScreen(sheet: IntArray, seen: List<Int>, owned: List<Int>, romData: RomData, onClose: () -> Unit) {
+fun GameDexScreen(sheet: IntArray, seen: List<Int>, owned: List<Int>, romData: RomData, onClose: () -> Unit, color: Boolean = false) {
     var open by remember { mutableStateOf<Int?>(null) }
     val o = open
-    if (o != null) { GameDexEntryScreen(sheet, o, seen, owned, romData, onMove = { open = it }, onClose = { open = null }); return }
+    if (o != null) { GameDexEntryScreen(sheet, o, seen, owned, romData, onMove = { open = it }, onClose = { open = null }, color = color); return }
     BackHandler { onClose() }
     val last = seen.maxOrNull() ?: 0
     val visible = 12
@@ -649,7 +649,7 @@ fun GameDexScreen(sheet: IntArray, seen: List<Int>, owned: List<Int>, romData: R
  * numero e nome, categoria, altezza e peso, descrizione del gioco. Una specie solo vista mostra immagine e nome.
  */
 @Composable
-fun GameDexEntryScreen(sheet: IntArray, dex: Int, seen: List<Int>, owned: List<Int>, romData: RomData, onMove: (Int) -> Unit, onClose: () -> Unit) {
+fun GameDexEntryScreen(sheet: IntArray, dex: Int, seen: List<Int>, owned: List<Int>, romData: RomData, onMove: (Int) -> Unit, onClose: () -> Unit, color: Boolean = false) {
     BackHandler { onClose() }
     val sorted = seen.sorted()
     val prev = sorted.lastOrNull { it < dex }
@@ -672,9 +672,9 @@ fun GameDexEntryScreen(sheet: IntArray, dex: Int, seen: List<Int>, owned: List<I
             }
         }
         val lines = entry?.lines ?: emptyList()
-        TileImage(sheet, 20, 30, unit, key = Pair(dex, entry != null), modifier = Modifier.offset { IntOffset(0, (13 * tilePx).toInt()) }) {
+        TileImage(sheet, 20, 30, unit, key = Triple(dex, entry != null, color), modifier = Modifier.offset { IntOffset(0, (13 * tilePx).toInt()) }) {
             // righe relative alla riga 13 dello schermo
-            romData.frontPic(index)?.let { p -> pic(p, 8 + (56 - p.width + 1) / 2, 8 + 56 - p.height) }
+            romData.frontPic(index)?.let { p -> pic(p, 8 + (56 - p.width + 1) / 2, 8 + 56 - p.height, if (color) romData.monPalette(index) else null) }
             text("%03d".format(dex) + " " + romData.speciesNameForDex(dex).take(10), 9, 1)
             if (entry != null) {
                 entry.category.forEachIndexed { i, t -> tile(t, 9 + i, 3) }

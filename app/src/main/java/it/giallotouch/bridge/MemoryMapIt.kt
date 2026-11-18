@@ -56,6 +56,9 @@ object MemoryMapIt {
     /** Borsa: numero di strumenti (max 20), poi coppie (strumento, quantità) chiuse da 0xFF. Verificata con la Pozione del PC. */
     /** ROM: tabella delle icone della squadra (voci da 6 byte) e tipo d'icona per n. del Pokédex (mezzo byte). */
     const val ROM_PARTY_ICON_GFX = 0x7188D
+    /** ROM: tavolozza di ogni specie per n. del Pokédex (1 byte) e tavolozze a colori (4 colori RGB555 ciascuna). */
+    const val ROM_MON_PALETTE_IDS = 0x72961
+    const val ROM_CGB_PALETTES = 0x72B39
     /** ROM: puntatori alle voci del Pokédex per indice interno (banco 0x10). */
     const val ROM_DEX_ENTRY_POINTERS = 0x4050D
     const val ROM_PARTY_ICON_TYPES = 0x719FA
