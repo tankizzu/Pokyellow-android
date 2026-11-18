@@ -7,6 +7,10 @@ package it.giallotouch.bridge
 object MemoryMapIt {
     const val SPRITE_STATE_DATA_1 = 0xC100
     const val SPRITE_STATE_DATA_2 = 0xC200
+    /** Oggetti attivabili (persone/oggetti che il gioco può nascondere): bit = nascosto, per indice globale. */
+    const val TOGGLE_FLAGS = 0xD5AA
+    /** Coppie (sprite, indice globale) della mappa corrente, terminate da 0xFF. */
+    const val TOGGLE_LIST = 0xD5D2
     const val TILE_MAP = 0xC3A0
     const val OVERWORLD_MAP = 0xC6E8
     const val CURRENT_MENU_ITEM = 0xCC26

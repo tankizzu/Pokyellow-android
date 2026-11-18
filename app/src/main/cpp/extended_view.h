@@ -10,6 +10,9 @@ typedef struct {
     int base_x, base_y;           /* pixel della mappa (con il bordo) nell'angolo in alto a sinistra dell'inquadratura */
     uint8_t attr_by_tile[256];    /* attributi a colori imparati dai tile visibili */
     bool attr_known[256];
+    uint8_t obj_attr_by_tile[256]; /* attributi degli sprite visti nella memoria degli sprite (OAM) */
+    bool obj_attr_known[256];
+    uint8_t bgidx[160 * 512];     /* colore dello sfondo (0–3, bit 7 = priorità) delle righe disegnate, per gli sprite */
 } EVState;
 
 void ev_reset(EVState *st);

@@ -8,7 +8,7 @@
   l'immagine originale 10:9. Quando il gioco chiede un nome compare la tastiera del telefono.
 - 0.2.2 consegnata (testo automatico a 3 velocità, testo veloce tenendo premuto). 0.2.1 ha corretto B-001 (ZIP):
   il committente conferma che il gioco parte.
-- 46 test superati (14 sul gioco vero, solo in locale con la ROM dell'utente).
+- 47 test superati (14 sul gioco vero, solo in locale con la ROM dell'utente).
 
 ## Cosa c'è nell'app
 - Scelta del file del gioco (anche ZIP), controllo SHA-1 e intestazione.
@@ -21,15 +21,16 @@
 - Salvataggi: ripresa esatta all'uscita, batteria ogni 20 s se cambiata, scritture atomiche con .bak.
 
 ## Limiti noti
-- I personaggi fuori dall'inquadratura originale non sono disegnati (compaiono quando entrano nel riquadro centrale).
+- Persone fuori inquadratura: disegnate ferme nella loro direzione (il gioco stesso le blocca fuori schermo).
 - Al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
 - L'app non è stata provata qui su un telefono (nessun emulatore Android): verificati motore e logica su computer.
 
-## Prossimo passo – PERSONAGGI FUORI INQUADRATURA nella vista estesa
-1. Leggere i personaggi della mappa (C100/C200: posizione sullo schermo, direzione, fotogramma dell'animazione).
-2. Disegnarli nella parte di mappa aggiunta con la grafica già caricata nella memoria video (stessa palette).
-3. Poi: lotta a tutto schermo (sfondo esteso, scena e testo ritagliati), menu nativi (Squadra, Borsa, Pokédex…).
-Da provare sul telefono: vista estesa e tastiera dei nomi (nuova partita → "NUOVO NOME").
+## Prossimo passo – LOTTA A TUTTO SCHERMO (D-018)
+1. Riconoscere le parti della schermata di lotta (creature, barre, riquadro del testo) dalla mappa dello schermo.
+2. Estendere lo sfondo (a tinta unita) a tutto lo schermo e posizionare scena e testo senza deformarli.
+3. Pulsanti di lotta sopra lo sfondo (già pronti).
+Poi: menu nativi (Squadra, Borsa, Pokédex, Scheda, Negozio, PC).
+Da provare sul telefono: vista estesa con le persone, tastiera dei nomi (nuova partita → "NUOVO NOME").
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.

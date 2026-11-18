@@ -101,6 +101,15 @@ Le variabili restano in memoria anche a menu chiuso: il menu è attivo solo se c
 | Titolo | riga 1 ("NOME TUO?", nome della creatura) + inizio riga 3 | |
 Tasti: A aggiunge la lettera, B cancella l'ultima, SELECT cambia maiuscole/minuscole, START conferma.
 
+## Oggetti attivabili (persone e oggetti che il gioco può nascondere)
+| Cosa | Indirizzo | Note |
+|---|---|---|
+| Bit "nascosto" per indice globale | D5AA (32 byte) | bit = indice & 7 del byte indice >> 3; a Pallet il bit 0 (Prof. Oak) è 1 |
+| Lista della mappa corrente | D5D2 | coppie (sprite, indice globale), fine 0xFF; Pallet: 01 00 FF |
+Sprite (C100 + 16·n): +0 immagine, +2 indice immagine (0xFF = non disegnato), +4 Y pixel, +6 X pixel, +9 direzione
+(0 giù, 4 su, 8 sinistra, 12 destra). C200 + 16·n: +4 Y mappa (+4), +5 X mappa (+4), +7 erba (0x80), +0x0E grafica (base).
+Tile della grafica: (base − 1) × 12 (0x7C per base 0x0C); ferma giù 0–3, su 4–7, sinistra 8–11, destra = sinistra ribaltata.
+
 ## Tabelle nella ROM (lette a ogni avvio dalla ROM dell'utente, mai copiate nell'app)
 | Tabella | Offset nella ROM | Stato | Note |
 |---|---|---|---|

@@ -13,8 +13,10 @@
   nel gioco muovendo il cursore sulla griglia originale (circuito chiuso: cancella con B, maiuscole/minuscole con SELECT,
   conferma con START). Accenti tolti, solo i caratteri che il gioco ha; massimo 7 o 10 lettere come nel gioco.
   Se qualcosa non torna, la tastiera del gioco torna visibile con un avviso.
-- Limite noto: i personaggi fuori dall'inquadratura originale non sono ancora disegnati.
-- 46 test superati (14 sul gioco vero): "Ro sa!" scritto come nome del giocatore in ~2 s, un soprannome di 9 caratteri in ~3 s.
+- **Persone e oggetti fuori dall'inquadratura** disegnati nella mappa aggiunta (posizione, direzione e grafica del gioco),
+  allineati anche durante il passo; completate le parti tagliate dal bordo. Gli oggetti che il gioco ha nascosto
+  (raccolti, persone non presenti) restano nascosti e non si possono toccare (lista del gioco a D5D2/D5AA).
+- 47 test superati (14 sul gioco vero): "Ro sa!" scritto come nome del giocatore in ~2 s, un soprannome di 9 caratteri in ~3 s.
 
 ## 2026-11-18 – 0.2.2-prototipo
 - Pulsante "Testo auto" nella barra in basso: No → Lento → Medio → Veloce (salvato sul telefono). Quando il gioco aspetta un tocco (▼) preme A da solo dopo la pausa scelta.

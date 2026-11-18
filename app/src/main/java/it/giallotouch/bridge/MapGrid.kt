@@ -6,6 +6,7 @@ import it.giallotouch.bridge.MemoryMapIt as M
  * Griglia dei passi della mappa corrente (ogni passo = 2×2 tile), costruita come fa il gioco:
  * un passo è calpestabile se il tile in basso a sinistra è nella lista dei tile calpestabili del set corrente.
  * I personaggi (sprite 1–14) occupano il loro passo. Il compagno che segue (sprite 15) non blocca.
+ * Gli oggetti che il gioco ha nascosto (lista D5D2 + bit D5AA) non contano: né ostacolo né da toccare.
  * Casi non ancora gestiti (sporgenze da saltare, acqua con Surf, dislivelli nelle grotte) risultano non
  * calpestabili: il percorso li evita, e comunque è sempre il gioco a decidere se un passo riesce.
  */
@@ -108,8 +109,9 @@ class MapGrid(
             val s1 = read(M.SPRITE_STATE_DATA_1, 256)
             val s2 = read(M.SPRITE_STATE_DATA_2, 256)
             val people = HashSet<Pair<Int, Int>>()
+            val hidden = hiddenSprites(read(M.TOGGLE_LIST, 64), read(M.TOGGLE_FLAGS, 32))
             for (n in 1..14) {
-                if (s1[n * 16].toInt() == 0) continue
+                if (s1[n * 16].toInt() == 0 || n in hidden) continue
                 val py = (s2[n * 16 + 4].toInt() and 0xFF) - 4
                 val px = (s2[n * 16 + 5].toInt() and 0xFF) - 4
                 if (px in 0 until gw && py in 0 until gh) people += px to py
@@ -120,6 +122,20 @@ class MapGrid(
                 (signData[2 + 2 * k].toInt() and 0xFF) to (signData[1 + 2 * k].toInt() and 0xFF)
             }.toSet()
             return MapGrid(gw, gh, passable, people, tiles, talking, signs)
+        }
+
+        /** Sprite che il gioco ha nascosto (oggetti raccolti, persone non presenti): stessa regola del gioco. */
+        fun hiddenSprites(list: ByteArray, flags: ByteArray): Set<Int> {
+            val out = HashSet<Int>()
+            var i = 0
+            while (i + 1 < list.size) {
+                val slot = list[i].toInt() and 0xFF
+                if (slot == 0xFF) break
+                val g = list[i + 1].toInt() and 0xFF
+                if (g / 8 < flags.size && (flags[g / 8].toInt() shr (g % 8)) and 1 == 1) out += slot
+                i += 2
+            }
+            return out
         }
     }
 }

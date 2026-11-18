@@ -108,7 +108,11 @@ Gli indirizzi di memoria esatti per la versione italiana sono in docs/MEMORY_MAP
 4. Al centro si copia il fotogramma originale; sopra e sotto si disegna la mappa. Se una finestra copre lo schermo
    (menu a tutto schermo) e non mostra la mappa, la vista si spegne.
 5. L'app chiede un'altezza (160 × altezza dello schermo / larghezza, max 512) e disegna il risultato a tutta larghezza.
-Da fare: personaggi fuori inquadratura (dati sprite C100/C200), lotta a tutto schermo, opzione attenuata/nascosta.
+6. Persone e oggetti: quelli visibili dalla memoria degli sprite (OAM), solo per le parti fuori dal centro;
+   quelli che il gioco non disegna (immagine 0xFF) dalla tabella degli sprite: posizione sullo schermo a 8 bit
+   ricondotta a quella stimata dalle coordinate sulla mappa, direzione, grafica già in memoria video, erba alta.
+   Gli oggetti nascosti dal gioco (lista D5D2 + bit D5AA) non vengono disegnati.
+Da fare: lotta a tutto schermo, opzione mappa attenuata/nascosta.
 
 ## 6. Tecnologie
 Kotlin · Jetpack Compose · Android NDK (C) · OpenGL ES · AAudio/AudioTrack ·

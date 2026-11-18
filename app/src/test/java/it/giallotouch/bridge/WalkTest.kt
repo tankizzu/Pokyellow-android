@@ -113,3 +113,15 @@ class WalkTest {
         assertFalse(FreeRoam.screenIsMap(menu))
     }
 }
+
+class HiddenSpritesTest {
+    @org.junit.Test
+    fun nascostiSecondoLaListaDelGioco() {
+        // sprite 1 → oggetto globale 0 (nascosto), sprite 2 → oggetto 0x2B (visibile), poi fine lista
+        val list = byteArrayOf(1, 0, 2, 0x2B, 0xFF.toByte(), 0)
+        val flags = ByteArray(32).also { it[0] = 0x01 }
+        org.junit.Assert.assertEquals(setOf(1), MapGrid.hiddenSprites(list, flags))
+        flags[5] = 0x08 // bit 0x2B = byte 5, bit 3
+        org.junit.Assert.assertEquals(setOf(1, 2), MapGrid.hiddenSprites(list, flags))
+    }
+}
