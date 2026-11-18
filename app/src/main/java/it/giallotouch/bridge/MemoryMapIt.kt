@@ -16,6 +16,8 @@ object MemoryMapIt {
     const val CURRENT_MENU_ITEM = 0xCC26
     /** 0 = il giocatore ha il controllo; diverso da 0 durante scene e movimenti automatici. */
     const val JOY_IGNORE = 0xCD6B
+    /** Scorrimento delle liste (strumenti, PC): primo elemento visibile. */
+    const val LIST_SCROLL_OFFSET = 0xCC36
     /** 0 = nessuna lotta, 1 = lotta con creatura selvatica, 2 = lotta con allenatore. */
     const val IS_IN_BATTLE = 0xD05B
     /** Creatura del giocatore in campo durante la lotta (battle_struct): mosse +8, livello +14, PS max +15, PP +25. */

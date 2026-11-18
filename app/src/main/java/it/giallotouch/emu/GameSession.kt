@@ -7,6 +7,9 @@ import android.os.SystemClock
 import android.util.Log
 import it.giallotouch.bridge.BattleLayout
 import it.giallotouch.bridge.GameCommand
+import it.giallotouch.bridge.ItemAction
+import it.giallotouch.bridge.ItemActionExecutor
+import it.giallotouch.bridge.ItemMenus
 import it.giallotouch.bridge.CommandExecutor
 import it.giallotouch.bridge.MenuReader
 import it.giallotouch.bridge.GameSnapshot
@@ -138,6 +141,34 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         NamingReader.read(menuVars, tileMap, nameBuffer)
     }
 
+    /** Usa/Getta uno strumento passando dal menu originale STRUMENTI (menu Borsa nativo). */
+    private val itemExecutor = ItemActionExecutor()
+    @Volatile var itemBusy = false
+        private set
+    /** Esito dell'ultima azione: null mentre lavora, true se completata. */
+    @Volatile var itemResult: Boolean? = null
+        private set
+
+    fun itemAction(action: ItemAction) {
+        itemBusy = true
+        itemResult = null
+        tasks.add(Runnable { walker.cancel(); itemExecutor.start(action) })
+    }
+
+    private fun stepItemAction(): Int {
+        NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
+        NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+        val scroll = NativeCore.nativeReadMemory(handle, MemoryMapIt.LIST_SCROLL_OFFSET)
+        val freeRoam = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(tileMap)
+        val observation = menuVars.contentHashCode() * 31 + tileMap.contentHashCode()
+        val keys = itemExecutor.step(ItemMenus.read(menuVars, tileMap, scroll), freeRoam, observation)
+        if (!itemExecutor.busy) {
+            itemResult = itemExecutor.result == ItemActionExecutor.Result.DONE
+            itemBusy = false
+        }
+        return keys
+    }
+
     /** Camminata automatica verso un passo toccato sullo schermo (con eventuale interazione all'arrivo). */
     private val walker = WalkExecutor()
 
@@ -164,6 +195,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
 
     private fun currentKeys(): Int {
+        if (itemExecutor.busy) return stepItemAction()
         if (nameExecutor.busy) {
             val keys = nameExecutor.step(readNaming())
             if (!nameExecutor.busy) {
@@ -243,7 +275,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             (storage.backupOf(files.state)?.let { NativeCore.nativeLoadState(handle, it) } ?: false)
         check(ok) { "salvataggio non leggibile" }
         lastBattery?.let { storage.writeAtomic(storage.batteryBeforeLoadFile, it) }
-        walker.cancel(); executor.cancel(); nameExecutor.cancel()
+        walker.cancel(); executor.cancel(); nameExecutor.cancel(); itemExecutor.cancel()
         inGame = true
         readSnapshot()
     }

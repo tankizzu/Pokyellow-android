@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-11-18 – Borsa: Usa e Getta
+- Nella Borsa nativa, toccando uno strumento compaiono **Usa** e (se non è uno strumento chiave) **Getta** con la quantità.
+- L'app esegue l'azione nel menu originale, come farebbe il giocatore: START → STRUM. → strumento → USA/GETTA;
+  per Getta sceglie la quantità, conferma "Sì" e chiude i menu. Per Usa si ferma lì e il gioco continua
+  (per esempio chiedendo su chi usarlo). Controllo di sicurezza: se sulla riga non c'è lo strumento atteso, si ferma.
+- Schermate del menu STRUMENTI della versione italiana documentate (menu START con ordine variabile, lista con
+  scorrimento CC36, USA/GETTA, quantità, conferma).
+- 60 test superati (3 nuovi sul gioco vero: Getta la Pozione in ~3,5 s, Usa arriva al gioco, nome sbagliato → stop).
+
 ## 2026-11-18 – menu Borsa e Pokédex nativi
 - **Borsa** a tutto schermo: un'unica lista nello stesso ordine del gioco, con le quantità; gli strumenti chiave
   (come nel gioco) senza quantità. Nomi dalla ROM dell'utente (0x45B8), macchine come MN01/MT01.

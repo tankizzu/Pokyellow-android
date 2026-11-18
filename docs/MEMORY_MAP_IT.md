@@ -118,6 +118,16 @@ Tile della grafica: (base − 1) × 12 (0x7C per base 0x0C); ferma giù 0–3, s
 | Pokédex presi | D2FB (19 byte) | bit n−1 = numero n; Pikachu = byte 3 bit 0 |
 | Pokédex visti | D30E (19 byte) | Eevee (133) = byte 16 bit 4 dopo la lotta col rivale |
 
+## Menu START e STRUMENTI (verificati sul gioco vero)
+| Schermata | Riconoscimento | Note |
+|---|---|---|
+| Menu START | CC24 = 2, CC25 = 0x0B, CC29 = 0xCB; ▶ in (11, 2+2i) | voce "STRUM." trovata dalle lettere (12…16, riga): l'ordine cambia col Pokédex |
+| Lista strumenti | CC24 = 4, CC25 = 5, CC29 = 0x07; ▶ in (5, 4+2c) | 4 righe visibili; strumento = CC36 (scorrimento) + c; nome da colonna 6; ESCI in fondo |
+| USA / GETTA | CC24 = 0x0B, CC25 = 0x0D, CC28 = 1, CC29 = 3; "U" in (14,11) | ▶ in (13, 11+2c) |
+| Quantità | riquadro (15,9)–(19,11), "×" in (16,10), cifre (17,10)–(18,10) | SU/GIÙ cambiano la quantità |
+| Conferma | testo con ▼ (18,16), poi Sì/No (CC24 = 8, CC25 = 0x0F) | |
+Altre variabili: CC2B ultima voce squadra/PC, CC2C ultima voce della borsa, CC2D ultima voce START, CC36 scorrimento.
+
 ## Struttura di una creatura in squadra (D16F + 44·n, verificata con Pikachu L5/L6)
 specie +0, PS +1 (2 byte, big-endian), stato +4, tipi +5/+6, mosse +8…+11, PP +29…+32 (bit 0–5 PP, bit 6–7 PP Su),
 livello +33, PS massimi +34, attacco +36, difesa +38, velocità +40, speciale +42.

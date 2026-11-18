@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
 import it.giallotouch.bridge.GameCommand
+import it.giallotouch.bridge.ItemAction
 import it.giallotouch.bridge.TextAssist
 import it.giallotouch.storage.Settings
 import it.giallotouch.storage.SlotEntry
@@ -105,6 +106,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var teamOpen by remember { mutableStateOf(false) }    // menu Squadra nativo
     var bagOpen by remember { mutableStateOf(false) }     // menu Borsa nativo
     var dexOpen by remember { mutableStateOf(false) }     // Pokédex nativo
+    var itemRequested by remember { mutableStateOf(false) }  // Usa/Getta in corso nel menu del gioco
     var teamSelected by remember { mutableStateOf<Int?>(null) }  // scheda aperta (null = elenco)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
@@ -114,6 +116,10 @@ fun GameScreen(session: GameSession, settings: Settings) {
             snapshot = session.latestSnapshot.get()
             commandBusy = session.commandBusy
             inGame = session.inGame
+            if (itemRequested && !session.itemBusy) {
+                itemRequested = false
+                if (session.itemResult == false) message = "Non sono riuscito: continua dal menu del gioco"
+            }
             if (nameRequested && !session.nameBusy) {
                 nameRequested = false
                 if (session.nameResult == false) {
@@ -353,7 +359,21 @@ fun GameScreen(session: GameSession, settings: Settings) {
         }
 
         if (bagOpen && !snapshot.inBattle) {
-            BagSheet(snapshot.bag, session.romData) { bagOpen = false }
+            BagSheet(
+                bag = snapshot.bag,
+                romData = session.romData,
+                onUse = { slot, item ->
+                    bagOpen = false
+                    itemRequested = true
+                    session.itemAction(ItemAction.Use(slot, session.romData.itemName(item.id)))
+                },
+                onToss = { slot, item, quantity ->
+                    bagOpen = false
+                    itemRequested = true
+                    session.itemAction(ItemAction.Toss(slot, session.romData.itemName(item.id), quantity))
+                },
+                onClose = { bagOpen = false }
+            )
         }
         if (dexOpen && !snapshot.inBattle) {
             PokedexSheet(snapshot.pokedexSeen, snapshot.pokedexOwned, session.romData) { dexOpen = false }

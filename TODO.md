@@ -32,7 +32,9 @@
 - [x] Tipo e PP massimi delle mosse dalla ROM
 - [x] Menu nativo Squadra con scheda (sola lettura) e barra con icone (D-035)
 - [x] Menu nativi Borsa e Pokédex (sola lettura), barra D-036
-- [ ] **Prossimo passo – azioni nei menu nativi** tramite il menu originale (esecutore): Usa/Getta strumento, Sposta compagno
+- [x] Borsa: Usa (fino alla scelta nel gioco) e Getta (completo) tramite il menu originale
+- [ ] **Prossimo passo**: Usa con scelta del compagno nell'app (pozioni, cure); Squadra: "Sposta"
+- [ ] Copia di sicurezza dei salvataggi (esporta/importa) prima di eventuali reinstallazioni
 - [ ] Pokédex: scheda della specie (descrizione, altezza, peso) dalla ROM, solo per le specie prese
 - [ ] Negozio e PC sul posto (D-010)
 - [ ] Squadra: "Sposta" e strumenti tramite il menu originale (esecutore)
