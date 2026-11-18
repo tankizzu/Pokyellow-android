@@ -7,6 +7,8 @@ import it.giallotouch.bridge.MemoryMapIt as M
  * nomi dei tipi. Offset verificati solo sulla versione italiana supportata; con altre ROM i dati restano vuoti.
  */
 class RomData private constructor(
+    /** ROM tenuta in memoria per le immagini dei Pokémon (decodificate quando servono). */
+    private val rom: ByteArray? = null,
     private val moveNames: List<String>,
     private val moveInfo: List<MoveInfo>,
     private val typeNames: List<String>,
@@ -53,6 +55,23 @@ class RomData private constructor(
      */
     fun partyIcon(index: Int): IntArray? = iconTypes.getOrNull(dexNumber(index) - 1)?.let { icons.getOrNull(it) }
 
+    private val pics = HashMap<Int, MonPic?>()
+
+    /** Immagine frontale della specie (indice interno), come nella scheda del gioco; null se non disponibile. */
+    fun frontPic(index: Int): MonPic? = synchronized(pics) {
+        pics.getOrPut(index) {
+            val r = rom ?: return@getOrPut null
+            val dex = dexNumber(index)
+            if (dex !in 1..151) return@getOrPut null
+            val st = M.ROM_BASE_STATS + (dex - 1) * M.BASE_STATS_SIZE
+            if (st + 13 > r.size) return@getOrPut null
+            val ptr = u8(r, st + 11) or (u8(r, st + 12) shl 8)
+            val off = MonPic.bank(index) * 0x4000 + ptr - 0x4000
+            if (ptr !in 0x4000..0x7FFF || off >= r.size || u8(r, off) != u8(r, st + 10)) return@getOrPut null
+            MonPic.decode(r, off)
+        }
+    }
+
     /** Indice interno della specie con quel numero del Pokédex (0 se sconosciuto). */
     fun indexForDex(dex: Int): Int = dexOrder.indexOf(dex) + 1
 
@@ -60,11 +79,12 @@ class RomData private constructor(
     fun speciesName(index: Int): String = speciesNames.getOrNull(index - 1) ?: ""
 
     companion object {
-        val EMPTY = RomData(emptyList(), emptyList(), emptyList())
+        val EMPTY = RomData(moveNames = emptyList(), moveInfo = emptyList(), typeNames = emptyList())
 
         fun load(rom: ByteArray, supported: Boolean): RomData {
             if (!supported) return EMPTY
             return RomData(
+                rom = rom,
                 moveNames = readNameList(rom, M.ROM_MOVE_NAMES, M.NUM_MOVES) ?: emptyList(),
                 moveInfo = readMoveData(rom, M.ROM_MOVE_DATA, M.NUM_MOVES) ?: emptyList(),
                 typeNames = readPointedNames(rom, M.ROM_TYPE_NAME_POINTERS, M.NUM_TYPE_IDS) ?: emptyList(),
@@ -82,7 +102,7 @@ class RomData private constructor(
             )
         }
 
-        private fun u8(rom: ByteArray, i: Int) = rom[i].toInt() and 0xFF
+        internal fun u8(rom: ByteArray, i: Int) = rom[i].toInt() and 0xFF
 
         /**
          * Icone della squadra: la tabella del gioco (sorgente, caselle, banco, destinazione) copia i disegni nella

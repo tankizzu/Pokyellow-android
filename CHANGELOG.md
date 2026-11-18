@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 13:16 UTC) – immagine del Pokémon nella scheda (D-047)
+- La scheda del Pokémon mostra l'immagine vera presa dalla ROM (decodificata in memoria; provate tutte le 151).
+
 ## 2026-11-18 – menu dal mockup completo (D-046)
 - Schermata dei nomi originale mai visibile; riquadri dell'app senza bordo bianco esterno.
 - Icone dei Pokémon lette dalla ROM (come nel menu POKéMON del gioco): nel menu START e in SQUADRA.

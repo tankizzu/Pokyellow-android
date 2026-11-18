@@ -551,7 +551,10 @@ fun GameMonScreen(sheet: IntArray, m: PartyMember, romData: RomData, onClose: ()
         val density = LocalDensity.current
         val unit = with(density) { maxWidth.toPx() } / 160f
         TileImage(sheet, 20, 35, unit, key = m) {
-            romData.partyIcon(m.species)?.let { icon(it, 8, 24, scale = 3) }
+            // Immagine del Pokémon dalla ROM, in basso e al centro di un riquadro 7×7 come nel gioco (D-047).
+            val pic = romData.frontPic(m.species)
+            if (pic != null) pic(pic, 8 + (56 - pic.width + 1) / 2, 24 + 56 - pic.height)
+            else romData.partyIcon(m.species)?.let { icon(it, 8, 24, scale = 3) }
             text(m.name.take(10), 9, 4)
             text("L${m.level}", 9, 6)
             text("PS ${m.hp}/${m.maxHp}", 9, 8)

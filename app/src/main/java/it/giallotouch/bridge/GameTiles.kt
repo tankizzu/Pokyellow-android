@@ -82,6 +82,21 @@ class TileCanvas(val widthTiles: Int, val heightTiles: Int, private val sheet: I
         }
     }
 
+    /** Immagine di un Pokémon ([MonPic]) in pixel; il colore 0 resta trasparente. */
+    fun pic(p: MonPic, px: Int, py: Int) {
+        val i = ink; val pa = paper
+        val colors = intArrayOf(pa, blend(pa, i, 0.33f), blend(pa, i, 0.66f), i)
+        for (y in 0 until p.height) for (x in 0 until p.width) {
+            val c = p.pixels[y * p.width + x]; val dx = px + x; val dy = py + y
+            if (c != 0 && dx in 0 until width && dy in 0 until height) pixels[dy * width + dx] = colors[c]
+        }
+    }
+
+    private fun blend(a: Int, b: Int, t: Float): Int {
+        fun ch(sh: Int) = (((a shr sh) and 255) * (1 - t) + ((b shr sh) and 255) * t).toInt() shl sh
+        return (0xFF shl 24) or ch(16) or ch(8) or ch(0)
+    }
+
     /** Icona della squadra 16×16 (indici di colore 0–3, [RomData.partyIcon]) in pixel; il colore 0 resta trasparente. */
     fun icon(data: IntArray, px: Int, py: Int, scale: Int = 1) {
         val i = ink; val pa = paper

@@ -64,5 +64,9 @@ class RomDataTest {
         assertEquals(true, bulba.contentEquals(ivy) && !bulba.contentEquals(pika))
         // icone da mezza casella: la metà destra è lo specchio della sinistra
         assertEquals(true, (0 until 16).all { y -> (0 until 8).all { x -> bulba[y * 16 + x] == bulba[y * 16 + 15 - x] } })
+        // immagini frontali: tutte le 151 si decodificano, con dimensioni da 5×5 a 7×7 caselle e qualche pixel scuro
+        val pics = (1..151).map { data.frontPic(data.indexForDex(it)) }
+        assertEquals(true, pics.all { p -> p != null && p.width in 40..56 && p.height in 40..56 && p.pixels.count { it == 3 } > 30 })
+        assertEquals(40, data.frontPic(0x54)!!.width)
     }
 }
