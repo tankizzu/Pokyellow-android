@@ -113,6 +113,20 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         return ink >= 8 && kotlin.math.abs(lum(paper) - lum(sheet.firstOrNull { it != paper } ?: paper)) > 150
     }
 
+    /**
+     * Scritte e riquadri dell'app sempre in bianco e nero (D-044, D-053): in alcuni momenti (per esempio all'inizio del
+     * gioco) la tavolozza del testo è colorata (gialla); le caselle si riportano a carta bianca e inchiostro nero,
+     * con i grigi intermedi in base alla luminosità.
+     */
+    private fun normalizeSheet(sheet: IntArray) {
+        for (i in sheet.indices) {
+            val c = sheet[i]
+            val l = (((c shr 16) and 255) * 30 + ((c shr 8) and 255) * 59 + (c and 255) * 11) / 100
+            val g = when { l >= 170 -> 0xF8; l < 70 -> 0x18; l >= 120 -> 0xA8; else -> 0x58 }
+            sheet[i] = (0xFF shl 24) or (g shl 16) or (g shl 8) or g
+        }
+    }
+
     private val frameMask = BoxMask()
     private val extMask = BoxMask()
 
@@ -660,6 +674,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (holdSheet && !trainerCardShown && !itemExecutor.busy && closingFrames == 0 && latestSnapshot.get().freeRoam) holdSheet = false
                 if (frames % SHEET_FRAMES == 0L && !holdSheet && !trainerCardShown && NativeCore.nativeGameTiles(handle, sheetBuf) >= 0 &&
                     sheetReadable(sheetBuf)) {
+                    normalizeSheet(sheetBuf)
                     val old = tileSheet.get()
                     if (old == null || !old.contentEquals(sheetBuf)) tileSheet.set(sheetBuf.copyOf())
                 }
