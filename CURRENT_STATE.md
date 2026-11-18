@@ -17,8 +17,9 @@
 - Levetta ovunque (4 direzioni); tocco veloce = A; tocco su persone/oggetti/cartelli/banconi = vai lì e parla
   (anche nella mappa aggiunta); gesto indietro = B.
 - Squadra in alto con dati veri; in lotta pulsanti mosse (tipo, PP), Squadra, Borsa, Fuga; Sì/No nativi.
-- Barra in basso: Menu (START), Select, Testo auto (No/Lento/Medio/Veloce), Salva.
+- Barra in basso: Squadra, Menu (START), Testo auto (No/Lento/Medio/Veloce), Select, Salva.
 - Nomi: tastiera del telefono al posto di quella del gioco (D-029, D-032).
+- Menu Squadra nativo con scheda di ogni compagno (sola lettura); barra in basso con icone (D-035).
 - Avvio come sul Game Boy (D-034): introduzione, titolo, menu iniziale del gioco + pulsante nativo CARICA PARTITA.
 - Salvataggi: del gioco (CONTINUA, batteria ogni 20 s se cambiata); dell'app: "Salva" (manuale) e automatico
   all'uscita durante una partita, con miniatura e scheda; scritture atomiche con .bak.
@@ -28,13 +29,13 @@
 - Al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
 - L'app non è stata provata qui su un telefono (nessun emulatore Android): verificati motore e logica su computer.
 
-## Prossimo passo – MENU NATIVI (Squadra per prima)
-1. Leggere tutto ciò che serve dalla memoria (già pronto per la squadra: nomi, livelli, PS, stato, mosse).
-2. Barra di icone in basso come nel Laboratorio (D-012): Squadra, Borsa, Pokédex, Scheda, Negozio, PC.
-3. Primo menu: Squadra in sola lettura (scheda di ogni creatura); le azioni che cambiano il gioco
-   (scambiare l'ordine, usare strumenti) passano dal menu originale tramite esecutore a circuito chiuso.
-Da provare sul telefono: avvio dal titolo e CARICA PARTITA, vista estesa con le persone, lotta a tutto schermo,
-tastiera dei nomi.
+## Prossimo passo – MENU BORSA nativo
+1. Trovare e verificare la borsa nella memoria italiana (D321 numero, D322 coppie strumento/quantità) e i nomi
+   degli strumenti nella ROM dell'utente.
+2. Schermata Borsa a tutto schermo: un'unica lista nello stesso ordine del gioco, con quantità (sola lettura).
+3. Poi Pokédex (visti/presi) e Scheda Allenatore (nome, soldi, medaglie, tempo di gioco).
+Da provare sul telefono: avvio dal titolo e CARICA PARTITA, vista estesa, lotta a tutto schermo, tastiera dei nomi,
+menu Squadra.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.

@@ -24,6 +24,10 @@ object MemoryMapIt {
     /** Tabella dei nomi delle mosse nella ROM italiana: 165 nomi chiusi da 0x50, a partire da questo offset. */
     const val ROM_MOVE_NAMES = 0xBC000
     const val NUM_MOVES = 165
+    /** Nomi delle specie: 190 voci da 10 byte (riempite con 0x50), in ordine di indice interno (1 = RHYDON). */
+    const val ROM_SPECIES_NAMES = 0xE8000
+    const val SPECIES_NAME_LENGTH = 10
+    const val NUM_SPECIES_INDEXES = 190
     /** Dati delle mosse nella ROM italiana: 165 voci da 6 byte (id, effetto, potenza, tipo, precisione, PP). */
     const val ROM_MOVE_DATA = 0x38000
     const val MOVE_DATA_SIZE = 6

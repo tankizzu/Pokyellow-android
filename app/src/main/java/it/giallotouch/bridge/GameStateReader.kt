@@ -3,6 +3,10 @@ package it.giallotouch.bridge
 import it.giallotouch.bridge.MemoryMapIt as M
 
 /**
+ * Struttura di una creatura in squadra (44 byte, valori a 2 byte in big-endian): specie +0, PS +1, stato +4,
+ * tipi +5/+6, mosse +8…+11, PP +29…+32 (6 bit bassi), livello +33, PS massimi +34, attacco +36, difesa +38,
+ * velocità +40, speciale +42.
+ *
  * Legge lo stato del gioco da un blocco di memoria copiato (da BLOCK_START a BLOCK_END).
  * Non scrive mai nella memoria del gioco. Se i valori non sono plausibili (per esempio durante
  * la schermata del titolo, quando la memoria non è ancora inizializzata) la squadra risulta vuota.
@@ -39,7 +43,7 @@ object GameStateReader {
         if (species == 0 || level !in 1..100 || maxHp == 0 || hp > maxHp) return null
         val moves = (0 until 4).mapNotNull { i ->
             val id = u8(b + 8 + i)
-            if (id in 1..M.NUM_MOVES) MoveSlot(id, u8(b + 25 + i) and 0x3F) else null
+            if (id in 1..M.NUM_MOVES) MoveSlot(id, u8(b + 25 + i) and 0x3F, u8(b + 25 + i) shr 6) else null
         }
         return BattleMon(species, level, hp, maxHp, moves)
     }
@@ -66,6 +70,12 @@ object GameStateReader {
                 hp = hp,
                 maxHp = maxHp,
                 status = Status.fromByte(status),
+                types = listOf(u8(base + 5), u8(base + 6)).distinct(),
+                moves = (0 until 4).mapNotNull { k ->
+                    val id = u8(base + 8 + k)
+                    if (id in 1..M.NUM_MOVES) MoveSlot(id, u8(base + 29 + k) and 0x3F, u8(base + 29 + k) shr 6) else null
+                },
+                stats = Stats(u16be(base + 36), u16be(base + 38), u16be(base + 40), u16be(base + 42)),
             )
         }
         return members

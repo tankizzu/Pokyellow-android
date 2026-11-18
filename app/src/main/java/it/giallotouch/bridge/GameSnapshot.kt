@@ -34,7 +34,8 @@ data class BattleMon(
     val moves: List<MoveSlot>,
 )
 
-data class MoveSlot(val id: Int, val pp: Int)
+/** Mossa con PP attuali e numero di PP Su usati (bit alti del byte dei PP). */
+data class MoveSlot(val id: Int, val pp: Int, val ppUps: Int = 0)
 
 data class PartyMember(
     val species: Int,
@@ -43,7 +44,14 @@ data class PartyMember(
     val hp: Int,
     val maxHp: Int,
     val status: Status,
+    /** Tipi (indici del gioco); uguali se la specie ha un solo tipo. */
+    val types: List<Int> = emptyList(),
+    val moves: List<MoveSlot> = emptyList(),
+    val stats: Stats? = null,
 )
+
+/** Statistiche calcolate dal gioco (struttura della squadra +36…+43). */
+data class Stats(val attack: Int, val defense: Int, val speed: Int, val special: Int)
 
 /** Stato alterato del byte "Status" (bit 0-2 sonno, 3 veleno, 4 scottatura, 5 congelamento, 6 paralisi). */
 enum class Status(val label: String) {

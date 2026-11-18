@@ -43,5 +43,8 @@ class RomDataTest {
         assertEquals(RomData.MoveInfo(type = 0x17, maxPp = 30), data.moveInfo(0x54))
         assertEquals(RomData.MoveInfo(type = 0x00, maxPp = 40), data.moveInfo(0x2D))
         assertEquals(true, data.typeName(0x17).isNotEmpty() && data.moveName(0x54).isNotEmpty())
+        // nomi delle specie: tutti presenti, al massimo 10 caratteri; PP massimi con i PP Su (30 + 6 × 3)
+        assertEquals(true, (1..190).all { data.speciesName(it).length in 1..10 })
+        assertEquals(48, data.maxPp(0x54, 3))
     }
 }

@@ -10,12 +10,17 @@ class RomData private constructor(
     private val moveNames: List<String>,
     private val moveInfo: List<MoveInfo>,
     private val typeNames: List<String>,
+    private val speciesNames: List<String> = emptyList(),
 ) {
     data class MoveInfo(val type: Int, val maxPp: Int)
 
     fun moveName(id: Int): String = moveNames.getOrNull(id - 1) ?: "MOSSA $id"
     fun moveInfo(id: Int): MoveInfo? = moveInfo.getOrNull(id - 1)
+    /** PP massimi con i PP Su usati: ognuno aggiunge un quinto dei PP di base (come nel gioco). */
+    fun maxPp(id: Int, ppUps: Int): Int? = moveInfo(id)?.let { it.maxPp + it.maxPp / 5 * ppUps }
     fun typeName(type: Int): String = typeNames.getOrNull(type) ?: ""
+    /** Nome della specie dall'indice interno del gioco (quello della squadra), vuoto se sconosciuto. */
+    fun speciesName(index: Int): String = speciesNames.getOrNull(index - 1) ?: ""
 
     companion object {
         val EMPTY = RomData(emptyList(), emptyList(), emptyList())
@@ -26,10 +31,17 @@ class RomData private constructor(
                 moveNames = readNameList(rom, M.ROM_MOVE_NAMES, M.NUM_MOVES) ?: emptyList(),
                 moveInfo = readMoveData(rom, M.ROM_MOVE_DATA, M.NUM_MOVES) ?: emptyList(),
                 typeNames = readPointedNames(rom, M.ROM_TYPE_NAME_POINTERS, M.NUM_TYPE_IDS) ?: emptyList(),
+                speciesNames = readFixedNames(rom, M.ROM_SPECIES_NAMES, M.NUM_SPECIES_INDEXES, M.SPECIES_NAME_LENGTH) ?: emptyList(),
             )
         }
 
         private fun u8(rom: ByteArray, i: Int) = rom[i].toInt() and 0xFF
+
+        /** Legge [count] nomi a lunghezza fissa (riempiti con 0x50); null se la tabella non è nella ROM. */
+        fun readFixedNames(rom: ByteArray, start: Int, count: Int, length: Int): List<String>? {
+            if (start + count * length > rom.size) return null
+            return List(count) { k -> TextCodec.decode(rom, start + k * length, length) }
+        }
 
         /** Legge [count] nomi consecutivi chiusi da 0x50; null se i dati non sono plausibili. */
         fun readNameList(rom: ByteArray, start: Int, count: Int): List<String>? {

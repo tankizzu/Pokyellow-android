@@ -30,7 +30,9 @@
 - [x] Tastiera del telefono per i nomi (D-029, D-032) – da provare sul telefono
 - [x] Sì/No nativi nelle domande del gioco
 - [x] Tipo e PP massimi delle mosse dalla ROM
-- [ ] **Menu nativi – prossimo passo**: Squadra, Borsa, Pokédex, Scheda, Negozio, PC (barra di icone in basso, D-012)
+- [x] Menu nativo Squadra con scheda (sola lettura) e barra con icone (D-035)
+- [ ] **Menu nativi – prossimo passo**: Borsa (lista strumenti dalla memoria), poi Pokédex e Scheda Allenatore; Negozio e PC sul posto
+- [ ] Squadra: "Sposta" e strumenti tramite il menu originale (esecutore)
 
 ## Prova del motore su computer
 ```

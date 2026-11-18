@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 07:17 UTC) – menu Squadra nativo
+- **Menu Squadra** a tutto schermo (D-007, D-008, D-012): elenco dei compagni (nome, specie, livello, stato, PS)
+  e **scheda** di ognuno (tipi, PS, attacco, difesa, velocità, speciale, mosse con tipo e PP). Solo lettura.
+  Si apre dal pulsante "Squadra" in basso o toccando un compagno nella fila in alto.
+- Barra in basso con **icona e nome** (grafica del Laboratorio): Squadra, Menu, Testo, Select, Salva;
+  in lotta Squadra, Borsa, Fuga con icona.
+- Dalla ROM dell'utente: nomi delle specie (0xE8000). Dalla memoria: tipi, mosse, PP (con i PP Su), statistiche.
+- 54 test superati.
+
 ## 2026-11-18 – avvio come sul Game Boy e "Carica partita" (richiesta del committente)
 - A ogni apertura il gioco riparte da capo: introduzione, titolo e menu iniziale del gioco (NUOVO GIOCO, OPZIONI,
   e CONTINUA se c'è un salvataggio del gioco). Tornando all'app dopo averla solo messa da parte, il gioco resta dov'era.

@@ -38,8 +38,10 @@ class GameStateReaderTest {
         val b = block()
         b.put(M.PARTY_COUNT, 2, 0x54, 0x24, 0xFF)
         val m1 = M.PARTY_MONS
-        b.put(m1, 0x54, 0x00, 0x12, 5, 0x00)           // specie, PS 18, livello box, stato
-        b.put(m1 + 33, 5, 0x00, 0x14)                   // livello 5, PS massimi 20
+        b.put(m1, 0x54, 0x00, 0x12, 5, 0x00, 0x17, 0x17) // specie, PS 18, livello box, stato, tipi (uguali)
+        b.put(m1 + 8, 0x54, 0x2D, 0x00, 0x00)            // mosse: 0x54, 0x2D
+        b.put(m1 + 29, 0x1E or 0x40, 40)                 // PP 30 con un PP Su, 40
+        b.put(m1 + 33, 5, 0x00, 0x14, 0, 11, 0, 9, 0, 14, 0, 10)  // livello 5, PS massimi 20, statistiche
         val m2 = M.PARTY_MONS + M.PARTY_STRUCT_LENGTH
         b.put(m2, 0x24, 0x00, 0x05, 4, 0x08)           // PS 5, avvelenato
         b.put(m2 + 33, 4, 0x00, 0x11)                   // livello 4, PS massimi 17
@@ -47,8 +49,14 @@ class GameStateReaderTest {
         b.put(M.PARTY_MON_NICKS + M.NAME_LENGTH, *encode("BETA"))
         val party = GameStateReader.read(b).party
         assertEquals(2, party.size)
-        assertEquals(PartyMember(0x54, "ALFA", 5, 18, 20, Status.NONE), party[0])
-        assertEquals(PartyMember(0x24, "BETA", 4, 5, 17, Status.POISON), party[1])
+        assertEquals(
+            PartyMember(
+                0x54, "ALFA", 5, 18, 20, Status.NONE, types = listOf(0x17),
+                moves = listOf(MoveSlot(0x54, 30, 1), MoveSlot(0x2D, 40, 0)), stats = Stats(11, 9, 14, 10)
+            ),
+            party[0]
+        )
+        assertEquals(PartyMember(0x24, "BETA", 4, 5, 17, Status.POISON), party[1].copy(types = emptyList(), stats = null))
     }
 
     @Test

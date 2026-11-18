@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,17 +58,17 @@ import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.hypot
 
-private val Ink = Color(0xFF171624)
-private val Glass = Color(0xE0282540)
-private val Yellow = Color(0xFFF6C933)
-private val Cream = Color(0xFFFFF7DC)
+internal val Ink = Color(0xFF171624)
+internal val Glass = Color(0xE0282540)
+internal val Yellow = Color(0xFFF6C933)
+internal val Cream = Color(0xFFFFF7DC)
 
 /**
  * Schermo di gioco del prototipo:
  * - levetta che compare dove appoggi il dito (4 direzioni, come il Game Boy);
  * - tocco veloce senza trascinare = tasto A (parla, esamina, fa avanzare i dialoghi);
  * - gesto "indietro" di Android = tasto B;
- * - in basso: Menu (START), Select, Testo auto, Salva (salvataggio dell'app);
+ * - in basso, icona e nome: Squadra (menu nativo), Menu (START), Testo auto, Select, Salva (salvataggio dell'app);
  * - nel menu iniziale del gioco: "Carica partita" per i salvataggi dell'app.
  */
 @Composable
@@ -99,6 +101,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var inGame by remember { mutableStateOf(false) }       // partita in corso (non titolo o menu iniziale)
     var loadOpen by remember { mutableStateOf(false) }     // schermata "Carica partita"
     var slots by remember { mutableStateOf(emptyList<SlotEntry>()) }
+    var teamOpen by remember { mutableStateOf(false) }    // menu Squadra nativo
+    var teamSelected by remember { mutableStateOf<Int?>(null) }  // scheda aperta (null = elenco)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
     var namingDismissed by remember { mutableStateOf(false) }
@@ -219,7 +223,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
         if (inGame && snapshot.party.isNotEmpty() && !snapshot.inBattle) {
             TeamStrip(
                 snapshot.party,
-                Modifier
+                onOpen = { i -> teamSelected = i; teamOpen = true },
+                modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
                     .padding(start = 10.dp, end = 10.dp, top = 30.dp)
@@ -236,7 +241,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                         typeName = info?.let { session.romData.typeName(it.type) } ?: "",
                         type = info?.type ?: -1,
                         pp = slot.pp,
-                        maxPp = info?.maxPp,
+                        maxPp = session.romData.maxPp(slot.id, slot.ppUps),
                     )
                 },
                 enabled = !commandBusy,
@@ -260,10 +265,13 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 .padding(horizontal = 12.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            BarButton("Menu", Modifier.weight(1f)) { tapped = NativeCore.KEY_START }
-            BarButton("Select", Modifier.weight(1f)) { tapped = NativeCore.KEY_SELECT }
+            BarButton("Squadra", AppIcons.Team, Modifier.weight(1f)) {
+                if (inGame) { teamSelected = null; teamOpen = true } else message = "Prima inizia o carica una partita"
+            }
+            BarButton("Menu", AppIcons.Menu, Modifier.weight(1f)) { tapped = NativeCore.KEY_START }
             AutoTextButton(autoText, Modifier.weight(1f)) { autoText = (autoText + 1) % 4 }
-            BarButton("Salva", Modifier.weight(1f)) {
+            BarButton("Select", AppIcons.Select, Modifier.weight(1f)) { tapped = NativeCore.KEY_SELECT }
+            BarButton("Salva", AppIcons.Save, Modifier.weight(1f)) {
                 message = when {
                     !inGame -> "Prima inizia o carica una partita"
                     session.saveManual() -> "Partita salvata in questo punto"
@@ -303,6 +311,17 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     message = if (session.loadSlot(entry.slot)) "Partita caricata" else "Caricamento non riuscito"
                 },
                 onClose = { loadOpen = false }
+            )
+        }
+
+        // Menu Squadra nativo (sola lettura); in lotta "Squadra" resta il comando di lotta.
+        if (teamOpen && !snapshot.inBattle) {
+            TeamSheet(
+                party = snapshot.party,
+                romData = session.romData,
+                selected = teamSelected,
+                onSelect = { teamSelected = it },
+                onClose = { teamOpen = false }
             )
         }
 
@@ -374,9 +393,9 @@ private fun BattlePanel(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BarButton("Squadra", Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Party) }
-            BarButton("Borsa", Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Item) }
-            BarButton("Fuga", Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Run) }
+            BarButton("Squadra", AppIcons.Team, Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Party) }
+            BarButton("Borsa", AppIcons.Bag, Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Item) }
+            BarButton("Fuga", AppIcons.Run, Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Run) }
         }
     }
 }
@@ -385,7 +404,7 @@ private fun BattlePanel(
 data class MoveButtonData(val name: String, val typeName: String, val type: Int, val pp: Int, val maxPp: Int?)
 
 /** Colori dell'interfaccia per tipo (scelta grafica dell'app, indici dei tipi del gioco). */
-private fun typeColor(type: Int): Color = when (type) {
+internal fun typeColor(type: Int): Color = when (type) {
     0x00 -> Color(0xFFC9C3AD); 0x01 -> Color(0xFFE08A6A); 0x02 -> Color(0xFFA9B8F2); 0x03 -> Color(0xFFC48AE0)
     0x04 -> Color(0xFFD9B872); 0x05 -> Color(0xFFC9AD78); 0x07 -> Color(0xFFB5CC52); 0x08 -> Color(0xFF9A8CC8)
     0x14 -> Color(0xFFF58B5C); 0x15 -> Color(0xFF6DB3EF); 0x16 -> Color(0xFF7CC95A); 0x17 -> Color(0xFFF2C84B)
@@ -398,15 +417,18 @@ private fun typeColor(type: Int): Color = when (type) {
 private fun AutoTextButton(speed: Int, modifier: Modifier, onClick: () -> Unit) {
     Column(
         modifier
-            .height(56.dp)
+            .height(58.dp)
             .background(if (speed > 0) Yellow else Glass, RoundedCornerShape(16.dp))
             .border(1.dp, if (speed > 0) Yellow else Color(0xFF403C62), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Testo auto", color = if (speed > 0) Ink else Color(0xFFAAA4C8), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-        Text(TextAssist.LABELS[speed], color = if (speed > 0) Ink else Cream, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Icon(AppIcons.Text, contentDescription = null, tint = if (speed > 0) Ink else Cream, modifier = Modifier.size(22.dp))
+        Text(
+            if (speed > 0) TextAssist.LABELS[speed] else "Testo",
+            color = if (speed > 0) Ink else Cream, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1
+        )
     }
 }
 
@@ -426,7 +448,7 @@ private fun AnswerButton(label: String, primary: Boolean, enabled: Boolean, onCl
 }
 
 @Composable
-private fun TeamStrip(party: List<PartyMember>, modifier: Modifier) {
+private fun TeamStrip(party: List<PartyMember>, onOpen: (Int) -> Unit, modifier: Modifier) {
     Row(
         modifier
             .fillMaxWidth()
@@ -441,6 +463,7 @@ private fun TeamStrip(party: List<PartyMember>, modifier: Modifier) {
                     .weight(1f)
                     .height(58.dp)
                     .background(if (m != null) Glass else Color(0x40282540), RoundedCornerShape(12.dp))
+                    .then(if (m != null) Modifier.clickable { onOpen(i) } else Modifier)
                     .padding(horizontal = 5.dp, vertical = 5.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
@@ -460,7 +483,7 @@ private fun TeamStrip(party: List<PartyMember>, modifier: Modifier) {
 }
 
 @Composable
-private fun HpBar(hp: Int, max: Int) {
+internal fun HpBar(hp: Int, max: Int) {
     val fraction = if (max > 0) hp.toFloat() / max else 0f
     val color = when {
         fraction > 0.5f -> Color(0xFF58CF7C)
@@ -482,16 +505,19 @@ private fun HpBar(hp: Int, max: Int) {
     }
 }
 
+/** Pulsante della barra in basso (D-007, D-012): icona e nome, stessa grafica per tutti. */
 @Composable
-private fun BarButton(label: String, modifier: Modifier, onClick: () -> Unit) {
-    Box(
+private fun BarButton(label: String, icon: ImageVector? = null, modifier: Modifier, onClick: () -> Unit) {
+    Column(
         modifier
-            .height(56.dp)
+            .height(58.dp)
             .background(Glass, RoundedCornerShape(16.dp))
             .border(1.dp, Color(0xFF403C62), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text(label, color = Cream, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        if (icon != null) Icon(icon, contentDescription = null, tint = Cream, modifier = Modifier.size(22.dp))
+        Text(label, color = Cream, fontWeight = FontWeight.SemiBold, fontSize = if (icon != null) 11.sp else 15.sp, maxLines = 1)
     }
 }
