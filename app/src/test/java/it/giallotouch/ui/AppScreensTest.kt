@@ -678,8 +678,11 @@ class ZzScenarioTest : AppScreensHarness() {
         val map = pos().first
         val g = s.mapGridForTest() ?: return false
         val rows = if (north) (0 until 3) else (g.height - 1 downTo g.height - 3)
+        val here = pos()
         val candidates = rows.flatMap { y -> (0 until g.width).filter { g.isFree(it, y) }.map { it to y } }
-            .sortedBy { kotlin.math.abs(it.first - pos().second) }
+            .filter { g.path(here.second, here.third, setOf(it)) != null }      // solo caselle raggiungibili
+            .sortedBy { kotlin.math.abs(it.first - here.second) }
+        log("bordo ${if (north) "nord" else "sud"}: ${candidates.size} caselle raggiungibili")
         for (c in candidates.take(12)) {
             goTo(c.first, c.second)
             if (pos().first != map) { pump(1500); return true }
