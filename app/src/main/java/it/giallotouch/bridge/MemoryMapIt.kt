@@ -20,6 +20,12 @@ object MemoryMapIt {
     /** Tabella dei nomi delle mosse nella ROM italiana: 165 nomi chiusi da 0x50, a partire da questo offset. */
     const val ROM_MOVE_NAMES = 0xBC000
     const val NUM_MOVES = 165
+    /** Dati delle mosse nella ROM italiana: 165 voci da 6 byte (id, effetto, potenza, tipo, precisione, PP). */
+    const val ROM_MOVE_DATA = 0x38000
+    const val MOVE_DATA_SIZE = 6
+    /** Tabella di puntatori (banco 0x09) ai nomi dei tipi, indici 0x00–0x1A. */
+    const val ROM_TYPE_NAME_POINTERS = 0x27D63
+    const val NUM_TYPE_IDS = 0x1B
 
     const val PLAYER_NAME = 0xD15C
     const val PARTY_COUNT = 0xD167

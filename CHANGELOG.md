@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 04:16 UTC)
+- Trovati nella ROM italiana i dati delle mosse (0x38000: tipo e PP massimi) e i nomi dei tipi (puntatori a 0x27D63).
+- Pulsanti di lotta completi: nome della mossa, tipo con colore e PP attuali/massimi, tutto letto dalla ROM dell'utente all'avvio.
+- Test: 20 superati (17 su dati sintetici, 3 con la ROM vera in locale: mossa scelta, risposta Sì/No, tabelle coerenti).
+
 ## 2026-11-18 (promemoria 03:16 UTC)
 - Domande Sì/No riconosciute dalla memoria e dal cursore sullo schermo; pulsanti nativi "Sì" e "No" sopra il riquadro originale, a destra dell'immagine di gioco.
 - Codice generalizzato: `GameMenu.kt` con `MenuReader`, `GameCommand` (lotta + risposte) e `CommandExecutor`.

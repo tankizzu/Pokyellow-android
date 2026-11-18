@@ -23,7 +23,7 @@
 - [x] Esecutore comandi a circuito chiuso per la lotta (provato sul gioco vero)
 - [ ] Ponte: pathfinding e tocco su persone/oggetti
 - [x] Sì/No nativi nelle domande del gioco
-- [ ] Tipo e PP massimi delle mosse dalla ROM
+- [x] Tipo e PP massimi delle mosse dalla ROM
 - [ ] Tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi
 
 ## Prova del motore su computer

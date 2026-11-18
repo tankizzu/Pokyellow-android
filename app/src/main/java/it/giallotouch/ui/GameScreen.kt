@@ -184,7 +184,16 @@ fun GameScreen(session: GameSession) {
         val battleMon = snapshot.battleMon
         if (snapshot.inBattle && battleMon != null) {
             BattlePanel(
-                moves = battleMon.moves.map { session.romData.moveName(it.id) to it.pp },
+                moves = battleMon.moves.map { slot ->
+                    val info = session.romData.moveInfo(slot.id)
+                    MoveButtonData(
+                        name = session.romData.moveName(slot.id),
+                        typeName = info?.let { session.romData.typeName(it.type) } ?: "",
+                        type = info?.type ?: -1,
+                        pp = slot.pp,
+                        maxPp = info?.maxPp,
+                    )
+                },
                 enabled = !commandBusy,
                 onCommand = { session.command(it) },
                 modifier = Modifier
@@ -231,7 +240,7 @@ fun GameScreen(session: GameSession) {
  */
 @Composable
 private fun BattlePanel(
-    moves: List<Pair<String, Int>>,
+    moves: List<MoveButtonData>,
     enabled: Boolean,
     onCommand: (GameCommand) -> Unit,
     modifier: Modifier,
@@ -252,8 +261,17 @@ private fun BattlePanel(
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(move?.first ?: "—", color = if (enabled) Cream else Color(0xFF7D78A0), fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1)
-                        if (move != null) Text("PP ${move.second}", color = Color(0xFFAAA4C8), fontSize = 12.sp)
+                        Text(move?.name ?: "—", color = if (enabled) Cream else Color(0xFF7D78A0), fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1)
+                        if (move != null) Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (move.typeName.isNotEmpty()) {
+                                Text(
+                                    move.typeName, color = Ink, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.background(typeColor(move.type), RoundedCornerShape(50)).padding(horizontal = 7.dp, vertical = 1.dp)
+                                )
+                                Box(Modifier.width(6.dp))
+                            }
+                            Text(if (move.maxPp != null) "PP ${move.pp}/${move.maxPp}" else "PP ${move.pp}", color = Color(0xFFAAA4C8), fontSize = 12.sp)
+                        }
                     }
                 }
             }
@@ -264,6 +282,18 @@ private fun BattlePanel(
             BarButton("Fuga", Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Run) }
         }
     }
+}
+
+/** Dati di un pulsante mossa, letti dalla memoria (PP attuali) e dalla ROM dell'utente (nome, tipo, PP massimi). */
+data class MoveButtonData(val name: String, val typeName: String, val type: Int, val pp: Int, val maxPp: Int?)
+
+/** Colori dell'interfaccia per tipo (scelta grafica dell'app, indici dei tipi del gioco). */
+private fun typeColor(type: Int): Color = when (type) {
+    0x00 -> Color(0xFFC9C3AD); 0x01 -> Color(0xFFE08A6A); 0x02 -> Color(0xFFA9B8F2); 0x03 -> Color(0xFFC48AE0)
+    0x04 -> Color(0xFFD9B872); 0x05 -> Color(0xFFC9AD78); 0x07 -> Color(0xFFB5CC52); 0x08 -> Color(0xFF9A8CC8)
+    0x14 -> Color(0xFFF58B5C); 0x15 -> Color(0xFF6DB3EF); 0x16 -> Color(0xFF7CC95A); 0x17 -> Color(0xFFF2C84B)
+    0x18 -> Color(0xFFF08AB0); 0x19 -> Color(0xFF9EDCE6); 0x1A -> Color(0xFF8C7AE6)
+    else -> Color(0xFFC9C3AD)
 }
 
 @Composable

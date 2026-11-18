@@ -83,6 +83,8 @@ Le variabili restano in memoria anche a menu chiuso: il menu è attivo solo se c
 | Tabella | Offset nella ROM | Stato | Note |
 |---|---|---|---|
 | Nomi delle mosse | 0xBC000 (banco 0x2F) | ✅ | 165 nomi chiusi da 0x50; verificati alle posizioni 45 e 84 |
+| Dati delle mosse | 0x38000 (banco 0x0E) | ✅ | 165 voci da 6 byte: id, effetto, potenza, tipo, precisione, PP |
+| Nomi dei tipi | puntatori a 0x27D63 (banco 0x09) | ✅ | 27 puntatori (tipi 0x00–0x1A) verso nomi chiusi da 0x50 |
 
 Caratteri accentati trovati: 0xBE = À, 0xC6 = É.
 
