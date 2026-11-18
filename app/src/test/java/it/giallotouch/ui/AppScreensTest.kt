@@ -622,8 +622,15 @@ class AppPcTest : AppScreensHarness() {
  */
 class ZzScenarioTest : AppScreensHarness() {
     private lateinit var s: GameSession
+    /** Registro dei passi, scritto subito su file (si legge mentre la partita automatica gira). */
+    private fun log(msg: String) {
+        val dir = System.getProperty("giallo.scenario") ?: return
+        java.io.File(dir, "registro.txt").appendText("${java.time.LocalTime.now()} $msg ${runCatching { pos() }.getOrNull()}\n")
+        println("DBGSC $msg")
+    }
     private fun pos() = s.positionForTest()
     private fun goTo(x: Int, y: Int) {
+        log("vado a ($x,$y)")
         val map = pos().first
         s.walkPathForTest(x, y)
         waitFor(40_000) { pos().let { it.first != map || (it.second == x && it.third == y) } || s.latestSnapshot.get().inBattle }
@@ -638,13 +645,14 @@ class ZzScenarioTest : AppScreensHarness() {
     }
     private fun textThrough(max: Int = 80) {
         var k = 0
-        while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < max) tapTile(10f, 2f)
+        while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < max) { tapTile(10f, 2f); if (k % 20 == 0) log("testo, tocco $k") }
         if (s.latestSnapshot.get().inBattle) fightIfNeeded()
     }
     private fun save(name: String) {
         val dir = java.io.File(System.getProperty("giallo.scenario")!!)
         assertTrue(s.saveStateForTest(java.io.File(dir, name)))
         shot("scen-" + name.removeSuffix(".state"))
+        log("salvato $name")
         println("DBGSC salvato $name a ${pos()} squadra=${s.latestSnapshot.get().party.map { it.name }} borsa=${s.latestSnapshot.get().bag}")
     }
     /** Entra nella porta verso [dest] (o una qualsiasi se null): ci si va sopra, poi si spinge verso l'esterno. */
@@ -694,13 +702,14 @@ class ZzScenarioTest : AppScreensHarness() {
         assertTrue("fuori dal negozio", warpTo(null))
         println("DBGSC città ${pos()}")
         var k = 0
-        while (pos().first != 0 && k++ < 6) { edge(north = false); println("DBGSC verso sud ${pos()}") }
+        while (pos().first != 0 && k++ < 6) { edge(north = false); log("verso sud") }
         assertEquals("Biancavilla", 0, pos().first)
         assertTrue("nel laboratorio", warpTo(0x28))
         textThrough()
         println("DBGSC lab ${pos()} persone=${s.mapGridForTest()?.people}")
         // dal Professore: la persona più in alto nel laboratorio
         repeat(3) {
+            log("dal Professore, tentativo")
             if (s.latestSnapshot.get().bag.none { it.id == 70 }) return@repeat
             val g = s.mapGridForTest()!!
             val oak = g.people.minByOrNull { it.second } ?: return@repeat
