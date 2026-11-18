@@ -10,8 +10,8 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 ## Regola trovata: spostamento rispetto alla versione inglese
 - Zona **C000–CC2A**: stessi indirizzi della versione inglese (verificati wTileMap, wOverworldMap, menu, sprite).
 - Zona **D15C–D36D**: indirizzi della versione inglese **+5 byte** (verificati nome, squadra, borsa, soldi, mappa, coordinate).
-- Il punto esatto in cui inizia lo spostamento (tra CC2B e D15B) è ancora da trovare:
-  le variabili in quella zona (wJoyIgnore, wIsInBattle, wTextBoxID…) vanno verificate una per una.
+- **CD6B** (wJoyIgnore) è ancora senza spostamento; **D05B** (wIsInBattle) è già spostato di +5:
+  lo spostamento inizia tra CD6C e D05A. Le variabili in quella zona vanno verificate una per una.
 
 ## Schermo, mappa, personaggi
 | Variabile | Indirizzo | Stato | Note |
@@ -21,6 +21,8 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 | wTileMap | C3A0 (20 × 18) | ✅ | trovato dal bordo del menu |
 | wOverworldMap | C6E8 (1300 byte) | ✅ | mappa corrente con bordo di 3 blocchi; riga = larghezza + 6 |
 | wCurrentMenuItem | CC26 | ✅ | voce selezionata nei menu |
+| wJoyIgnore | CD6B | ✅ | 0 quando il giocatore ha il controllo; FC durante la scena di Oak (tasti bloccati) |
+| wIsInBattle | D05B | ✅ | 0 fuori dalla lotta, 2 nella lotta con allenatore (1 = selvatico, da confermare) |
 | wMaxMenuItem | CC28 | 🟡 | 6 nel menu START (7 voci) |
 | wMenuWatchedKeys | CC29 | 🟡 | |
 | wLastMenuItem | CC2A | ✅ | |
@@ -31,9 +33,9 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 | wPlayerName | D15C (11) | ✅ | testo nel set di caratteri del gioco, chiuso da 0x50 |
 | wPartyCount | D167 | ✅ | 0 a inizio partita |
 | wPartySpecies | D168 (7) | ✅ | chiusa da 0xFF |
-| wPartyMons | D16F (6 × 44) | 🟡 | struttura party_struct |
-| wPartyMonOT | D277 (6 × 11) | 🟡 | |
-| wPartyMonNicks | D2B9 (6 × 11) | 🟡 | |
+| wPartyMons | D16F (6 × 44) | ✅ | verificato col primo compagno: specie +0, PS +1 (2 byte), stato +4, mosse +8, livello +33, PS max +34 |
+| wPartyMonOT | D277 (6 × 11) | ✅ | nome dell'allenatore originale |
+| wPartyMonNicks | D2B9 (6 × 11) | ✅ | scritto dopo la domanda sul soprannome |
 | wPokedexOwned | D2FB (19) | ✅ | |
 | wPokedexSeen | D30E (19) | 🟡 | |
 | wNumBagItems | D321 | ✅ | 0 a inizio partita |
@@ -59,10 +61,14 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 ## Da trovare
 | Variabile | Uso | Stato |
 |---|---|---|
-| wJoyIgnore, wTextBoxID | capire se c'è un dialogo o una scena | ⏳ (zona con spostamento incerto) |
-| wIsInBattle e dati di lotta | lotta sovrapposta | ⏳ |
+| wTextBoxID, dati della lotta (mosse, PS avversario) | dialoghi e lotta sovrapposta | ⏳ |
 | wWalkBikeSurfState | a piedi / bici / surf | ⏳ (probabile +5) |
 | Tabelle nella ROM (nomi, mosse, collisioni) | menu nativi, percorsi | ⏳ |
+
+## Sequenza di prova riproducibile (motore SameBoy, `tools/native-test/runner.c`)
+Nuova partita con nomi predefiniti → camera → scendere → uscire → nord fino all'erba alta (scena di Oak)
+→ nel laboratorio **esaminare la Poké Ball sul tavolo** (avvia la consegna del compagno) → rispondere NO al soprannome
+→ scendere di 3 passi: lotta con il rivale. Gli script di prova restano fuori dal repository insieme alla ROM.
 
 ## Metodo
 1. Nuova partita automatica con nomi predefiniti (`newgame.py`).

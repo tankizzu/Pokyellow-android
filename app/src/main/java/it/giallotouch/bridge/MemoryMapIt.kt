@@ -10,6 +10,10 @@ object MemoryMapIt {
     const val TILE_MAP = 0xC3A0
     const val OVERWORLD_MAP = 0xC6E8
     const val CURRENT_MENU_ITEM = 0xCC26
+    /** 0 = il giocatore ha il controllo; diverso da 0 durante scene e movimenti automatici. */
+    const val JOY_IGNORE = 0xCD6B
+    /** 0 = nessuna lotta, 1 = lotta con creatura selvatica, 2 = lotta con allenatore. */
+    const val IS_IN_BATTLE = 0xD05B
 
     const val PLAYER_NAME = 0xD15C
     const val PARTY_COUNT = 0xD167

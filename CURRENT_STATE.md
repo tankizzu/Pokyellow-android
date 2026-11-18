@@ -33,9 +33,12 @@
 ## Ultimo lavoro (promemoria 23:16 UTC)
 - Ponte di sola lettura + squadra in alto con dati veri; 4 test superati; APK ricompilato (non ancora consegnato).
 
+## Ultimo lavoro (promemoria 00:16 UTC)
+- Squadra verificata su partita vera; trovati wIsInBattle (D05B) e wJoyIgnore (CD6B); nuovo runner di prova su SameBoy.
+
 ## Prossimo passo
-1. Verificare la lettura della squadra su una partita vera: nell'emulatore di prova ottenere il primo compagno
-   e confrontare i valori letti con quelli mostrati dal gioco.
-2. Trovare dove inizia lo spostamento di +5 byte (zona CC2B–D15B) e le variabili wJoyIgnore, wIsInBattle, wTextBoxID.
+1. Usare wIsInBattle nell'app: nascondere la barra in alto durante la lotta e preparare i pulsanti di lotta
+   (servono mosse e PP del compagno in campo: wBattleMon, zona +5).
+2. Trovare wTextBoxID / stato dei dialoghi per sapere quando un tocco deve far avanzare il testo.
 3. Tocco su persone/oggetti con percorso automatico: servono collisioni (tabelle nella ROM) e posizioni degli sprite.
 4. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.

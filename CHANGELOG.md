@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 00:16 UTC)
+- Nuovo strumento di prova sul motore SameBoy (`tools/native-test/runner.c`): esegue sequenze di tasti, salva stati, immagini e memoria (solo in cartelle temporanee).
+- Lettura della squadra **verificata su partita vera**: il primo compagno risulta a D16F (livello 5, PS 19/19) con soprannome a D2B9.
+- Trovati wIsInBattle (D05B) e wJoyIgnore (CD6B); aggiornati `docs/MEMORY_MAP_IT.md` e `MemoryMapIt.kt`.
+
 ## 2026-11-18 (promemoria 23:16 UTC)
 - Nuovo "ponte" verso il gioco (`app/src/main/java/it/giallotouch/bridge/`): indirizzi della versione italiana, decodifica dei nomi, lettura di squadra (nome, livello, PS, stato), soldi, mappa e posizione. Solo lettura, mai scrittura nella memoria del gioco.
 - Il motore copia la memoria a blocchi (`nativeReadRange`); la partita aggiorna lo stato 4 volte al secondo.
