@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-18 – PC del giocatore (D-055)
+- STRUMENTI PC dell'app: deposita e preleva con un tocco; verificato col PC della cameretta (Pozione depositata e
+  ripresa, poi di nuovo a camminare).
+
 ## 2026-11-18 – scelta del nome, colori/bianco e nero, scheda del Pokédex (D-054)
 - Scelta del nome nella disposizione del committente (giocatore e rivale).
 - OPZIONI → GIOCO: A COLORI o BIANCO E NERO (tutto il gioco).
