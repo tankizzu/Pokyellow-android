@@ -1,7 +1,17 @@
 package it.giallotouch.ui
 
 import androidx.compose.foundation.background
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import it.giallotouch.storage.SaveSlot
+import it.giallotouch.storage.SlotEntry
+import java.util.Calendar
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,12 +42,15 @@ class TileGrid(val unit: Float, val rows: Int) {
 /**
  * Pulsanti durante il gioco, scelti dal committente nel mockup (D-040), tutti disegnati con i tile del gioco:
  * MENU in basso al centro; aperto: squadra in alto (piccola, con vita ed esperienza) e riquadro con
- * POKéDEX, BORSA, OPZIONI, SALVA. Nessun cursore: si tocca direttamente la voce.
+ * POKéDEX, BORSA, OPZIONI, SALVA. Si tocca la voce, oppure si sposta il cursore ▶ con la levetta e si conferma
+ * con un tocco fuori dal riquadro (D-041). MENU o il gesto indietro chiudono.
  */
 @Composable
 fun GamePanel(
     sheet: IntArray,
     open: Boolean,
+    /** Cursore ▶ nel riquadro: 0 POKéDEX, 1 OPZIONI, 2 BORSA, 3 SALVA (D-041). */
+    cursor: Int,
     party: List<PartyMember>,
     romData: RomData,
     onToggle: () -> Unit,
@@ -70,7 +83,7 @@ fun GamePanel(
             // Riquadro dei pulsanti sopra MENU.
             val top = bottom - 12
             TileImage(
-                sheet, 20, 9, unit, key = "pulsanti",
+                sheet, 20, 9, unit, key = cursor,
                 modifier = Modifier
                     .offset { g.at(0f, top.toFloat()) }
                     .pointerInput(Unit) {
@@ -89,6 +102,7 @@ fun GamePanel(
                 box(0, 0, 19, 8)
                 text("POKéDEX", 2, 3); text("BORSA", 2, 6)
                 text("OPZIONI", 11, 3); text("SALVA", 11, 6)
+                tile(TileCanvas.CURSOR, if (cursor % 2 == 0) 1 else 10, if (cursor < 2) 3 else 6)
             }
         }
         TileImage(
@@ -163,6 +177,72 @@ fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, onGameMe
                 .pointerInput(Unit) { detectTapGestures { onBack() } }
         ) {
             box(0, 0, 19, 3); text("INDIETRO", 2, 2)
+        }
+    }
+}
+
+/**
+ * "Carica partita" nello stile del gioco (D-040, D-041), con le posizioni del mockup del committente:
+ * riquadro del titolo, un riquadro per ogni salvataggio dell'app (nome, data, giocatore, medaglie, tempo), INDIETRO.
+ * Si tocca il riquadro da caricare; oppure si sposta il cursore ▶ trascinando su/giù e si conferma con un tocco.
+ */
+@Composable
+fun GameLoadScreen(sheet: IntArray, entries: List<SlotEntry>, onLoad: (SlotEntry) -> Unit, onClose: () -> Unit) {
+    var cursor by remember { mutableStateOf(0) }
+    val count = entries.size + 1   // salvataggi + INDIETRO
+    val backRow = if (entries.isEmpty()) 12 else 7 + 11 * entries.size
+    BackHandler { onClose() }
+    val paper = Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8])
+    BoxWithConstraints(Modifier.fillMaxSize().background(paper)) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        fun choose(i: Int) { if (i < entries.size) onLoad(entries[i]) else onClose() }
+        TileImage(
+            sheet, 20, backRow + 4, unit, key = Pair(entries, cursor),
+            modifier = Modifier.pointerInput(entries) {
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    var dragged = 0f
+                    var steps = 0
+                    while (true) {
+                        val ev = awaitPointerEvent()
+                        val ch = ev.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!ch.pressed) break
+                        dragged = ch.position.y - down.position.y
+                        val s = (dragged / (3 * tilePx)).toInt()
+                        if (s != steps) { cursor = (cursor + (s - steps)).mod(count); steps = s }
+                    }
+                    if (kotlin.math.abs(dragged) < tilePx) {
+                        val row = (down.position.y / tilePx).toInt()
+                        val hit = when {
+                            row in backRow until backRow + 4 -> entries.size
+                            else -> entries.indices.firstOrNull { row in (7 + 11 * it) until (17 + 11 * it) }
+                        }
+                        if (hit != null) { cursor = hit; choose(hit) } else choose(cursor)
+                    }
+                }
+            }
+        ) {
+            box(0, 3, 19, 5); text("CARICA PARTITA", 3, 4)
+            if (entries.isEmpty()) {
+                box(0, 7, 19, 10); text("NESSUN SALVATAGGIO", 1, 9)
+            }
+            entries.forEachIndexed { k, e ->
+                val y0 = 7 + 11 * k
+                box(0, y0, 19, y0 + 9)
+                text(if (e.slot == SaveSlot.MANUAL) "SALVATAGGIO" else "AUTOMATICO", 2, y0 + 2)
+                val cal = Calendar.getInstance().apply { timeInMillis = e.info.savedAt }
+                text("%02d/%02d".format(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1), 14, y0 + 2)
+                val name = e.info.playerName.ifEmpty { "-" }.take(10)
+                text("GIOCA", 2, y0 + 4); text(name, 19 - name.length, y0 + 4)
+                text("MEDAGLIE", 2, y0 + 6); text("${e.info.badges}", 18, y0 + 6)
+                val t = if (e.info.playMinutes >= 0) "%d:%02d".format(e.info.playMinutes / 60, e.info.playMinutes % 60) else "-"
+                text("TEMPO", 2, y0 + 8); text(t, 19 - t.length, y0 + 8)
+            }
+            box(0, backRow, 19, backRow + 3); text("INDIETRO", 2, backRow + 2)
+            val cursorRow = if (cursor < entries.size) 9 + 11 * cursor else backRow + 2
+            tile(TileCanvas.CURSOR, 1, cursorRow)
         }
     }
 }

@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-18 – Carica partita e pulsanti con il cursore (D-040, D-041)
+- **Carica partita** nello stile del gioco, posizioni del mockup: riquadro del titolo, un riquadro per salvataggio
+  (SALVATAGGIO/AUTOMATICO e data, GIOCA nome, MEDAGLIE, TEMPO), INDIETRO. Si tocca il riquadro da caricare,
+  oppure si sposta il cursore ▶ trascinando su/giù e si conferma con un tocco.
+- **Riquadro dei pulsanti**: cursore ▶ mosso dalla levetta (griglia 2×2), tocco fuori dal riquadro = conferma;
+  MENU o il gesto indietro chiudono il pannello.
+
 ## 2026-11-18 – menu iniziale ridisegnato con il tocco e il cursore (D-040, D-041)
 - Il menu iniziale del gioco viene ridisegnato con i tile del gioco nello stesso fotogramma dell'immagine (nessun
   lampeggio del menu originale): riquadro 18×14 con CONTINUA, CARICA PARTITA, OPZIONI, NUOVO GIOCO come nel mockup.

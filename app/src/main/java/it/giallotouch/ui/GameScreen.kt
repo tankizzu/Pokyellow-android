@@ -83,6 +83,8 @@ internal val Cream = Color(0xFFFFF7DC)
 fun GameScreen(session: GameSession, settings: Settings) {
     var held by remember { mutableStateOf(0) }       // direzione tenuta dalla levetta
     var startCursor by remember { mutableStateOf(0) }   // cursore ▶ del menu iniziale ridisegnato (D-040)
+    var panelCursor by remember { mutableStateOf(0) }   // cursore ▶ nel riquadro dei pulsanti (D-041)
+    var panelOpen by remember { mutableStateOf(false) }   // pulsanti aperti con MENU
     var pressedSince by remember { mutableStateOf<Long?>(null) }  // dito appoggiato (per il testo più veloce)
     var autoText by remember { mutableStateOf(settings.autoTextSpeed) }
     var tapped by remember { mutableStateOf(0) }     // tasti premuti brevemente (A, B, START, SELECT)
@@ -94,7 +96,14 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
     LaunchedEffect(held, tapped) {
         val items = session.mainMenuItems
-        if (items > 0 && held != 0) {
+        if (panelOpen && held != 0) {
+            // Pulsanti aperti: la levetta sposta il cursore nella griglia 2×2 invece di camminare.
+            panelCursor = when (held) {
+                NativeCore.KEY_LEFT, NativeCore.KEY_RIGHT -> panelCursor xor 1
+                else -> panelCursor xor 2
+            }
+            session.setKeys(tapped)
+        } else if (items > 0 && held != 0) {
             // Menu iniziale ridisegnato: su/giù spostano il cursore ▶ nell'ordine delle voci sullo schermo.
             val n = StartMenuLayout.entries(items).size
             if (held == NativeCore.KEY_DOWN) startCursor = (startCursor + 1) % n
@@ -124,8 +133,18 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var bagOpen by remember { mutableStateOf(false) }     // menu Borsa nativo
     var dexOpen by remember { mutableStateOf(false) }     // Pokédex nativo
     var itemRequested by remember { mutableStateOf(false) }  // Usa/Getta in corso nel menu del gioco
-    var panelOpen by remember { mutableStateOf(false) }   // pulsanti del pulsante laterale visibili
     var optionsOpen by remember { mutableStateOf(false) }   // OPZIONI nello stile del gioco
+    /** Voce del riquadro dei pulsanti: 0 POKéDEX, 1 OPZIONI, 2 BORSA, 3 SALVA. */
+    fun panelActivate(i: Int) {
+        panelCursor = i
+        panelOpen = false
+        when (i) {
+            0 -> dexOpen = true
+            1 -> optionsOpen = true
+            2 -> bagOpen = true
+            else -> message = if (session.saveManual()) "Partita salvata in questo punto" else "Salvataggio non riuscito"
+        }
+    }
     fun startMenuChoose(entry: StartMenuLayout.Entry, items: Int) {
         startCursor = StartMenuLayout.entries(items).indexOf(entry).coerceAtLeast(0)
         val game = StartMenuLayout.gameIndex(entry, items)
@@ -164,7 +183,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     val namingOpen = snapshot.naming != null
     LaunchedEffect(namingOpen) { if (!namingOpen) namingDismissed = false }
 
-    BackHandler { tapped = NativeCore.KEY_B }
+    BackHandler { if (panelOpen) panelOpen = false else tapped = NativeCore.KEY_B }
 
     Box(
         Modifier
@@ -185,8 +204,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 .pointerInput(Unit) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
-                        // Con i pulsanti aperti, toccare il gioco li richiude (senza premere nulla nel gioco).
-                        if (panelOpen) { panelOpen = false; return@awaitEachGesture }
+
                         val start = down.position
                         val t0 = down.uptimeMillis
                         pressedSince = t0
@@ -197,7 +215,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
-                                if (!moved && change.uptimeMillis - t0 < 350 && session.mainMenuItems > 0) {
+                                if (!moved && change.uptimeMillis - t0 < 350 && panelOpen) {
+                                    panelActivate(panelCursor)   // tocco fuori dal riquadro = conferma (tasto A)
+                                } else if (!moved && change.uptimeMillis - t0 < 350 && session.mainMenuItems > 0) {
                                     val items = session.mainMenuItems
                                     val w = size.width.toFloat()
                                     val unit = w / NativeCore.WIDTH
@@ -317,13 +337,14 @@ fun GameScreen(session: GameSession, settings: Settings) {
             GamePanel(
                 sheet = sheet!!,
                 open = panelOpen,
+                cursor = panelCursor,
                 party = snapshot.party,
                 romData = session.romData,
-                onToggle = { panelOpen = !panelOpen },
-                onPokedex = { panelOpen = false; dexOpen = true },
-                onBag = { panelOpen = false; bagOpen = true },
-                onOptions = { panelOpen = false; optionsOpen = true },
-                onSave = { panelOpen = false; message = if (session.saveManual()) "Partita salvata in questo punto" else "Salvataggio non riuscito" },
+                onToggle = { panelOpen = !panelOpen; panelCursor = 0 },
+                onPokedex = { panelActivate(0) },
+                onBag = { panelActivate(2) },
+                onOptions = { panelActivate(1) },
+                onSave = { panelActivate(3) },
                 onMember = { i -> panelOpen = false; teamSelected = i; teamOpen = true },
             )
         }
@@ -358,14 +379,27 @@ fun GameScreen(session: GameSession, settings: Settings) {
         }
 
         if (loadOpen) {
-            LoadScreen(
-                entries = slots,
-                onLoad = { entry ->
-                    loadOpen = false
-                    message = if (session.loadSlot(entry.slot)) "Partita caricata" else "Caricamento non riuscito"
-                },
-                onClose = { loadOpen = false }
-            )
+            val tiles = sheet
+            if (tiles != null) {
+                GameLoadScreen(
+                    sheet = tiles,
+                    entries = slots,
+                    onLoad = { entry ->
+                        loadOpen = false
+                        message = if (session.loadSlot(entry.slot)) "Partita caricata" else "Caricamento non riuscito"
+                    },
+                    onClose = { loadOpen = false }
+                )
+            } else {
+                LoadScreen(
+                    entries = slots,
+                    onLoad = { entry ->
+                        loadOpen = false
+                        message = if (session.loadSlot(entry.slot)) "Partita caricata" else "Caricamento non riuscito"
+                    },
+                    onClose = { loadOpen = false }
+                )
+            }
         }
 
         // Menu Squadra nativo (sola lettura); in lotta "Squadra" resta il comando di lotta.
