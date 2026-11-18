@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-18 – nomi proposti toccabili (D-052)
+- NUOVO GIOCO: le liste dei nomi del giocatore e del rivale sono riquadri dell'app; un tocco sceglie il nome.
+  Verificato: GIALLO e BLU scelti con un tocco, nessuna tastiera, il gioco prosegue.
+
 ## 2026-11-18 – 0.7.1-prototipo: strumenti su un Pokémon dalla BORSA (D-051)
 - BORSA → strumento → USA → schermata "SU CHI?" dell'app → il gioco usa lo strumento senza mostrare i suoi menu, poi
   si torna a camminare. Verificato sul gioco vero: Pikachu ferito da un selvatico, fuga, Pozione dalla BORSA, vita

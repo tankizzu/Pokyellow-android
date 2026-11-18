@@ -17,7 +17,8 @@ package it.giallotouch.bridge
  * - menu iniziale (CONTINUA / NUOVO GIOCO / OPZIONI): Y = 2, X = 1, tasti osservati A|B|START (0x0B),
  *   elemento massimo 1 o 2; riquadro dall'angolo (0,0) 0x79 a (14, 2·max+3) 0x7E.
  */
-enum class MenuKind { NONE, BATTLE_MAIN, BATTLE_MOVES, YES_NO, MAIN_MENU }
+/** NAME_LIST: lista dei nomi proposti dal Professore (NUOVO NOME, …) per il giocatore e per il rivale (D-052). */
+enum class MenuKind { NONE, BATTLE_MAIN, BATTLE_MOVES, YES_NO, MAIN_MENU, NAME_LIST }
 
 /** [items]: numero di voci, usato per il menu iniziale (2 senza salvataggio del gioco, 3 con "CONTINUA"). */
 data class MenuState(val kind: MenuKind, val column: Int = 0, val item: Int = 0, val items: Int = 0) {
@@ -59,8 +60,17 @@ object MenuReader {
             tile(0, 0) == 0x79 && tile(14, 0) == 0x7B && tile(14, 2 * maxItem + 3) == 0x7E && tile(1, 2 + 2 * current) == CURSOR) {
             return MenuState(MenuKind.MAIN_MENU, item = current, items = maxItem + 1)
         }
+        // Lista dei nomi: riquadro da (0,0) a (10,11), voci ogni 2 righe dalla riga 2, cursore in colonna 1.
+        if (topY == 2 && topX == 1 && maxItem in 1..4 && current <= maxItem && (watchedKeys == 0x01 || watchedKeys == 0x03) &&
+            tile(0, 0) == 0x79 && tile(10, 0) == 0x7B && tile(0, 11) == 0x7D && tile(10, 11) == 0x7E && tile(1, 2 + 2 * current) == CURSOR) {
+            return MenuState(MenuKind.NAME_LIST, item = current, items = maxItem + 1)
+        }
         return MenuState.NONE
     }
+
+    /** Voci della lista dei nomi ([MenuKind.NAME_LIST]): le caselle di ogni riga (colonne 2–9), da mostrare nell'app. */
+    fun nameListEntries(tileMap: ByteArray, items: Int): List<IntArray> =
+        List(items) { i -> IntArray(8) { tileMap[(2 + 2 * i) * SCREEN_WIDTH + 2 + it].toInt() and 0xFF } }
 }
 
 /** Comandi che l'interfaccia nativa può chiedere al gioco. */
@@ -147,6 +157,13 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
         fun decide(cmd: GameCommand, menu: MenuState): Decision? = when (menu.kind) {
             MenuKind.NONE -> null
             MenuKind.MAIN_MENU -> if (cmd is GameCommand.MainMenu) {
+                when {
+                    menu.item < cmd.index -> Decision(Keys.DOWN)
+                    menu.item > cmd.index -> Decision(Keys.UP)
+                    else -> Decision(Keys.A, done = true)
+                }
+            } else null
+            MenuKind.NAME_LIST -> if (cmd is GameCommand.MainMenu) {
                 when {
                     menu.item < cmd.index -> Decision(Keys.DOWN)
                     menu.item > cmd.index -> Decision(Keys.UP)

@@ -94,6 +94,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     class YesNo(val x0: Int, val y0: Int, val x1: Int, val y1: Int, val item: Int, val yes: IntArray, val no: IntArray)
     @Volatile var yesNo: YesNo? = null
         private set
+    /** Lista dei nomi proposti dal Professore sullo schermo (caselle di ogni voce): l'app la mostra toccabile (D-052). */
+    @Volatile var nameList: List<IntArray>? = null
+        private set
 
     /**
      * Caselle utilizzabili: la lettera "A" (0x80) ha inchiostro e carta di colori diversi. Durante le dissolvenze (per
@@ -612,12 +615,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (battleGameMenu) battleSplit = false
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
+                nameList = if (frameMenu.kind == MenuKind.NAME_LIST) MenuReader.nameListEntries(frameTiles, frameMenu.items) else null
                 namingShown = NamingReader.looksLikeNaming(frameTiles)
                 val yn = yesNo?.takeIf { !battleSplit && !trainerCardShown }
                 var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = dialog || yn != null || hidingOldMenus() ||
+                val onScreen = dialog || yn != null || nameList != null || hidingOldMenus() ||
                     ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 if (dialog && !frameMask.ready) dialog = false
                 if (dialog) {
@@ -635,6 +639,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val partyScreen = (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71 && (inBattleNow || pendingClose)
                     if ((hide || partyScreen) && frameMask.ready) add(if (inBattleNow) BoxMask.Box(0, 0, 19, 11) else BoxMask.Box(0, 0, 19, 17))
                     if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
+                    if (nameList != null && frameMask.ready) add(BoxMask.Box(0, 0, 10, 11))
                     if (dialog) add(BoxMask.Box(0, 12, 19, 17))
                 }
                 frameMask.apply(back, NativeCore.HEIGHT, 0, boxes, boxesOnScreen = onScreen)

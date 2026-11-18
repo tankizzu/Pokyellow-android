@@ -144,6 +144,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var optionsOpen by remember { mutableStateOf(false) }   // OPZIONI nello stile del gioco
     var trainerCard by remember { mutableStateOf(false) }   // scheda allenatore del gioco sullo schermo (D-045)
     var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
+    var nameList by remember { mutableStateOf<List<IntArray>?>(null) }   // nomi proposti dal Professore (D-052)
     var battleMenu by remember { mutableStateOf(false) }   // menu di lotta del gioco sullo schermo (si può scegliere)
     var battleGameMenu by remember { mutableStateOf(false) }   // in lotta: squadra/borsa del gioco aperte
     var battleList by remember { mutableStateOf(0) }       // in lotta: 1 = SQUADRA, 2 = BORSA dell'app (D-050)
@@ -184,6 +185,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             inGame = session.inGame
             trainerCard = session.trainerCardShown
             yesNo = session.yesNo
+            nameList = session.nameList
             battleMenu = session.battleMenuShown
             battleGameMenu = session.battleGameMenu
             battleBusy = session.battleBusy
@@ -310,6 +312,29 @@ fun GameScreen(session: GameSession, settings: Settings) {
         }
 
         // Domanda Sì/No del gioco: pulsanti nativi sopra il riquadro originale (a destra dell'immagine).
+        val names = nameList
+        if (names != null && sheet != null) {
+            // Nomi proposti dal Professore (D-052): riquadro dell'app sotto il dialogo; tocco sul nome = scelta.
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val unit = with(density) { maxWidth.toPx() } / 160f
+                val tilePx = 8 * unit
+                val h = 2 * names.size + 3
+                TileImage(
+                    sheet!!, 11, h, unit, key = names.map { it.toList() },
+                    modifier = Modifier
+                        .offset { IntOffset(0, (16 * tilePx).toInt()) }
+                        .pointerInput(names.size, commandBusy) {
+                            detectTapGestures { pos ->
+                                val i = (((pos.y / tilePx).toInt() - 1) / 2).coerceIn(0, names.size - 1)
+                                if (!commandBusy) session.command(GameCommand.MainMenu(i))
+                            }
+                        }
+                ) {
+                    box(0, 0, 10, h - 1)
+                    names.forEachIndexed { i, w -> w.forEachIndexed { x, t -> tile(t, 2 + x, 2 + 2 * i) } }
+                }
+            }
+        }
         val yn = yesNo
         if (yn != null && sheet != null && !snapshot.inBattle) {
             // Domanda Sì/No (D-046): due riquadri del gioco sotto il dialogo, con le parole e il cursore del gioco.
@@ -436,7 +461,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && yesNo == null && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && snapshot.cursorOnScreen && yesNo == null && nameList == null && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()

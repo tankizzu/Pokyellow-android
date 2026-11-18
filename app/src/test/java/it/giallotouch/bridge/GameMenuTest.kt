@@ -49,7 +49,7 @@ class GameMenuTest {
                     Keys.B -> MenuState(MenuKind.BATTLE_MAIN, 0, 0)
                     else -> s
                 }
-                MenuKind.NONE, MenuKind.YES_NO, MenuKind.MAIN_MENU -> s
+                MenuKind.NONE, MenuKind.YES_NO, MenuKind.MAIN_MENU, MenuKind.NAME_LIST -> s
             }
         }
     }

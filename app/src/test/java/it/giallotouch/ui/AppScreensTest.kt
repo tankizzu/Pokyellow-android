@@ -542,3 +542,30 @@ class AppBattleItemTest : AppScreensHarness() {
 class AppUseItemTest : AppScreensHarness() {
     @Test fun pozioneSuPikachu() = riceviOggetto(usePotion = true)
 }
+
+/**
+ * NUOVO GIOCO: le liste dei nomi proposti dal Professore (giocatore e rivale) sono riquadri dell'app sotto il dialogo;
+ * un tocco sul nome lo sceglie (D-052). Il riquadro del gioco non si vede.
+ */
+class AppNameListTest : AppScreensHarness() {
+    @Test fun nomiProposti() {
+        val s = start(auto = "giallo.state.title") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        toMainMenu(s)
+        val frameTop = (root.height - 144 * unit) / 2 / (8 * unit)
+        tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(it.giallotouch.bridge.StartMenuLayout.entries(s.mainMenuItems).size - 1) + 0.5f)
+        for (round in 0 until 2) {
+            var k = 0
+            while (s.nameList == null && k++ < 80) tapTile(15f, 30f)
+            val names = s.nameList
+            assertTrue("lista dei nomi ${round + 1}", names != null)
+            assertTrue("riquadro dell'app", shotUntil("30-lista-nomi-$round") { b -> boxAt(b, 0, 16, 11, 2 * names!!.size + 3) })
+            tapTile(4f, 16f + 4.5f)              // seconda voce (un nome già pronto)
+            assertTrue("scelto", waitFor(10_000) { s.nameList == null })
+            assertTrue("nessuna tastiera dei nomi", s.latestSnapshot.get().naming == null)
+        }
+        shot("31-dopo-nomi")
+    }
+}
+
