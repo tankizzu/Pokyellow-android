@@ -29,6 +29,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var storage: SaveStorage
     private lateinit var settings: Settings
     private var session by mutableStateOf<GameSession?>(null)
+
+    /** Solo per il banco di prova dell'interfaccia (test sul computer). */
+    internal val sessionForTest: GameSession? get() = session
     private var startupMessage by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {

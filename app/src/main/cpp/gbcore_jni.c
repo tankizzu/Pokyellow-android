@@ -177,6 +177,13 @@ Java_it_giallotouch_emu_NativeCore_nativeGameTiles(JNIEnv *env, jclass cls, jlon
     return known;
 }
 
+/* La ROM è la versione italiana riconosciuta (SHA-1 verificato dall'app): il carattere nella ROM si può usare subito. */
+JNIEXPORT void JNICALL
+Java_it_giallotouch_emu_NativeCore_nativeTrustRomFont(JNIEnv *env, jclass cls, jlong handle) {
+    (void)env; (void)cls;
+    as_core(handle)->gt.font_ok = 1;
+}
+
 /* Copia un intervallo della memoria del gioco (senza effetti collaterali) per il "ponte" verso l'app. */
 JNIEXPORT void JNICALL
 Java_it_giallotouch_emu_NativeCore_nativeReadRange(JNIEnv *env, jclass cls, jlong handle, jint address, jbyteArray out) {

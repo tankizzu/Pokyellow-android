@@ -95,6 +95,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
      */
     init {
         NativeCore.nativeLoadRom(handle, rom)
+        if (SaveStorage.sha1(rom) == SaveStorage.SUPPORTED_SHA1) NativeCore.nativeTrustRomFont(handle)
         storage.readWithBackup(storage.batteryFile)?.let {
             NativeCore.nativeLoadBattery(handle, it)
             lastBattery = it
@@ -411,7 +412,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             val base = GameStateReader.read(stateBlock)
             val joyIgnore = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE)
             val freeRoam = joyIgnore == 0 && !base.inBattle && FreeRoam.screenIsMap(tileMap)
-            if (freeRoam) inGame = true
+            // In gioco solo con la mappa vera riconosciuta (vista estesa attiva): durante l'animazione iniziale
+            // e il titolo lo schermo può sembrare "libero" ma non è una partita.
+            if (freeRoam && extendedActive) inGame = true
             val snapshot = base.copy(menu = MenuReader.read(menuVars, tileMap), freeRoam = freeRoam, naming = naming)
             if (snapshot != latestSnapshot.get()) latestSnapshot.set(snapshot)
         }.onFailure { Log.e(TAG, "Lettura stato non riuscita", it) }

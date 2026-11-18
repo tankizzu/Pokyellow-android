@@ -41,7 +41,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
@@ -190,12 +192,22 @@ fun GameScreen(session: GameSession, settings: Settings) {
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        AndroidView(
-            factory = { ctx -> GameView(ctx).also { it.attach(session) } },
-            modifier = Modifier.fillMaxSize(),
-            update = { it.battleReservedBottomPx = battleReserved },
-            onRelease = { it.attach(null) }
-        )
+        // Immagine del gioco, ridisegnata a ogni fotogramma dello schermo dentro Compose (sotto i pulsanti dell'app).
+        val renderer = remember(session) { GameRenderer(session) }
+        var frameTick by remember { mutableStateOf(0L) }
+        DisposableEffect(session) {
+            // Il motore avvisa a ogni fotogramma nuovo; si chiede un ridisegno sul thread principale (al massimo uno in attesa).
+            val main = android.os.Handler(android.os.Looper.getMainLooper())
+            val pending = java.util.concurrent.atomic.AtomicBoolean(false)
+            session.onFrame = { if (pending.compareAndSet(false, true)) main.post { pending.set(false); frameTick++ } }
+            onDispose { session.onFrame = null }
+        }
+        Canvas(Modifier.fillMaxSize()) {
+            @Suppress("UNUSED_EXPRESSION") frameTick
+            renderer.setSize(size.width.toInt(), size.height.toInt(), this.density)
+            renderer.battleReservedBottomPx = battleReserved
+            drawIntoCanvas { renderer.draw(it.nativeCanvas) }
+        }
 
         // Livello dei tocchi: levetta e tasto A.
         Box(
@@ -297,17 +309,6 @@ fun GameScreen(session: GameSession, settings: Settings) {
         }
 
         // Squadra in alto, con i dati letti dalla memoria del gioco (nascosta durante la lotta).
-        if (inGame && snapshot.party.isNotEmpty() && !snapshot.inBattle) {
-            TeamStrip(
-                snapshot.party,
-                onOpen = { i -> teamSelected = i; teamOpen = true },
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(start = 10.dp, end = 10.dp, top = 30.dp)
-            )
-        }
-
         val battleMon = snapshot.battleMon
         if (snapshot.inBattle && battleMon != null) {
             BattlePanel(

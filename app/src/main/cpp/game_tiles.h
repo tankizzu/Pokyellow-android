@@ -7,6 +7,7 @@
 typedef struct {
     bool known;
     uint32_t colors[4];
+    int font_ok;   /* 1 = il carattere nella ROM coincide con quello del gioco; 0 = non ancora verificato */
 } GTState;
 
 /*

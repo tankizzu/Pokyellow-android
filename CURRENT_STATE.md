@@ -30,14 +30,16 @@
 - Al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
 - L'app non è stata provata qui su un telefono (nessun emulatore Android): verificati motore e logica su computer.
 
-## Prossimo passo – PROVA SUL TELEFONO DELL'AVVIO RIDISEGNATO (D-040, D-041)
-Fatto nell'app (tutto con i tile del gioco, tocco diretto + cursore ▶):
-menu iniziale (CONTINUA, CARICA PARTITA, OPZIONI, NUOVO GIOCO), Carica partita, schermata del nome con FINE,
-MENU in basso con squadra (vita ed esperienza) e POKéDEX/BORSA/OPZIONI/SALVA, OPZIONI, mappa 5 caselle più in basso.
-Da fare:
-1. Far provare l'APK al committente e correggere posizioni e comportamenti.
-2. Portare nello stile del gioco anche Squadra, Borsa, Pokédex (oggi ancora nello stile scuro), Select e i messaggi.
-3. Introduzione: lasciata com'è (nessuna modifica nel mockup).
+## Regola prima di ogni APK (D-042)
+Far girare il banco di prova dell'interfaccia e guardare le foto:
+`./gradlew testDebugUnitTest --tests '*Screen*Test*' -Pgiallo.rom=ROM -Pgiallo.battery=SALVATAGGIO.sav
+ -Pgiallo.state.squadra=STATO_CON_SQUADRA -Pgiallo.state.naming=STATO_NOME -Pgiallo.shots=CARTELLA_FOTO -Pgiallo.hostlib=LIB`
+(le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
+
+## Prossimo passo – RISCONTRO SULLA 0.4.1
+1. Il committente prova la 0.4.1 (avvio ridisegnato verificato sull'app vera).
+2. Poi: Squadra, Borsa, Pokédex nello stile del gioco (oggi ancora scuri), Select e messaggi; prova dei percorsi
+   NUOVO GIOCO → nome e del cursore con la levetta nel banco di prova.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.

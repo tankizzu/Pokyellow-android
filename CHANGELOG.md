@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.4.1-prototipo: correzioni verificate sull'app vera
+- Corretti B-002 (lettere rovinate sulla mappa), B-003 (MENU e Select sul titolo), B-004 (MENU invisibile in gioco).
+- Nuovo **banco di prova dell'interfaccia** (D-042): l'app intera gira sul computer su un telefono simulato e viene
+  fotografata: accensione, menu iniziale con CONTINUA, Carica partita, partita caricata, MENU, MENU aperto con la
+  squadra, OPZIONI, schermata del nome. Tutte verificate prima della consegna.
+- Spazio sopra e sotto l'immagine del gioco del colore del suo bordo (bianco su titolo e menu).
+- Tolta la vecchia striscia scura della squadra: la squadra è nel pannello MENU (D-040).
+- 67 test superati (3 dell'interfaccia).
+
 ## 2026-11-18 – schermata del nome nello stile del gioco (D-040)
 - La griglia delle lettere del gioco sparisce; restano la domanda del gioco (es. "NOME TUO?"), il nome scritto con la
   tastiera del telefono sopra i trattini del gioco e il riquadro FINE, con i tile del gioco, appoggiati sopra la tastiera.

@@ -1,12 +1,10 @@
 package it.giallotouch.ui
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import android.view.View
 import it.giallotouch.bridge.BattleLayout
 import it.giallotouch.bridge.StartMenuLayout
 import it.giallotouch.bridge.TileCanvas
@@ -15,51 +13,59 @@ import it.giallotouch.emu.NativeCore
 import kotlin.math.roundToInt
 
 /**
- * Disegna il gioco a tutta larghezza con pixel nitidi, senza deformarlo.
+ * Disegna il gioco a tutta larghezza con pixel nitidi, senza deformarlo. È disegnato da Compose (non è una View
+ * a parte): così i pulsanti dell'app stanno sempre sopra l'immagine del gioco, anche mentre si aggiorna a ogni fotogramma.
  * - In esplorazione usa la vista estesa: la mappa riempie tutto lo schermo (sopra e sotto l'inquadratura
  *   originale), disegnata dal motore con i tile e i colori del gioco.
  * - In lotta (D-018) lo sfondo della lotta riempie lo schermo: la scena (96 righe) sta in alto e il riquadro
  *   del testo (48 righe) subito sopra i pulsanti nativi, alla stessa scala e senza deformazioni.
  * - Nelle altre schermate (menu a tutto schermo, titolo) mostra l'immagine originale 10:9 al centro.
  */
-class GameView(context: Context) : View(context) {
+class GameRenderer(private val session: GameSession) {
     private val frameBitmap = Bitmap.createBitmap(NativeCore.WIDTH, NativeCore.HEIGHT, Bitmap.Config.ARGB_8888)
     private var extBitmap: Bitmap? = null
     private val paint = Paint().apply { isFilterBitmap = false; isAntiAlias = false }
     private val dst = Rect()
+    private val bandPaint = Paint()
+
+    /** Colore più frequente di una riga dell'immagine (campione ogni 4 pixel). */
+    private fun edgeColor(frame: IntArray, row: Int): Int {
+        var best = Color.BLACK; var bestN = 0
+        for (i in 0 until NativeCore.WIDTH step 4) {
+            val c = frame[row * NativeCore.WIDTH + i]
+            var n = 0
+            for (j in 0 until NativeCore.WIDTH step 4) if (frame[row * NativeCore.WIDTH + j] == c) n++
+            if (n > bestN) { bestN = n; best = c }
+        }
+        return best
+    }
     private val src = Rect()
     /** Spazio in basso occupato dai pulsanti di lotta (pixel dello schermo), impostato dall'interfaccia. */
     var battleReservedBottomPx = 0
-    private var session: GameSession? = null
+    private var width = 0
+    private var height = 0
+    private var density = 1f
 
-    init {
-        setBackgroundColor(Color.BLACK)
-    }
-
-    fun attach(s: GameSession?) {
-        session?.onFrame = null
-        session = s
-        s?.onFrame = { postInvalidateOnAnimation() }
-        updateExtendedHeight()
-        invalidate()
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
+    /** Dimensioni dell'area di disegno (pixel dello schermo): aggiorna l'altezza della vista estesa chiesta al motore. */
+    fun setSize(w: Int, h: Int, density: Float) {
+        this.density = density
+        if (w == width && h == height) return
+        width = w; height = h
         updateExtendedHeight()
     }
 
     /** Altezza della vista estesa in pixel del gioco: quanto serve per coprire lo schermo con larghezza 160. */
     private fun updateExtendedHeight() {
-        val s = session ?: return
+        val s = session
         if (width <= 0 || height <= 0) return
         val h = (NativeCore.WIDTH.toFloat() * height / width).roundToInt().coerceIn(NativeCore.HEIGHT, NativeCore.EXT_MAX_HEIGHT)
         s.extendedHeight = h
         if (extBitmap?.height != h) extBitmap = Bitmap.createBitmap(NativeCore.WIDTH, h, Bitmap.Config.ARGB_8888)
     }
 
-    override fun onDraw(canvas: Canvas) {
-        val s = session ?: return
+    fun draw(canvas: Canvas) {
+        val s = session
+        canvas.drawColor(Color.BLACK)
         val ext = s.latestExtended.get()
         val eb = extBitmap
         val w = width
@@ -77,7 +83,7 @@ class GameView(context: Context) : View(context) {
             canvas.drawColor(BattleLayout.backgroundColor(frame))
             val sceneH = w * BattleLayout.SCENE_ROWS / NativeCore.WIDTH
             val textH = w * BattleLayout.TEXT_ROWS / NativeCore.WIDTH
-            val gap = (8 * resources.displayMetrics.density).toInt()
+            val gap = (8 * density).toInt()
             val textTop = (height - battleReservedBottomPx - gap - textH).coerceAtLeast(sceneH)
             val sceneTop = ((textTop - sceneH) / 2).coerceAtLeast(0)
             src.set(0, 0, NativeCore.WIDTH, BattleLayout.SCENE_ROWS)
@@ -90,6 +96,11 @@ class GameView(context: Context) : View(context) {
         }
         val h = (w * NativeCore.HEIGHT) / NativeCore.WIDTH
         val top = (height - h) / 2
+        // Spazio sopra e sotto: il colore del bordo dell'immagine (bianco su titolo e menu), così sembra a tutto schermo.
+        bandPaint.color = edgeColor(frame, 0)
+        canvas.drawRect(0f, 0f, w.toFloat(), top.toFloat(), bandPaint)
+        bandPaint.color = edgeColor(frame, NativeCore.HEIGHT - 1)
+        canvas.drawRect(0f, (top + h).toFloat(), w.toFloat(), height.toFloat(), bandPaint)
         dst.set(0, top, w, top + h)
         canvas.drawBitmap(frameBitmap, null, dst, paint)
         drawStartMenu(canvas, s, top, w)
