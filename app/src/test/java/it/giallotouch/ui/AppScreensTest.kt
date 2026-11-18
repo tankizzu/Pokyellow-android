@@ -712,7 +712,7 @@ class ZzScenarioTest : AppScreensHarness() {
         while (!s.shopMenuShown && k++ < 10) tapTile(10f, 20f)
         pump(1500); tapTile(4f, 35f); pump(1500)            // COMPRA
         tapTile(4f, 14.5f); pump(1000)                       // POKé BALL
-        tapTile(2.6f, 41f); pump(800)                        // cursore: un po' a destra del minimo
+        tapTile(7f, 41f); pump(800)                          // cursore a metà: circa 7 Poké Ball
         log("quantità scelta, soldi ${s.latestSnapshot.get().money}")
         tapTile(16f, 41f)                                    // OK
         waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().bag.any { it.id == 0x04 } }
@@ -740,6 +740,7 @@ class ZzScenarioTest : AppScreensHarness() {
             log("lotta con un selvatico")
             var g2 = 0
             while (s.latestSnapshot.get().inBattle && g2++ < 300) {
+                if (g2 % 15 == 0) log("lotta: giro $g2 menu=${s.battleMenuShown} busy=${s.commandBusy}/${s.battleBusy} siNo=${s.yesNo != null} nome=${s.latestSnapshot.get().naming != null} borsa=${s.latestSnapshot.get().bag}")
                 if (s.battleMenuShown && !s.commandBusy && !s.battleBusy) {
                     val ball = s.latestSnapshot.get().bag.indexOfFirst { it.id == 0x04 }
                     if (ball < 0) { tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f); continue }
