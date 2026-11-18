@@ -1,7 +1,6 @@
 # TODO
 
 ## Azioni del committente
-- [ ] **Ricollegare GitHub a Claude** (https://claude.ai/connect-github) e installare l'app Claude sul repository: oggi i commit restano solo nel container.
 - [ ] Rendere privato il repository (impostazioni GitHub).
 - [ ] Eventuale permesso per compilare RGBDS (serve per le boot ROM libere di SameBoy), se l'alternativa non funziona.
 
@@ -24,11 +23,12 @@
 - [x] Ponte: pathfinding e tocco su persone, oggetti, cartelli, banconi
 - [ ] Tocco sui PC; sporgenze, acqua (Surf) e dislivelli nel percorso
 - [x] Testo automatico a 3 velocità (D-028) e testo veloce tenendo premuto (D-030)
-- [ ] **Gioco a tutto schermo (priorità, D-026/D-027)**
-- [ ] Tastiera del telefono per i nomi (D-029)
+- [x] **Gioco a tutto schermo (D-026/D-027)**: vista estesa in esplorazione (0.3.0)
+- [ ] Vista estesa: personaggi fuori inquadratura; lotta a tutto schermo; opzione mappa attenuata/nascosta
+- [ ] **Tastiera del telefono per i nomi (D-029) – prossimo passo**
 - [x] Sì/No nativi nelle domande del gioco
 - [x] Tipo e PP massimi delle mosse dalla ROM
-- [ ] Tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi
+- [ ] Lotta sovrapposta a tutto schermo; menu nativi (Squadra, Borsa, Pokédex, Scheda, Negozio, PC)
 
 ## Prova del motore su computer
 ```
@@ -39,7 +39,7 @@ SB=third_party/SameBoy/Core; D=(-D_GNU_SOURCE -D_USE_MATH_DEFINES -DGB_DISABLE_T
 
 ## Test sul gioco vero (facoltativi)
 1. Compilare il motore per il computer come libreria condivisa: stessi file e opzioni, più `-fPIC`,
-   `app/src/main/cpp/gbcore_jni.c` e `boot_rom.c`, inclusi `$JAVA_HOME/include` e `include/linux`,
+   `app/src/main/cpp/gbcore_jni.c`, `boot_rom.c` ed `extended_view.c`, inclusi `$JAVA_HOME/include` e `include/linux`,
    collegati con `clang -shared ... -lm -o CARTELLA/libgbcore.so`.
 2. Preparare uno stato salvato al menu di lotta con `tools/native-test/runner.c` (sequenza in docs/MEMORY_MAP_IT.md).
 3. `./gradlew testDebugUnitTest -Pgiallo.rom=ROM -Pgiallo.state=STATO_MENU_LOTTA -Pgiallo.state.yesno=STATO_DOMANDA -Pgiallo.hostlib=CARTELLA`

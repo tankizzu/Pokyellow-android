@@ -140,9 +140,11 @@ fun GameScreen(session: GameSession, settings: Settings) {
                                     val h = w * NativeCore.HEIGHT / NativeCore.WIDTH
                                     val top = (size.height - h) / 2f
                                     val p = change.position
-                                    if (s.freeRoam && p.y >= top && p.y < top + h) {
+                                    // Con la vista estesa si possono toccare anche persone e cartelli sopra e sotto l'inquadratura originale.
+                                    if (s.freeRoam && (session.extendedActive || (p.y >= top && p.y < top + h))) {
                                         val tx = s.x + (p.x / (w / 10f)).toInt() - 4
-                                        val ty = s.y + ((p.y - top) / (h / 9f)).toInt() - 4
+                                        // floor: sopra l'inquadratura originale i valori sono negativi
+                                        val ty = s.y + kotlin.math.floor((p.y - top) / (h / 9f)).toInt() - 4
                                         if (tx == s.x && ty == s.y) tapped = NativeCore.KEY_A else session.walkTo(tx, ty)
                                     } else tapped = NativeCore.KEY_A
                                 }

@@ -38,6 +38,15 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
 
     /** Ultimo fotogramma completo (160×144 ARGB), letto dalla vista del gioco. */
     val latestFrame = AtomicReference(IntArray(NativeCore.WIDTH * NativeCore.HEIGHT))
+
+    /** Vista estesa a tutto schermo: altezza richiesta dalla vista (0 = spenta) e ultimo fotogramma esteso. */
+    class ExtFrame(val pixels: IntArray, var height: Int = 0, var active: Boolean = false)
+    @Volatile var extendedHeight = 0
+    val latestExtended = AtomicReference(ExtFrame(IntArray(NativeCore.WIDTH * NativeCore.EXT_MAX_HEIGHT)))
+    private var extBack = ExtFrame(IntArray(NativeCore.WIDTH * NativeCore.EXT_MAX_HEIGHT))
+    /** true quando lo schermo mostra la mappa estesa (serve ai tocchi fuori dall'inquadratura originale). */
+    @Volatile var extendedActive = false
+        private set
     @Volatile var onFrame: (() -> Unit)? = null
 
     /** Ultimo stato letto dalla memoria del gioco (squadra, soldi, posizione), aggiornato 4 volte al secondo. */
@@ -217,6 +226,14 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 NativeCore.nativeSetKeys(handle, currentKeys())
                 val count = NativeCore.nativeRunFrame(handle, back, audio)
                 back = latestFrame.getAndSet(back)
+                val eh = extendedHeight
+                if (eh > NativeCore.HEIGHT) {
+                    val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh) == 1
+                    extBack.height = eh
+                    extBack.active = active
+                    extendedActive = active
+                    extBack = latestExtended.getAndSet(extBack)
+                } else extendedActive = false
                 onFrame?.invoke()
                 frames++
                 if (frames % AUTOSAVE_FRAMES == 0L) runCatching { saveBatteryIfChanged() }

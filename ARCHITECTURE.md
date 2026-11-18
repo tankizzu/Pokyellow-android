@@ -85,7 +85,7 @@ storage/    salvataggi .sav, ripresa rapida, import/export
 tools/      strumenti di analisi ROM per lo sviluppo (mai inclusi nell'APK)
 ```
 
-## 7. Vista estesa a tutto schermo (richiesta D-015, da verificare nel prototipo)
+## 7. Vista estesa a tutto schermo (D-015, realizzata in 0.3.0 – D-031)
 Il Game Boy produce un'immagine 160×144 (10×9 caselle). Per riempire uno schermo verticale
 senza deformare né tagliare i lati, l'app disegna da sé la mappa sopra e sotto l'inquadratura originale:
 - blocchi della mappa corrente letti dalla memoria del gioco (il gioco tiene in RAM la mappa intera con un bordo);
@@ -97,7 +97,18 @@ lavoro aggiuntivo nel ponte; casi limite ai confini tra mappe e nelle schermate 
 (titolo, sequenze animate), dove si mostra l'immagine originale a tutta larghezza con lo sfondo riempito.
 La lotta non ha bisogno della vista estesa: lo sfondo originale è a tinta unita e viene esteso,
 scena e riquadro del testo vengono ritagliati dall'immagine originale e posizionati separatamente.
-Gli indirizzi di memoria esatti per la versione italiana vanno ricostruiti in Fase 1b.
+Gli indirizzi di memoria esatti per la versione italiana sono in docs/MEMORY_MAP_IT.md.
+
+**Come funziona (0.3.0, `app/src/main/cpp/extended_view.c`):**
+1. Mappa: blocchi da `wOverworldMap` (C6E8, con bordo di 3 blocchi), blockset dalla ROM dell'utente (banco D52F, puntatore D530).
+2. Posizione: stima dalle coordinate del giocatore, poi confronto delle 20 × 18 caselle visibili nella memoria video
+   (con lo scorrimento SCX/SCY) con la mappa, spostamenti −3…+3; serve un accordo ≥ 300/360, altrimenti la vista si spegne.
+3. Colori: per ogni tile si impara l'attributo (palette, banco, specchiatura) dalle caselle visibili; palette CGB dalla
+   memoria del motore, convertite con la stessa correzione colore dello schermo.
+4. Al centro si copia il fotogramma originale; sopra e sotto si disegna la mappa. Se una finestra copre lo schermo
+   (menu a tutto schermo) e non mostra la mappa, la vista si spegne.
+5. L'app chiede un'altezza (160 × altezza dello schermo / larghezza, max 512) e disegna il risultato a tutta larghezza.
+Da fare: personaggi fuori inquadratura (dati sprite C100/C200), lotta a tutto schermo, opzione attenuata/nascosta.
 
 ## 6. Tecnologie
 Kotlin · Jetpack Compose · Android NDK (C) · OpenGL ES · AAudio/AudioTrack ·

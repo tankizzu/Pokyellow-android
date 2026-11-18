@@ -23,6 +23,7 @@ set(SAMEBOY_SOURCES
 add_library(gbcore SHARED
     gbcore_jni.c
     boot_rom.c
+    extended_view.c
     ${SAMEBOY_SOURCES}
 )
 

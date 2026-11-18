@@ -43,6 +43,7 @@
 | D-028 | 2026-11-18 | **Pulsante "Testo auto" con 3 velocità** (lento 2 s, medio 1 s, veloce 0,4 s): preme A da solo quando il gioco aspetta un tocco (▼). Mai su menu o domande. |
 | D-029 | 2026-11-18 | **Tastiera del telefono al posto di quella del gioco** quando il gioco chiede un nome: la tastiera del gioco va coperta e il nome scritto dall'app nel gioco. |
 | D-030 | 2026-11-18 | **Tenendo premuto il dito (levetta) il testo scorre più veloce.** Mai su menu o domande. |
+| D-031 | 2026-11-18 | **Vista estesa realizzata nel motore (C)**: mappa dalla RAM del gioco, tile e palette dalla memoria video, posizione trovata confrontando lo schermo del gioco con la mappa. Se il confronto non è sicuro o c'è un menu a tutto schermo si mostra l'immagine originale: mai un'immagine sbagliata. Mappa extra visibile (D-019); attenuata/nascosta come opzione futura. |
 
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |

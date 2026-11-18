@@ -29,5 +29,8 @@ object NativeCore {
     @JvmStatic external fun nativeRunFrame(handle: Long, pixels: IntArray, audio: ShortArray): Int
     @JvmStatic external fun nativeReadMemory(handle: Long, address: Int): Int
     @JvmStatic external fun nativeReadRange(handle: Long, address: Int, out: ByteArray)
+    /** Vista estesa: riempie [out] (160 × height) e restituisce 1 se lo schermo mostra la mappa, 0 altrimenti. */
+    @JvmStatic external fun nativeRenderExtended(handle: Long, out: IntArray, height: Int): Int
+    const val EXT_MAX_HEIGHT = 512
     @JvmStatic external fun nativeDestroy(handle: Long)
 }

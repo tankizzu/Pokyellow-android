@@ -8,10 +8,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "gb.h"
+#include "extended_view.h"
 
 #define WIDTH 160
 #define HEIGHT 144
-#define AUDIO_CAPACITY 8192 /* campioni int16 (stereo interlacciati) per fotogramma: abbondante */
+#define AUDIO_CAPACITY 8192
+#define EXT_MAX_HEIGHT 512 /* campioni int16 (stereo interlacciati) per fotogramma: abbondante */
 
 extern const unsigned char giallo_boot_rom[];
 extern const size_t giallo_boot_rom_size;
@@ -22,6 +24,8 @@ typedef struct {
     int16_t audio[AUDIO_CAPACITY];
     size_t audio_len;
     volatile int keys;
+    EVState ev;
+    uint32_t ext[WIDTH * EXT_MAX_HEIGHT];
 } Core;
 
 static uint32_t rgb_encode(GB_gameboy_t *gb, uint8_t r, uint8_t g, uint8_t b) {
@@ -46,6 +50,7 @@ Java_it_giallotouch_emu_NativeCore_nativeCreate(JNIEnv *env, jclass cls, jint sa
     if (!core) return 0;
     core->gb = GB_init(GB_alloc(), GB_MODEL_CGB_E);
     GB_set_user_data(core->gb, core);
+    ev_reset(&core->ev);
     GB_load_boot_rom_from_buffer(core->gb, giallo_boot_rom, giallo_boot_rom_size);
     GB_set_pixels_output(core->gb, core->pixels);
     GB_set_rgb_encode_callback(core->gb, rgb_encode);
@@ -145,6 +150,17 @@ JNIEXPORT jint JNICALL
 Java_it_giallotouch_emu_NativeCore_nativeReadMemory(JNIEnv *env, jclass cls, jlong handle, jint address) {
     (void)env; (void)cls;
     return GB_safe_read_memory(as_core(handle)->gb, (uint16_t)address);
+}
+
+/* Vista estesa a tutto schermo: 1 se attiva (out riempito con 160 × height pixel), 0 altrimenti. */
+JNIEXPORT jint JNICALL
+Java_it_giallotouch_emu_NativeCore_nativeRenderExtended(JNIEnv *env, jclass cls, jlong handle, jintArray out, jint height) {
+    (void)cls;
+    Core *core = as_core(handle);
+    if (height < HEIGHT || height > EXT_MAX_HEIGHT || (*env)->GetArrayLength(env, out) < WIDTH * height) return 0;
+    if (!ev_render(core->gb, core->pixels, core->ext, height, &core->ev)) return 0;
+    (*env)->SetIntArrayRegion(env, out, 0, WIDTH * height, (const jint *)core->ext);
+    return 1;
 }
 
 /* Copia un intervallo della memoria del gioco (senza effetti collaterali) per il "ponte" verso l'app. */
