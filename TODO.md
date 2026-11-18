@@ -37,7 +37,8 @@
 - [x] Avvio con le grafiche del gioco come nel mockup del committente (D-039, D-040, D-041)
 - [x] Borsa nello stile del gioco con SELECT e trascinamento (D-043)
 - [x] Scheda allenatore, START e lotta dal mockup (D-045), verificati col banco di prova
-- [ ] **Prossimo passo**: Squadra nello stile del gioco con spostamento (tenere premuto + SELECT, menu POKéMON del gioco); Pokédex e messaggi; in lotta nascondere il menu LOTTA/PKMN del gioco nel riquadro del testo (doppione delle azioni)
+- [ ] **Prossimo passo**: Squadra nello stile del gioco con spostamento (tenere premuto + SELECT, menu POKéMON del gioco); Pokédex e messaggi
+- [x] In lotta il menu LOTTA/PKMN/STRUM./FUGA del gioco è coperto da un riquadro vuoto (doppione delle azioni dell'app)
 - [ ] Prova sul gioco vero dello scambio di strumenti (serve uno stato con almeno 2 strumenti)
 - [ ] Usa con scelta del compagno nell'app (pozioni, cure); Squadra: "Sposta"
 - [ ] Copia di sicurezza dei salvataggi (esporta/importa) prima di eventuali reinstallazioni

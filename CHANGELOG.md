@@ -5,6 +5,8 @@
 - **Scheda allenatore**: tocco sul nome → l'app apre la scheda vera del gioco e la ridispone (dati, medaglie), con
   sotto un riquadro con Pokédex e squadra e il pulsante INDIETRO che chiude scheda e menu (verificato).
 - **Lotta**: testo in alto, scena, riquadro SQUADRA/BORSA/FUGA e riquadro mosse con i PP (verificato con foto).
+- In lotta il menu del gioco (LOTTA/PKMN/STRUM./FUGA) non compare più nel riquadro del testo: le azioni sono nei
+  riquadri dell'app (verificato con foto).
 - Banco di prova esteso: lotta e scheda allenatore (70 prove superate).
 
 ## 2026-11-18 – tocco nel vuoto per parlare, colori corretti, START nei dialoghi (D-044)

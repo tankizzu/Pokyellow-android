@@ -105,7 +105,8 @@ class GameRenderer(private val session: GameSession) {
             canvas.drawBitmap(frameBitmap, src, dst, paint)
             src.set(0, BattleLayout.SCENE_ROWS, NativeCore.WIDTH, NativeCore.HEIGHT)
             dst.set(0, textTop, w, textTop + textH)
-            canvas.drawBitmap(frameBitmap, src, dst, paint)
+            val empty = if (s.battleMenuShown) emptyTextBox(s) else null
+            canvas.drawBitmap(empty ?: frameBitmap, if (empty != null) null else src, dst, paint)
             return
         }
         val h = (w * NativeCore.HEIGHT) / NativeCore.WIDTH
@@ -118,6 +119,18 @@ class GameRenderer(private val session: GameSession) {
         dst.set(0, top, w, top + h)
         canvas.drawBitmap(frameBitmap, null, dst, paint)
         drawStartMenu(canvas, s, top, w)
+    }
+
+    /** Riquadro del testo vuoto (20×6 caselle) al posto del menu di lotta del gioco: le azioni sono nei riquadri dell'app. */
+    private var emptyBox: Pair<IntArray, Bitmap>? = null
+    private fun emptyTextBox(s: GameSession): Bitmap? {
+        val sheet = s.tileSheet.get() ?: return null
+        emptyBox?.let { if (it.first === sheet) return it.second }
+        val c = TileCanvas(20, 6, sheet)
+        c.box(0, 0, 19, 5)
+        val b = Bitmap.createBitmap(c.pixels, c.width, c.height, Bitmap.Config.ARGB_8888)
+        emptyBox = sheet to b
+        return b
     }
 
     /** Menu iniziale ridisegnato con i tile del gioco (D-040), nello stesso fotogramma: copre il menu originale. */

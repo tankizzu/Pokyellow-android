@@ -78,6 +78,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Menu iniziale del gioco sullo schermo: numero di voci del gioco (2 o 3), 0 se non c'è (D-040). */
     @Volatile var mainMenuItems = 0
         private set
+    /** Menu di lotta del gioco (LOTTA/PKMN/STRUM./FUGA o mosse) sullo schermo: l'app lo copre, ha i suoi riquadri (D-045). */
+    @Volatile var battleMenuShown = false
+        private set
     /** La scheda allenatore del gioco è sullo schermo: l'app la mostra ridisposta (D-045). */
     @Volatile var trainerCardShown = false
         private set
@@ -412,7 +415,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles)
                 NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, frameVars)
                 battleSplit = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && BattleLayout.textBoxAtBottom(frameTiles)
-                mainMenuItems = MenuReader.read(frameVars, frameTiles).let { if (it.kind == MenuKind.MAIN_MENU) it.items else 0 }
+                val frameMenu = MenuReader.read(frameVars, frameTiles)
+                mainMenuItems = if (frameMenu.kind == MenuKind.MAIN_MENU) frameMenu.items else 0
+                battleMenuShown = frameMenu.kind == MenuKind.BATTLE_MAIN || frameMenu.kind == MenuKind.BATTLE_MOVES
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
                 val eh = extendedHeight
                 if (eh > NativeCore.HEIGHT) {
