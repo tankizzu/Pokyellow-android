@@ -944,5 +944,22 @@ class AppBattleSwitchTest : AppScreensHarness() {
         tapTile(6f, 25.5f + 4 * idx)
         assertTrue("in campo il secondo", waitFor(40_000) { s.latestSnapshot.get().battleMon?.species == second.species })
         shot("49-lotta-cambio")
+        if (System.getProperty("giallo.ko") == null) return
+        // KO: solo COLPO-CODA (seconda mossa, nessun danno) finché il secondo va KO; poi la lista dell'app chiede chi
+        val rows0 = it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW
+        var turns = 0
+        while (!s.battlePartyAsked && s.latestSnapshot.get().inBattle && turns++ < 200) {
+            when {
+                s.battleMenuShown && !s.commandBusy -> tapTile(4f, rows0 + 4.5f)
+                s.yesNo != null || s.latestSnapshot.get().menu.kind == it.giallotouch.bridge.MenuKind.YES_NO -> { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); pump(1500) }
+                else -> tapTile(10f, 2f)
+            }
+        }
+        assertTrue("il gioco chiede un Pokémon", waitFor(10_000) { s.battlePartyAsked })
+        assertTrue("lista dell'app per il KO", shotUntil("50-lotta-ko") { b -> boxAt(b, 0, 23, 20, 16) })
+        val alive = s.latestSnapshot.get().party.indexOfFirst { it.hp > 0 }
+        tapTile(6f, 25.5f + 4 * alive)
+        assertTrue("in campo il Pokémon scelto", waitFor(40_000) { !s.battlePartyAsked && s.latestSnapshot.get().battleMon?.species == s.latestSnapshot.get().party[alive].species })
+        shot("51-lotta-dopo-ko")
     }
 }

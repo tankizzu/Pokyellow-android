@@ -51,6 +51,8 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 - Negozio dell'app (D-056) fatto e verificato: comprare e vendere con cursore a scorrimento.
 - Terza tappa: 7 Poké Ball, Rattata catturato (partita two: Pikachu + Rattata). Spostare i Pokémon (D-057) verificato.
 - Cambio Pokémon in lotta dalla lista SQUADRA (D-050) verificato con due Pokémon.
+- Pokémon KO: la lista dell'app chiede chi mandare in campo, verificato (Rattata KO → Pikachu). Da rifinire: scena
+  bianca nella schermata del KO; dopo la scelta il gioco ha mostrato "PIKACHU è già in campo!" (da capire).
 - Pokémon KO in lotta: lista SQUADRA dell'app quando il gioco chiede chi mandare in campo (da verificare con 2 Pokémon).
 
 ## Ambiente di lavoro (cloud)
