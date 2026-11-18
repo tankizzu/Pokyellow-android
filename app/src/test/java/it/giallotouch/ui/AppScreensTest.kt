@@ -706,9 +706,24 @@ class ZzScenarioTest : AppScreensHarness() {
         return false
     }
 
+    /** Quarta tappa (da -Pgiallo.state.shop=two.state): al Centro Pokémon di Smeraldopoli. */
+    @Test fun costruisci4() {
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.shop") != null)
+        s = start(auto = "giallo.state.shop") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        var k = 0
+        while (pos().first != 1 && k++ < 6) { edge(north = true); log("verso nord") }
+        assertEquals("Smeraldopoli", 1, pos().first)
+        assertTrue("nel Centro Pokémon", warpTo(0x29))
+        textThrough()
+        save("center.state")
+    }
+
     /** Terza tappa (da -Pgiallo.state.items=shop.state): 5 Poké Ball al negozio, cattura sulla Strada 1. */
     @Test fun costruisci3() {
-        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.items") != null)
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.items") != null && System.getProperty("giallo.state.shop") == null)
         s = start(auto = "giallo.state.items") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
@@ -774,7 +789,7 @@ class ZzScenarioTest : AppScreensHarness() {
 
     /** Seconda tappa (da -Pgiallo.state.two=parcel.state): Pacco a Oak, ritorno al negozio aperto. */
     @Test fun costruisci2() {
-        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") != null && System.getProperty("giallo.state.items") == null)
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") != null && System.getProperty("giallo.state.items") == null && System.getProperty("giallo.state.shop") == null)
         s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
@@ -814,7 +829,7 @@ class ZzScenarioTest : AppScreensHarness() {
     }
 
     @Test fun costruisci() {
-        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") == null && System.getProperty("giallo.state.items") == null)
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") == null && System.getProperty("giallo.state.items") == null && System.getProperty("giallo.state.shop") == null)
         s = start(auto = "giallo.state") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
