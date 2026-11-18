@@ -3,9 +3,10 @@
 **Ultimo aggiornamento:** 2026-11-18
 
 ## Dove siamo
-- **0.6.3-prototipo (consegnata il 2026-11-18)**: tutta l'interfaccia nello stile del gioco, dai mockup del
-  committente (D-039…D-049), correzioni della lotta (B-005, B-006) e dei tocchi nei dialoghi (B-007).
-- 78 prove superate (le prove sul gioco vero e il banco di prova dell'interfaccia girano solo in locale con la ROM).
+- **0.7.1-prototipo (consegnata il 2026-11-18)**: tutta l'interfaccia nello stile del gioco, dai mockup del
+  committente (D-039…D-049), correzioni della lotta (B-005, B-006) e dei tocchi nei dialoghi (B-007); SQUADRA/BORSA in lotta (D-050) e
+  strumenti su un Pokémon con "SU CHI?" dell'app (D-051).
+- 80 prove superate (le prove sul gioco vero e il banco di prova dell'interfaccia girano solo in locale con la ROM).
 
 ## Cosa c'è nell'app
 - Scelta del file del gioco (anche ZIP), controllo SHA-1 e intestazione.
@@ -35,10 +36,10 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. In attesa del committente: scelta A/B/C per SQUADRA e BORSA in lotta (mockup decisionale inviato), file .sav con
-   almeno 2 Pokémon e 2 strumenti, colore dell'immagine del Pokémon, riscontro sulla 0.6.3 (B-007).
-2. Proposto: togliere i menu vecchi rimasti, in ordine d'uso (lotta, scelta del Pokémon per gli strumenti e
-   spostamento della squadra, negozio, PC).
+1. In attesa del committente: riepilogo del mockup del negozio (inviato), file .sav con almeno 2 Pokémon e 2
+   strumenti (cambio in lotta, spostamenti), colore dell'immagine del Pokémon.
+2. Poi: negozio secondo il mockup (il primo negozio si apre dopo aver consegnato il Pacco a Oak: serve una partita di
+   prova più avanti), PC.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.
