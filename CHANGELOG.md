@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.7.0-prototipo: SQUADRA e BORSA in lotta (D-050, versione C)
+- Liste dell'app sopra la lotta; scelta eseguita nei menu del gioco senza mostrarli.
+- Verificato sul gioco vero: Pozione ricevuta sulla Strada 1, lotta con un selvatico, BORSA → POZIONE → vita di
+  Pikachu salita, senza menu vecchi; lista SQUADRA e INDIETRO. Lo scambio dei Pokémon non è provato (serve una squadra
+  di almeno 2: manca il .sav). 79 prove.
+
 ## 2026-11-18 – 0.6.3-prototipo
 - Tocchi mai persi durante i dialoghi (B-007); nuova prova sul gioco vero: ricevere la Pozione sulla Strada 1.
 - Prova: in lotta anche SQUADRA apre il menu del gioco senza i riquadri dell'app.

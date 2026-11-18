@@ -10,6 +10,9 @@ import it.giallotouch.bridge.GameCommand
 import it.giallotouch.bridge.ItemAction
 import it.giallotouch.bridge.ItemActionExecutor
 import it.giallotouch.bridge.ItemMenus
+import it.giallotouch.bridge.BattleAction
+import it.giallotouch.bridge.BattleActionExecutor
+import it.giallotouch.bridge.BattleMenus
 import it.giallotouch.bridge.CommandExecutor
 import it.giallotouch.bridge.MenuReader
 import it.giallotouch.bridge.MenuKind
@@ -225,12 +228,30 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
     private var currentItemAction: ItemAction? = null
 
+    /** SQUADRA e BORSA in lotta dalle liste dell'app (D-050): l'esecutore guida i menu del gioco senza mostrarli. */
+    private val battleExecutor = BattleActionExecutor()
+    @Volatile var battleBusy = false
+        private set
+    fun battleAction(a: BattleAction) {
+        battleBusy = true
+        tasks.add(Runnable { walker.cancel(); battleExecutor.start(a) })
+    }
+    private fun stepBattleAction(): Int {
+        NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
+        NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+        val scroll = NativeCore.nativeReadMemory(handle, MemoryMapIt.LIST_SCROLL_OFFSET)
+        val scr = BattleMenus.read(menuVars, tileMap, scroll)
+        val keys = battleExecutor.step(scr, menuVars.contentHashCode() * 31 + tileMap.contentHashCode())
+        if (!battleExecutor.busy) battleBusy = false
+        return keys
+    }
+
     /**
      * Menu originali del gioco attraversati dall'app da sola (menu START, lista degli strumenti, chiusura della scheda):
      * non si vedono (D-049), resta l'immagine di prima. [trainerOpening]: fotogrammi di attesa della scheda allenatore.
      */
     private var trainerOpening = 0
-    private fun hidingOldMenus(): Boolean = !trainerCardShown && (itemExecutor.busy || closingFrames > 0 || trainerOpening > 0)
+    private fun hidingOldMenus(): Boolean = !trainerCardShown && (itemExecutor.busy || battleExecutor.busy || closingFrames > 0 || trainerOpening > 0)
 
     /**
      * Sulla scheda allenatore il gioco riusa le caselle dei riquadri per la cornice della scheda: finché la scheda è
@@ -325,6 +346,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
 
     private fun currentKeys(): Int {
         if (itemExecutor.busy) return stepItemAction()
+        if (battleExecutor.busy) return stepBattleAction()
         if (closingFrames > 0) {
             closingFrames--
             if (closingFrames % 24 == 0) {
@@ -418,7 +440,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             (storage.backupOf(files.state)?.let { NativeCore.nativeLoadState(handle, it) } ?: false)
         check(ok) { "salvataggio non leggibile" }
         lastBattery?.let { storage.writeAtomic(storage.batteryBeforeLoadFile, it) }
-        walker.cancel(); executor.cancel(); nameExecutor.cancel(); itemExecutor.cancel()
+        walker.cancel(); executor.cancel(); nameExecutor.cancel(); itemExecutor.cancel(); battleExecutor.cancel(); battleBusy = false
         frameMask.reset(); extMask.reset()   // le immagini di prima appartengono a un'altra partita
         inGame = true
         readSnapshot()
@@ -532,6 +554,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // i riquadri di lotta dell'app spariscono (D-049).
                 battleGameMenu = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && !battleMenuShown &&
                     frameTiles.any { (it.toInt() and 0xFF) == 0xED }
+                // Mentre l'app guida i menu di lotta del gioco si continua a mostrare la lotta (immagine di prima).
+                if (battleExecutor.busy) { battleGameMenu = false; battleSplit = true }
                 if (battleGameMenu) battleSplit = false
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
@@ -540,7 +564,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = dialog || yn != null || hidingOldMenus()
+                val onScreen = dialog || yn != null || hidingOldMenus() ||
+                    (NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 if (dialog && !frameMask.ready) dialog = false
                 if (dialog) {
                     System.arraycopy(back, 96 * NativeCore.WIDTH, stripA, 0, stripA.size)
@@ -550,7 +575,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
                 val hide = hidingOldMenus()
                 val boxes = buildList {
-                    if (hide && frameMask.ready) add(BoxMask.Box(0, 0, 19, 17))
+                    // In lotta si copre solo la scena (righe 0–11): il testo del gioco ("…si è ripreso di 8!") resta.
+                    // Anche la schermata della squadra che il gioco mostra dopo una Pozione resta nascosta.
+                    val inBattleNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0
+                    val partyScreen = inBattleNow && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71
+                    if ((hide || partyScreen) && frameMask.ready) add(if (inBattleNow) BoxMask.Box(0, 0, 19, 11) else BoxMask.Box(0, 0, 19, 17))
                     if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
                     if (dialog) add(BoxMask.Box(0, 12, 19, 17))
                 }

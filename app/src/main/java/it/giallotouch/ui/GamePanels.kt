@@ -621,3 +621,88 @@ fun GameDexScreen(sheet: IntArray, seen: List<Int>, owned: List<Int>, romData: R
         BackBox(sheet, unit, 5, 39, textX = 8, onBack = onClose)
     }
 }
+
+/**
+ * SQUADRA o BORSA in lotta, versione C del mockup (D-050): sopra la lotta, al posto dei riquadri delle azioni e delle
+ * mosse; il testo in alto dice cosa fare. Tocco su una voce = scelta (l'app la esegue nel menu del gioco).
+ */
+@Composable
+fun GameBattleListPanel(
+    sheet: IntArray,
+    party: List<PartyMember>?,
+    bag: List<it.giallotouch.bridge.BagItem>?,
+    romData: RomData,
+    busy: Boolean,
+    onPick: (Int) -> Unit,
+    onBack: () -> Unit,
+) {
+    BackHandler { if (!busy) onBack() }
+    val count = party?.size ?: bag?.size ?: 0
+    val step = when {
+        party != null -> if (count <= 3) 4 else 2
+        count <= 4 -> 3
+        count <= 6 -> 2
+        else -> 1
+    }
+    val visible = (13 / step).coerceAtLeast(1)
+    var first by remember(count) { mutableStateOf(0) }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        TileImage(sheet, 20, 6, unit, key = Pair(party != null, busy), modifier = Modifier.offset { IntOffset(0, (it.giallotouch.bridge.BattleLayout.TEXT_TOP_ROW * tilePx).toInt()) }) {
+            box(0, 0, 19, 5)
+            text(if (party != null) "Scegli un POKéMON" else "Usa uno strumento", 1, 2)
+        }
+        TileImage(
+            sheet, 20, 16, unit, key = listOf(party, bag, first, busy),
+            modifier = Modifier
+                .offset { IntOffset(0, (23 * tilePx).toInt()) }
+                .pointerInput(count, first, busy) {
+                    detectTapGestures { pos ->
+                        if (busy) return@detectTapGestures
+                        val row = (pos.y / tilePx).toInt()
+                        val k = (row - 2 + step / 2).floorDiv(step)
+                        val i = first + k
+                        if (row >= 1 && k in 0 until visible && i in 0 until count) onPick(i)
+                    }
+                }
+                .pointerInput(count) {
+                    var acc = 0f
+                    detectVerticalDragGestures { _, dy ->
+                        acc -= dy
+                        val st = (acc / (step * tilePx)).toInt()
+                        if (st != 0) { acc -= st * step * tilePx; first = (first + st).coerceIn(0, maxOf(0, count - visible)) }
+                    }
+                }
+        ) {
+            box(0, 0, 19, 15)
+            if (count == 0) text(if (party != null) "-" else "VUOTA", 2, 2)
+            for (k in 0 until visible) {
+                val i = first + k
+                if (i >= count) break
+                val r = 2 + step * k
+                if (party != null) {
+                    val m = party[i]
+                    if (step >= 4) {
+                        romData.partyIcon(m.species)?.let { icon(it, 8, r * 8) }
+                        text(m.name.take(10), 4, r); val lv = "L${m.level}"; text(lv, 19 - lv.length, r)
+                        text("PS ${m.hp}/${m.maxHp}", 4, r + 1)
+                    } else {
+                        text(m.name.take(10), 2, r); val hp = "${m.hp}/${m.maxHp}"; text(hp, 19 - hp.length, r)
+                    }
+                } else {
+                    val item = bag!![i]
+                    text(romData.itemName(item.id).take(12), 2, r)
+                    if (!it.giallotouch.bridge.Items.isKeyItem(item.id)) { val q = "×" + item.quantity; text(q, 19 - q.length, r) }
+                }
+            }
+        }
+        TileImage(
+            sheet, 10, 4, unit, key = "lotta-indietro",
+            modifier = Modifier
+                .offset { IntOffset((5 * tilePx).toInt(), (39 * tilePx).toInt()) }
+                .pointerInput(busy) { detectTapGestures { if (!busy) onBack() } }
+        ) { box(0, 0, 9, 3); textAt("INDIETRO", 8, 12) }
+    }
+}

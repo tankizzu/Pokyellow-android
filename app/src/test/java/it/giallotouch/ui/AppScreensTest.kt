@@ -245,7 +245,7 @@ abstract class AppScreensHarness {
      * dopo la lotta col rivale si esce dal laboratorio, si va sulla Strada 1 e si parla con chi regala la Pozione,
      * poi si va avanti solo toccando lo schermo. Il dialogo deve finire e la Pozione essere nella borsa.
      */
-    fun riceviOggetto() {
+    fun riceviOggetto(thenBattle: Boolean = false) {
         val s = start(auto = "giallo.state") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
@@ -317,29 +317,69 @@ abstract class AppScreensHarness {
         }
         shot("21-dopo-oggetto")
         assertTrue("oggetto nella borsa", s.latestSnapshot.get().bag.size > bag0)
+        if (!thenBattle) return
+        // Nell'erba fino a un Pokémon selvatico (su e giù), poi BORSA dell'app → POZIONE (D-050).
+        var walks = 0
+        // mete a caso sulla Strada 1: i percorsi attraversano l'erba alta
+        val rnd = java.util.Random(7)
+        while (!s.latestSnapshot.get().inBattle && walks++ < 25) {
+            val p = s.positionForTest()
+            if (p.first != 12) break
+            val g5 = s.mapGridForTest() ?: break
+            val free = (0 until g5.width).flatMap { x -> (4 until g5.height - 4).map { y -> x to y } }.filter { g5.isFree(it.first, it.second) }
+            val target = free[rnd.nextInt(free.size)]
+            goTo(target.first, target.second)
+            waitFor(500) { s.latestSnapshot.get().inBattle }
+        }
+        assertTrue("lotta con un selvatico", waitFor(10_000) { s.latestSnapshot.get().inBattle })
+        var intro = 0
+        while (!(s.battleMenuShown && !s.commandBusy) && intro++ < 30) tapTile(10f, 2f)   // testi d'inizio lotta
+        assertTrue("menu di lotta", s.battleMenuShown)
+        val row = it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f
+        tapTile(3f, row)                                           // SQUADRA
+        assertTrue("lista SQUADRA dell'app", shotUntil("22-lotta-squadra") { b -> boxAt(b, 0, 23, 20, 16) && boxAt(b, 5, 39, 10, 4) })
+        tapTile(9f, 40.5f)                                         // INDIETRO
+        assertTrue("di nuovo azioni e mosse", shotUntil("22b-lotta") { b -> boxAt(b, 0, 28, 20, 11) })
+        // la Pozione si usa solo se Pikachu non ha tutta la vita: qualche turno con RUGGITO (nessun danno al selvatico)
+        var turns = 0
+        while (s.latestSnapshot.get().battleMon!!.hp >= s.latestSnapshot.get().battleMon!!.maxHp && turns++ < 8) {
+            tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 4.5f)   // seconda mossa
+            var t = 0
+            while (!(s.battleMenuShown && !s.commandBusy) && s.latestSnapshot.get().inBattle && t++ < 40) tapTile(10f, 2f)
+        }
+        val hp0 = s.latestSnapshot.get().battleMon!!.hp; val max = s.latestSnapshot.get().battleMon!!.maxHp
+        val potions0 = s.latestSnapshot.get().bag.first { it.id == 0x14 }.quantity
+        tapTile(15f, row)                                          // BORSA
+        assertTrue("lista BORSA dell'app", shotUntil("23-lotta-borsa") { b -> boxAt(b, 0, 23, 20, 16) })
+        if (hp0 < max) {
+            tapTile(4f, 25.5f)                                     // POZIONE (prima voce)
+            assertTrue("Pozione usata", waitFor(30_000) { (s.latestSnapshot.get().bag.firstOrNull { it.id == 0x14 }?.quantity ?: 0) < potions0 })
+            assertTrue("vita di Pikachu salita", waitFor(10_000) { (s.latestSnapshot.get().battleMon?.hp ?: 0) > hp0 })
+            shot("24-dopo-pozione")
+            var t2 = 0
+            while (!s.battleMenuShown && s.latestSnapshot.get().inBattle && t2++ < 40) tapTile(10f, 2f)
+            assertTrue("di nuovo il menu di lotta", s.battleMenuShown || !s.latestSnapshot.get().inBattle)
+            shot("25-lotta-dopo-pozione")
+        } else println("Pikachu ha tutta la vita: Pozione non provata")
     }
 
-    /** In lotta BORSA apre il menu del gioco e i riquadri di lotta dell'app spariscono; indietro tornano (D-049). */
+    fun riceviEUsaInLotta() = riceviOggetto(thenBattle = true)
+
+    /** In lotta BORSA e SQUADRA aprono le liste dell'app sopra la lotta (D-050, versione C); INDIETRO torna alle mosse. */
     fun lottaBorsa() {
         val s = start(auto = "giallo.state") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         assertTrue("menu di lotta", waitFor(20_000) { s.battleMenuShown && !s.commandBusy })
-        tapTile(15f, it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f)   // BORSA
-        assertTrue("borsa del gioco aperta", waitFor(15_000) { s.battleGameMenu })
-        assertTrue("riquadri di lotta spariti", shotUntil("09e-lotta-borsa") { b -> !boxAt(b, 0, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW, 20, 11) })
-        var k = 0
-        while (s.battleGameMenu && k++ < 10) { press(s, NativeCore.KEY_B); pump(500) }
-        assertTrue("di nuovo il menu di lotta", waitFor(15_000) { s.battleMenuShown })
-        // anche SQUADRA: menu del gioco senza i riquadri dell'app
-        waitFor(5_000) { !s.commandBusy }
-        tapTile(3f, it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f)
-        assertTrue("squadra del gioco aperta", waitFor(15_000) { s.battleGameMenu })
-        assertTrue("riquadri spariti (squadra)", shotUntil("09g-lotta-squadra") { b -> !boxAt(b, 0, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW, 20, 11) })
-        k = 0
-        while (s.battleGameMenu && k++ < 10) { press(s, NativeCore.KEY_B); pump(500) }
-        assertTrue("di nuovo il menu di lotta (2)", waitFor(15_000) { s.battleMenuShown })
-        assertTrue("riquadri di lotta tornati", shotUntil("09f-lotta-di-nuovo") { b -> boxAt(b, 0, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW, 20, 11) })
+        val row = it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f
+        val moves = it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW
+        for ((col, name) in listOf(15f to "borsa", 3f to "squadra")) {
+            tapTile(col, row)
+            assertTrue("lista $name dell'app", shotUntil("09e-lotta-$name") { b -> boxAt(b, 0, 23, 20, 16) && boxAt(b, 5, 39, 10, 4) })
+            assertFalse("nessun menu del gioco", s.battleGameMenu)
+            tapTile(9f, 40.5f)   // INDIETRO
+            assertTrue("di nuovo le mosse ($name)", shotUntil("09f-lotta-$name") { b -> boxAt(b, 0, moves, 20, 11) })
+        }
     }
 
     /** Scheda allenatore (D-045): START → nome del giocatore apre la scheda del gioco ridisposta; INDIETRO chiude. */
@@ -458,4 +498,8 @@ class AppBattleBagTest : AppScreensHarness() {
 
 class AppReceiveItemTest : AppScreensHarness() {
     @Test fun riceviPozione() = riceviOggetto()
+}
+
+class AppBattleItemTest : AppScreensHarness() {
+    @Test fun pozioneInLotta() = riceviEUsaInLotta()
 }

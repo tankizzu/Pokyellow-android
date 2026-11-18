@@ -62,6 +62,7 @@ import it.giallotouch.bridge.PartyMember
 import it.giallotouch.bridge.Status
 import it.giallotouch.emu.GameSession
 import it.giallotouch.emu.NativeCore
+import it.giallotouch.bridge.BattleAction
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -145,6 +146,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
     var battleMenu by remember { mutableStateOf(false) }   // menu di lotta del gioco sullo schermo (si può scegliere)
     var battleGameMenu by remember { mutableStateOf(false) }   // in lotta: squadra/borsa del gioco aperte
+    var battleList by remember { mutableStateOf(0) }       // in lotta: 1 = SQUADRA, 2 = BORSA dell'app (D-050)
+    var battleBusy by remember { mutableStateOf(false) }
+    var pendingBattlePick by remember { mutableStateOf(false) }
     /** Voce del riquadro dei pulsanti (D-046): 0 POKéMON, 1 allenatore, 2 POKéDEX, 3 OPZIONI, 4 BORSA, 5 SALVA. */
     fun panelActivate(i: Int) {
         panelCursor = i
@@ -181,6 +185,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             yesNo = session.yesNo
             battleMenu = session.battleMenuShown
             battleGameMenu = session.battleGameMenu
+            battleBusy = session.battleBusy
             session.tileSheet.get()?.let { if (it !== sheet) sheet = it }
             if (itemRequested && !session.itemBusy) {
                 itemRequested = false
@@ -342,7 +347,28 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // Squadra in alto, con i dati letti dalla memoria del gioco (nascosta durante la lotta).
         val battleMon = snapshot.battleMon
-        if (snapshot.inBattle && battleGameMenu) {
+        // Finita l'azione nel menu del gioco (o finita la lotta) le liste si chiudono.
+        LaunchedEffect(battleBusy, snapshot.inBattle) { if (!battleBusy && (battleList != 0 && pendingBattlePick || !snapshot.inBattle)) { battleList = 0; pendingBattlePick = false } }
+        if (snapshot.inBattle && battleList != 0 && sheet != null && !battleGameMenu) {
+            val party = snapshot.party
+            val active = battleMon?.let { bm -> party.indexOfFirst { it.species == bm.species && it.level == bm.level && it.hp == bm.hp } }?.takeIf { it >= 0 } ?: 0
+            GameBattleListPanel(
+                sheet = sheet!!,
+                party = if (battleList == 1) party else null,
+                bag = if (battleList == 2) snapshot.bag else null,
+                romData = session.romData,
+                busy = battleBusy,
+                onPick = { i ->
+                    if (battleList == 1 && i == active) return@GameBattleListPanel   // è già in lotta
+                    pendingBattlePick = true
+                    session.battleAction(
+                        if (battleList == 1) BattleAction.Switch(i)
+                        else BattleAction.UseItem(i, session.romData.itemName(snapshot.bag[i].id), active)
+                    )
+                },
+                onBack = { battleList = 0 },
+            )
+        } else if (snapshot.inBattle && battleGameMenu) {
             // Squadra o borsa del gioco aperte in lotta: si usa il menu del gioco, senza i riquadri dell'app.
         } else if (snapshot.inBattle && battleMon != null && sheet != null) {
             GameBattlePanel(
@@ -354,8 +380,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 enabled = !commandBusy && battleMenu,
                 onAdvance = { if (!commandBusy) tapped = NativeCore.KEY_A },
                 onMove = { session.command(GameCommand.Fight(it)) },
-                onParty = { session.command(GameCommand.Party) },
-                onBag = { session.command(GameCommand.Item) },
+                onParty = { battleList = 1 },
+                onBag = { battleList = 2 },
                 onRun = { session.command(GameCommand.Run) },
             )
         } else if (snapshot.inBattle && battleMon != null) {
