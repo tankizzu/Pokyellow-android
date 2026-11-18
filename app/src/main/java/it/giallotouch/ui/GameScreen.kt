@@ -437,9 +437,17 @@ fun GameScreen(session: GameSession, settings: Settings) {
         // Schermata dei nomi del gioco: coperta dalla tastiera del telefono.
         val naming = snapshot.naming
         if (naming != null && !namingDismissed) {
-            NameEntryOverlay(naming, busy = nameRequested) { name ->
-                nameRequested = true
-                session.enterName(name)
+            val tiles = sheet
+            if (tiles != null) {
+                GameNameEntry(tiles, naming, busy = nameRequested) { name ->
+                    nameRequested = true
+                    session.enterName(name)
+                }
+            } else {
+                NameEntryOverlay(naming, busy = nameRequested) { name ->
+                    nameRequested = true
+                    session.enterName(name)
+                }
             }
         }
 

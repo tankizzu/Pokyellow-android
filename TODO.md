@@ -34,8 +34,8 @@
 - [x] Menu nativi Borsa e Pokédex (sola lettura), barra D-036
 - [x] Borsa: Usa (fino alla scelta nel gioco) e Getta (completo) tramite il menu originale
 - [x] Avvio senza pulsanti dell'app; pulsante laterale con i pulsanti in colonna (D-037)
-- [ ] **Prossimo passo – avvio "in tema"**: leggere le scelte del Laboratorio d'avvio (https://claude.ai/artifact/8sMG68hS9aFD7wJWH7A535, raccolta "invii"),
-      applicare stile, carattere a pixel, posizioni di CARICA PARTITA, schermata dei nomi, pulsante laterale e pannello
+- [x] Avvio con le grafiche del gioco come nel mockup del committente (D-039, D-040, D-041)
+- [ ] **Prossimo passo**: prova sul telefono; poi Squadra, Borsa, Pokédex, Select e messaggi nello stile del gioco
 - [ ] Usa con scelta del compagno nell'app (pozioni, cure); Squadra: "Sposta"
 - [ ] Copia di sicurezza dei salvataggi (esporta/importa) prima di eventuali reinstallazioni
 - [ ] Pokédex: scheda della specie (descrizione, altezza, peso) dalla ROM, solo per le specie prese

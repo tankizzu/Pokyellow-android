@@ -30,16 +30,14 @@
 - Al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
 - L'app non è stata provata qui su un telefono (nessun emulatore Android): verificati motore e logica su computer.
 
-## Prossimo passo – AVVIO CON LE GRAFICHE DEL GIOCO (D-039), da decidere con il committente
-Prove private inviate il 2026-11-18 (foglio con: titolo, menu con CARICA PARTITA come voce in più o riquadro sotto,
-schermata dei salvataggi in stile gioco, introduzione intera o divisa, nome con FINE e tastiera del telefono,
-cameretta con linguetta e riquadro dei pulsanti come il menu START). In attesa delle scelte; poi:
-1. Nel motore/app: disegnare le aggiunte con i tile del gioco presi dalla memoria video (carattere, riquadri, ▶).
-2. Applicare alle schermate dall'accensione alla cameretta; poi estendere lo stile ai menu nativi.
-Strumenti: `tools/mockup/gbui.py`, comandi `vram` e `reset` del runner.
-Fatto: motore → tile del gioco (`nativeGameTiles`), disegnatore `TileCanvas` (identico al gioco, provato), linguetta e
-riquadro dei pulsanti disegnati come il gioco. Da fare dopo le scelte: menu iniziale (voci spostabili, CARICA PARTITA),
-schermata dei salvataggi, nome con FINE, introduzione, Select e messaggi nello stile del gioco.
+## Prossimo passo – PROVA SUL TELEFONO DELL'AVVIO RIDISEGNATO (D-040, D-041)
+Fatto nell'app (tutto con i tile del gioco, tocco diretto + cursore ▶):
+menu iniziale (CONTINUA, CARICA PARTITA, OPZIONI, NUOVO GIOCO), Carica partita, schermata del nome con FINE,
+MENU in basso con squadra (vita ed esperienza) e POKéDEX/BORSA/OPZIONI/SALVA, OPZIONI, mappa 5 caselle più in basso.
+Da fare:
+1. Far provare l'APK al committente e correggere posizioni e comportamenti.
+2. Portare nello stile del gioco anche Squadra, Borsa, Pokédex (oggi ancora nello stile scuro), Select e i messaggi.
+3. Introduzione: lasciata com'è (nessuna modifica nel mockup).
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.

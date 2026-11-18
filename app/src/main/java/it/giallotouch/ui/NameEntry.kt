@@ -15,6 +15,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -127,6 +137,66 @@ fun NameEntryOverlay(screen: NamingScreen, busy: Boolean, onConfirm: (String) ->
                     color = if (canConfirm) NameInk else NameMuted, fontSize = 17.sp, fontWeight = FontWeight.Bold
                 )
             }
+        }
+    }
+}
+
+/**
+ * Schermata del nome nello stile del gioco (D-040), come nel mockup del committente: la griglia delle lettere del gioco
+ * sparisce; restano la domanda del gioco ("NOME TUO?"), il nome che si scrive con la tastiera del telefono sopra i
+ * trattini del gioco e il riquadro FINE, tutto con i tile del gioco e appoggiato sopra la tastiera.
+ */
+@Composable
+fun GameNameEntry(sheet: IntArray, screen: NamingScreen, busy: Boolean, onConfirm: (String) -> Unit) {
+    var text by remember { mutableStateOf(NameCodec.decode(screen.name)) }
+    val focus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    fun confirm() {
+        if (text.isEmpty() || busy) return
+        keyboard?.hide()
+        onConfirm(text)
+    }
+    LaunchedEffect(Unit) { focus.requestFocus(); keyboard?.show() }
+    BackHandler { }
+    val paper = Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8])
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(paper)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focus.requestFocus(); keyboard?.show() }
+    ) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        val imePx = WindowInsets.ime.getBottom(density)
+        val bottomRow = (((with(density) { maxHeight.toPx() }) - imePx) / tilePx).toInt() - 2
+        val top = (bottomRow - 9).coerceAtLeast(0)
+        // Campo invisibile: riceve le lettere dalla tastiera del telefono.
+        BasicTextField(
+            value = text,
+            onValueChange = { if (!busy) text = NameCodec.sanitize(it, screen.maxLength) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { confirm() }),
+            modifier = Modifier.size(1.dp).alpha(0f).focusRequester(focus)
+        )
+        TileImage(
+            sheet, 20, 10, unit, key = Triple(text, screen.title, busy),
+            modifier = Modifier
+                .offset { IntOffset(0, (top * tilePx).toInt()) }
+                .pointerInput(Unit) {
+                    detectTapGestures { pos ->
+                        val col = (pos.x / tilePx).toInt(); val row = (pos.y / tilePx).toInt()
+                        if (col >= 12 && row >= 6) confirm() else { focus.requestFocus(); keyboard?.show() }
+                    }
+                }
+        ) {
+            text(screen.title.ifEmpty { "NOME?" }.take(19), 1, 0)
+            text(text, 7, 4)
+            val raised = minOf(text.length, screen.maxLength - 1)
+            for (i in 0 until screen.maxLength) tile(if (i == raised) 0x77 else 0x76, 7 + i, 5)
+            box(12, 6, 19, 9)
+            text(if (busy) "..." else "FINE", 14, 8)
         }
     }
 }

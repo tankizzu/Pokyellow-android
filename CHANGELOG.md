@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-18 – schermata del nome nello stile del gioco (D-040)
+- La griglia delle lettere del gioco sparisce; restano la domanda del gioco (es. "NOME TUO?"), il nome scritto con la
+  tastiera del telefono sopra i trattini del gioco e il riquadro FINE, con i tile del gioco, appoggiati sopra la tastiera.
+- Tocco su FINE o "Fatto" sulla tastiera = conferma; il nome viene scritto nel gioco come prima (esecutore).
+
 ## 2026-11-18 – Carica partita e pulsanti con il cursore (D-040, D-041)
 - **Carica partita** nello stile del gioco, posizioni del mockup: riquadro del titolo, un riquadro per salvataggio
   (SALVATAGGIO/AUTOMATICO e data, GIOCA nome, MEDAGLIE, TEMPO), INDIETRO. Si tocca il riquadro da caricare,
