@@ -683,8 +683,46 @@ class ZzScenarioTest : AppScreensHarness() {
         return false
     }
 
+    /** Seconda tappa (da -Pgiallo.state.two=parcel.state): Pacco a Oak, ritorno al negozio aperto. */
+    @Test fun costruisci2() {
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") != null)
+        s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        textThrough()
+        println("DBGSC negozio ${pos()} porte=${s.warpsForTest()}")
+        assertTrue("fuori dal negozio", warpTo(null))
+        println("DBGSC città ${pos()}")
+        var k = 0
+        while (pos().first != 0 && k++ < 6) { edge(north = false); println("DBGSC verso sud ${pos()}") }
+        assertEquals("Biancavilla", 0, pos().first)
+        assertTrue("nel laboratorio", warpTo(0x28))
+        textThrough()
+        println("DBGSC lab ${pos()} persone=${s.mapGridForTest()?.people}")
+        // dal Professore: la persona più in alto nel laboratorio
+        repeat(3) {
+            if (s.latestSnapshot.get().bag.none { it.id == 70 }) return@repeat
+            val g = s.mapGridForTest()!!
+            val oak = g.people.minByOrNull { it.second } ?: return@repeat
+            val spot = g.interactionSpots(oak.first, oak.second).entries.minByOrNull { kotlin.math.abs(it.key.first - pos().second) + kotlin.math.abs(it.key.second - pos().third) } ?: return@repeat
+            goTo(spot.key.first, spot.key.second)
+            s.setKeys(spot.value.key); pump(150); s.setKeys(0); pump(400)
+            tapTile(10f, 20f)
+            textThrough(200)
+        }
+        println("DBGSC dopo Oak borsa=${s.latestSnapshot.get().bag} pokedex=${s.latestSnapshot.get().pokedexOwned}")
+        save("pokedex.state")
+        assertTrue("fuori dal laboratorio", warpTo(null))
+        k = 0
+        while (pos().first != 1 && k++ < 6) { edge(north = true); println("DBGSC verso nord ${pos()}") }
+        assertEquals("Smeraldopoli", 1, pos().first)
+        assertTrue("nel negozio", warpTo(0x2A))
+        textThrough()
+        save("shop.state")
+    }
+
     @Test fun costruisci() {
-        assumeTrue(System.getProperty("giallo.scenario") != null)
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.two") == null)
         s = start(auto = "giallo.state") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))

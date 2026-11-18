@@ -45,7 +45,9 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
   scelta per specie a 0x72961), verificati sulla scheda di Pikachu.
 - Partita automatica nel banco di prova (ZzScenarioTest): dalla lotta col rivale verso Smeraldopoli per costruire
-  partite di prova più avanti (negozio, più Pokémon). Primo giro fermo in cima alla Strada 1: corretto, di nuovo in corso.
+  partite di prova più avanti (negozio, più Pokémon). Prima tappa riuscita: Strada 1, Smeraldopoli, Pacco di Oak
+  ricevuto al Pokémon Market (partite route1, viridian, parcel nella cartella temporanea). Seconda tappa in corso:
+  Pacco a Oak, ritorno al negozio aperto.
 - Pokémon KO in lotta: lista SQUADRA dell'app quando il gioco chiede chi mandare in campo (da verificare con 2 Pokémon).
 
 ## Ambiente di lavoro (cloud)
