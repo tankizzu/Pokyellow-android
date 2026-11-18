@@ -3,7 +3,7 @@
 **Ultimo aggiornamento:** 2026-11-17 (notte)
 
 ## Dove siamo
-- **APK 0.2.0-prototipo consegnato il 2026-11-18** con il resoconto (squadra in alto, comandi di lotta, Sì/No, tocco su persone/oggetti).
+- **APK 0.2.1-prototipo consegnato il 2026-11-18** (corregge B-001: ZIP). Prima: 0.2.0 con il resoconto (squadra in alto, comandi di lotta, Sì/No, tocco su persone/oggetti).
 - **Prototipo 0.1 compilato e consegnato al committente** per le prime prove sul CMF Phone 2 Pro.
   Il gioco gira con SameBoy; comandi provvisori (vedi D-024).
 - Fase 1b (memoria versione italiana) iniziata: `docs/MEMORY_MAP_IT.md`.
@@ -38,7 +38,13 @@
 - Tocco su persone, oggetti, cartelli e banconi con percorso automatico e interazione; 28 test superati (4 sul gioco vero).
 - APK ricompilato con squadra in alto, comandi di lotta, Sì/No e tocco per parlare (non ancora consegnato).
 
-## Prossimo passo
-1. Prova sul gioco vero del tocco su una persona (camminata + dialogo che si apre) e dei PC
-   (i PC non sono cartelli: oggi si raggiungono con la levetta e si tocca il proprio personaggio).
+## Prossimo passo – GIOCO A TUTTO SCHERMO (priorità del committente, D-026)
+Piano per la "vista estesa" (ARCHITECTURE.md §7):
+1. Leggere dal motore la memoria video (tile del set corrente, palette a colori) e i registri di scorrimento.
+2. Calcolare dove cade l'inquadratura originale sulla mappa (posizione del giocatore + scorrimento fine durante il passo).
+3. Disegnare la mappa sopra e sotto l'inquadratura con i tile e le palette del gioco, allineata al pixel,
+   e sovrapporre al centro l'immagine originale (testi e menu restano quelli del gioco).
+4. Usarla solo in esplorazione; lotta e schermate speciali restano come ora.
+5. Poi: personaggi fuori inquadratura (oggi spariscono al bordo).
+
 2. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.

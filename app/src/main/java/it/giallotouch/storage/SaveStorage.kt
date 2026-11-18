@@ -19,6 +19,20 @@ class SaveStorage(context: Context) {
 
     fun hasRom(): Boolean = romFile.isFile && romFile.length() > 0
 
+    /** Cancella il punto di ripresa (e la sua copia di riserva). */
+    fun deleteResumeState() {
+        for (f in listOf(stateFile, File(dir, stateFile.name + ".bak"))) f.delete()
+    }
+
+    /** Dimentica un file del gioco non valido, con ripresa e salvataggio creati da quel file. */
+    fun forgetGameFile() {
+        for (base in listOf(romFile, stateFile, batteryFile)) {
+            base.delete()
+            File(dir, base.name + ".bak").delete()
+            File(dir, base.name + ".tmp").delete()
+        }
+    }
+
     fun writeAtomic(target: File, bytes: ByteArray) {
         val tmp = File(target.parentFile, target.name + ".tmp")
         FileOutputStream(tmp).use { out ->

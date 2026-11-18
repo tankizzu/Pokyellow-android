@@ -37,6 +37,8 @@
 
 | D-025 | 2026-11-17 | Richiesta del committente: APK da passare agli amici **con il gioco già dentro**. **Non accolta**: distribuire la ROM viola il diritto d'autore e il requisito R-01. Si può passare l'APK senza ROM (ognuno usa la propria copia). Alternativa lecita proposta per il futuro: un gioco originale (creature, mappe, storia proprie) costruito sullo stesso motore touch. |
 
+| D-026 | 2026-11-18 | Il committente: **priorità al gioco a tutto schermo** ("non dovrebbe essere impossibile"); il promemoria orario resta attivo e si prosegue in autonomia. |
+
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
 |---|---|---|---|

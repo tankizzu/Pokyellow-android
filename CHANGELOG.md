@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-18 – 0.2.1-prototipo
+- Correzione B-001: l'app apre il gioco anche dentro uno ZIP, controlla la somma di controllo dell'intestazione,
+  mostra il titolo se è un altro gioco e ripara/scarta all'avvio un file salvato non valido dalle versioni precedenti.
+- 32 test superati, compreso quello con lo ZIP vero dell'utente (solo in locale).
+
 ## 2026-11-18 (promemoria 05:16 UTC)
 - Trovati set di tile corrente (D52F–D539), lista dei tile calpestabili nella ROM (banco 1) e cartelli (D4B4).
 - Nuova griglia dei passi calpestabili (`MapGrid`), percorso più breve, posti da cui parlare (anche attraverso i banconi).

@@ -17,6 +17,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import it.giallotouch.emu.GameSession
+import it.giallotouch.storage.RomLoader
 import it.giallotouch.storage.SaveStorage
 import it.giallotouch.ui.GameScreen
 import it.giallotouch.ui.RomPickerScreen
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var storage: SaveStorage
     private var session by mutableStateOf<GameSession?>(null)
+    private var startupMessage by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +34,7 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         hideSystemBars()
         storage = SaveStorage(this)
-        if (storage.hasRom()) startSession()
+        if (storage.hasRom()) checkStoredRomAndStart()
         setContent { App() }
     }
 
@@ -40,14 +42,15 @@ class MainActivity : ComponentActivity() {
     private fun App() {
         var error by remember { mutableStateOf<String?>(null) }
         var pendingRom by remember { mutableStateOf<ByteArray?>(null) }
+        var pendingTitle by remember { mutableStateOf<String?>(null) }
         val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             if (uri == null) return@rememberLauncherForActivityResult
             val bytes = runCatching { contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
-            when {
-                bytes == null -> error = "Non riesco a leggere il file scelto."
-                bytes.size < 0x8000 || bytes.size > 8 * 1024 * 1024 -> error = "Questo file non sembra un gioco per Game Boy."
-                SaveStorage.sha1(bytes) == SaveStorage.SUPPORTED_SHA1 -> { error = null; useRom(bytes) }
-                else -> { error = null; pendingRom = bytes }
+            if (bytes == null) { error = "Non riesco a leggere il file scelto."; return@rememberLauncherForActivityResult }
+            when (val r = RomLoader.prepare(bytes)) {
+                is RomLoader.Result.Supported -> { error = null; pendingRom = null; pendingTitle = null; useRom(r.rom) }
+                is RomLoader.Result.OtherGame -> { error = null; pendingRom = r.rom; pendingTitle = r.title }
+                is RomLoader.Result.Invalid -> { error = r.message; pendingRom = null }
             }
         }
         val current = session
@@ -55,9 +58,9 @@ class MainActivity : ComponentActivity() {
             GameScreen(current)
         } else {
             RomPickerScreen(
-                error = error,
+                error = error ?: startupMessage,
                 warning = if (pendingRom != null)
-                    "Questo file non è la versione italiana per cui è pensata l'app. Il gioco potrebbe funzionare, ma le funzioni future (menu nativi, mappa a tutto schermo) no."
+                    "Questo file è un gioco per Game Boy («${pendingTitle.orEmpty()}») ma non la versione italiana di Giallo per cui è pensata l'app. Il gioco potrebbe funzionare, ma squadra in alto, comandi di lotta e tocco sulle persone no."
                 else null,
                 onPick = { picker.launch(arrayOf("*/*")) },
                 onContinueAnyway = pendingRom?.let { rom -> { pendingRom = null; useRom(rom) } }
@@ -67,7 +70,32 @@ class MainActivity : ComponentActivity() {
 
     private fun useRom(bytes: ByteArray) {
         storage.writeAtomic(storage.romFile, bytes)
+        startupMessage = null
         startSession()
+    }
+
+    /**
+     * La versione 0.1 salvava il file così com'era scelto: se era uno ZIP, il gioco non poteva partire.
+     * Qui si ripara: se il file salvato è uno ZIP si estrae il gioco; se non è valido lo si scarta
+     * (con il punto di ripresa, che non può essere buono) e si chiede di sceglierlo di nuovo.
+     */
+    private fun checkStoredRomAndStart() {
+        val stored = storage.readWithBackup(storage.romFile)
+        val result = stored?.let { RomLoader.prepare(it) }
+        when (result) {
+            is RomLoader.Result.Supported, is RomLoader.Result.OtherGame -> {
+                val rom = if (result is RomLoader.Result.Supported) result.rom else (result as RomLoader.Result.OtherGame).rom
+                if (!rom.contentEquals(stored)) {
+                    storage.writeAtomic(storage.romFile, rom)
+                    storage.deleteResumeState()
+                }
+                startSession()
+            }
+            else -> {
+                storage.forgetGameFile()
+                startupMessage = "Il file scelto prima non era valido (forse uno ZIP). Sceglilo di nuovo: ora l'app apre anche gli ZIP."
+            }
+        }
     }
 
     private fun startSession() {
