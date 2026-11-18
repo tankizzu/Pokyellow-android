@@ -5,9 +5,9 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.os.SystemClock
 import android.util.Log
-import it.giallotouch.bridge.BattleCommand
-import it.giallotouch.bridge.BattleCommandExecutor
-import it.giallotouch.bridge.BattleMenuReader
+import it.giallotouch.bridge.GameCommand
+import it.giallotouch.bridge.CommandExecutor
+import it.giallotouch.bridge.MenuReader
 import it.giallotouch.bridge.GameSnapshot
 import it.giallotouch.bridge.GameStateReader
 import it.giallotouch.bridge.MemoryMapIt
@@ -67,14 +67,14 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
     fun setKeys(mask: Int) { userKeys = mask }
 
     /** Esecutore dei comandi di lotta: quando è occupato, i suoi tasti sostituiscono quelli del giocatore. */
-    private val executor = BattleCommandExecutor()
+    private val executor = CommandExecutor()
     @Volatile var commandBusy = false
         private set
-    private val menuVars = ByteArray(BattleMenuReader.MENU_VARS_SIZE)
-    private val tileMap = ByteArray(BattleMenuReader.SCREEN_SIZE)
+    private val menuVars = ByteArray(MenuReader.MENU_VARS_SIZE)
+    private val tileMap = ByteArray(MenuReader.SCREEN_SIZE)
 
     /** Chiede di eseguire un comando di lotta (scegliere una mossa, fuggire…). */
-    fun command(cmd: BattleCommand) {
+    fun command(cmd: GameCommand) {
         commandBusy = true
         tasks.add(Runnable { executor.start(cmd) })
     }
@@ -84,10 +84,10 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
             commandBusy = false
             return userKeys
         }
-        NativeCore.nativeReadRange(handle, BattleMenuReader.MENU_VARS, menuVars)
+        NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
         NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
         val inBattle = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0
-        val keys = executor.step(BattleMenuReader.read(menuVars, tileMap), inBattle)
+        val keys = executor.step(MenuReader.read(menuVars, tileMap), inBattle)
         if (!executor.busy) commandBusy = false
         return keys
     }
@@ -192,7 +192,9 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
     private fun readSnapshot() {
         runCatching {
             NativeCore.nativeReadRange(handle, MemoryMapIt.BLOCK_START, stateBlock)
-            val snapshot = GameStateReader.read(stateBlock)
+            NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, menuVars)
+            NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+            val snapshot = GameStateReader.read(stateBlock).copy(menu = MenuReader.read(menuVars, tileMap))
             if (snapshot != latestSnapshot.get()) latestSnapshot.set(snapshot)
         }.onFailure { Log.e(TAG, "Lettura stato non riuscita", it) }
     }

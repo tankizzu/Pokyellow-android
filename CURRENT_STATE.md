@@ -33,13 +33,12 @@
 ## Ultimo lavoro (promemoria 23:16 UTC)
 - Ponte di sola lettura + squadra in alto con dati veri; 4 test superati; APK ricompilato (non ancora consegnato).
 
-## Ultimo lavoro (promemoria 02:16 UTC)
-- Comandi di lotta veri: esecutore a circuito chiuso + pulsanti delle mosse; provato sul gioco vero (test superato).
-- APK ricompilato con squadra in alto e comandi di lotta (non ancora consegnato).
+## Ultimo lavoro (promemoria 03:16 UTC)
+- Sì/No nativi nelle domande del gioco (provato sul gioco vero) e codice dei comandi generalizzato.
+- APK ricompilato con squadra in alto, comandi di lotta e Sì/No (non ancora consegnato).
 
 ## Prossimo passo
-1. Dialoghi: capire quando il gioco aspetta un tocco (testo con ▼) e quando c'è una domanda Sì/No,
-   per mostrare i pulsanti Sì/No nativi (stessa tecnica: variabili dei menu + cursore sullo schermo).
-2. Tipo e PP massimi delle mosse dalla ROM (tabella dei dati delle mosse) per completare i pulsanti di lotta.
+1. Tipo e PP massimi delle mosse dalla ROM (tabella dei dati delle mosse) per completare i pulsanti di lotta.
+2. Tocco su persone e oggetti: collisioni del set di tile corrente (tabelle nella ROM) e percorso automatico.
 3. Tocco su persone/oggetti con percorso automatico: servono collisioni (tabelle nella ROM) e posizioni degli sprite.
 4. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.

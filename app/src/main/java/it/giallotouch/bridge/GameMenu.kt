@@ -1,7 +1,7 @@
 package it.giallotouch.bridge
 
 /**
- * Riconoscimento dei menu di lotta della versione italiana, dalla memoria del gioco.
+ * Riconoscimento dei menu del gioco (lotta, domande Sì/No) nella versione italiana, dalla memoria.
  *
  * Variabili dei menu (CC24–CC2A): Y e X del primo elemento, elemento corrente, (tile sotto il cursore),
  * elemento massimo, tasti osservati, ultimo elemento. Per evitare valori rimasti da un menu chiuso,
@@ -12,8 +12,10 @@ package it.giallotouch.bridge
  * - menu principale di lotta: Y = 0x0E, X = 0x07 (colonna sinistra: 0 lotta, 1 strumenti)
  *   oppure X = 0x0E (colonna destra: 0 squadra, 1 fuga); righe distanziate di 2.
  * - menu delle mosse: Y = 0x0C, X = 0x05; elemento 1 = prima mossa; righe distanziate di 1.
+ * - domanda Sì/No: tasti osservati = A|B (0x03), elemento massimo 1, righe distanziate di 2;
+ *   accanto al cursore le lettere "S" (0x92) e "N" (0x8D). Nella domanda del soprannome: Y = 0x08, X = 0x0F.
  */
-enum class MenuKind { NONE, BATTLE_MAIN, BATTLE_MOVES }
+enum class MenuKind { NONE, BATTLE_MAIN, BATTLE_MOVES, YES_NO }
 
 data class MenuState(val kind: MenuKind, val column: Int = 0, val item: Int = 0) {
     companion object {
@@ -21,17 +23,21 @@ data class MenuState(val kind: MenuKind, val column: Int = 0, val item: Int = 0)
     }
 }
 
-object BattleMenuReader {
+object MenuReader {
     const val MENU_VARS = 0xCC24
     const val MENU_VARS_SIZE = 7
     const val SCREEN_WIDTH = 20
     const val SCREEN_SIZE = 20 * 18
     private const val CURSOR = 0xED
+    private const val LETTER_S = 0x92
+    private const val LETTER_N = 0x8D
 
     fun read(menuVars: ByteArray, tileMap: ByteArray): MenuState {
         val topY = menuVars[0].toInt() and 0xFF
         val topX = menuVars[1].toInt() and 0xFF
         val current = menuVars[2].toInt() and 0xFF
+        val maxItem = menuVars[4].toInt() and 0xFF
+        val watchedKeys = menuVars[5].toInt() and 0xFF
         fun tile(x: Int, y: Int): Int {
             val i = y * SCREEN_WIDTH + x
             return if (x in 0 until SCREEN_WIDTH && i in tileMap.indices) tileMap[i].toInt() and 0xFF else -1
@@ -42,16 +48,26 @@ object BattleMenuReader {
         if (topY == 0x0C && topX == 0x05 && current in 1..4 && tile(topX, topY + current) == CURSOR) {
             return MenuState(MenuKind.BATTLE_MOVES, item = current - 1)
         }
+        if (watchedKeys == 0x03 && maxItem == 1 && current <= 1 && tile(topX, topY + 2 * current) == CURSOR &&
+            tile(topX + 1, topY) == LETTER_S && tile(topX + 1, topY + 2) == LETTER_N) {
+            return MenuState(MenuKind.YES_NO, item = current)
+        }
         return MenuState.NONE
     }
 }
 
-/** Comandi di lotta che l'interfaccia nativa può chiedere. */
-sealed interface BattleCommand {
-    data class Fight(val moveIndex: Int) : BattleCommand
-    data object Item : BattleCommand
-    data object Party : BattleCommand
-    data object Run : BattleCommand
+/** Comandi che l'interfaccia nativa può chiedere al gioco. */
+sealed interface GameCommand {
+    /** true per i comandi che hanno senso solo durante la lotta. */
+    val battleOnly: Boolean get() = true
+
+    data class Fight(val moveIndex: Int) : GameCommand
+    data object Item : GameCommand
+    data object Party : GameCommand
+    data object Run : GameCommand
+    data class Answer(val yes: Boolean) : GameCommand {
+        override val battleOnly: Boolean get() = false
+    }
 }
 
 /** Bit dei tasti (stesso ordine del motore). */
@@ -65,12 +81,12 @@ object Keys {
 }
 
 /**
- * Esegue un comando di lotta premendo i tasti del gioco uno alla volta e controllando
+ * Esegue un comando premendo i tasti del gioco uno alla volta e controllando
  * dopo ogni pressione che il menu sia cambiato come previsto (circuito chiuso).
  * Non scrive mai nella memoria del gioco. Se qualcosa non torna entro il tempo massimo, si ferma.
  */
-class BattleCommandExecutor(private val timeoutFrames: Int = 360) {
-    private var command: BattleCommand? = null
+class CommandExecutor(private val timeoutFrames: Int = 360) {
+    private var command: GameCommand? = null
     private var framesLeft = 0
     private var heldKey = 0
     private var holdFrames = 0
@@ -79,7 +95,7 @@ class BattleCommandExecutor(private val timeoutFrames: Int = 360) {
 
     val busy: Boolean get() = command != null
 
-    fun start(cmd: BattleCommand) {
+    fun start(cmd: GameCommand) {
         command = cmd
         framesLeft = timeoutFrames
         heldKey = 0; holdFrames = 0; cooldown = 0; finishing = false
@@ -90,7 +106,7 @@ class BattleCommandExecutor(private val timeoutFrames: Int = 360) {
     /** Chiamata una volta per fotogramma: restituisce i tasti da tenere premuti in questo fotogramma. */
     fun step(menu: MenuState, inBattle: Boolean): Int {
         val cmd = command ?: return 0
-        if (!inBattle || --framesLeft <= 0) { cancel(); return 0 }
+        if ((cmd.battleOnly && !inBattle) || --framesLeft <= 0) { cancel(); return 0 }
         if (holdFrames > 0) { holdFrames--; return heldKey }
         if (cooldown > 0) { cooldown--; return 0 }
         if (finishing) { cancel(); return 0 }
@@ -109,29 +125,37 @@ class BattleCommandExecutor(private val timeoutFrames: Int = 360) {
         private const val RELEASE = 5
 
         /** Prossimo tasto da premere per avvicinarsi al comando; null = aspettare (testo in corso). */
-        fun decide(cmd: BattleCommand, menu: MenuState): Decision? = when (menu.kind) {
+        fun decide(cmd: GameCommand, menu: MenuState): Decision? = when (menu.kind) {
             MenuKind.NONE -> null
+            MenuKind.YES_NO -> if (cmd is GameCommand.Answer) {
+                val target = if (cmd.yes) 0 else 1
+                when {
+                    menu.item < target -> Decision(Keys.DOWN)
+                    menu.item > target -> Decision(Keys.UP)
+                    else -> Decision(Keys.A, done = true)
+                }
+            } else null
             MenuKind.BATTLE_MOVES -> when (cmd) {
-                is BattleCommand.Fight -> when {
+                is GameCommand.Fight -> when {
                     menu.item < cmd.moveIndex -> Decision(Keys.DOWN)
                     menu.item > cmd.moveIndex -> Decision(Keys.UP)
                     else -> Decision(Keys.A, done = true)
                 }
                 else -> Decision(Keys.B)
             }
-            MenuKind.BATTLE_MAIN -> {
+            MenuKind.BATTLE_MAIN -> if (cmd is GameCommand.Answer) null else {
                 val (column, item) = when (cmd) {
-                    is BattleCommand.Fight -> 0 to 0
-                    BattleCommand.Item -> 0 to 1
-                    BattleCommand.Party -> 1 to 0
-                    BattleCommand.Run -> 1 to 1
+                    is GameCommand.Fight -> 0 to 0
+                    GameCommand.Item -> 0 to 1
+                    GameCommand.Party -> 1 to 0
+                    else -> 1 to 1
                 }
                 when {
                     menu.column < column -> Decision(Keys.RIGHT)
                     menu.column > column -> Decision(Keys.LEFT)
                     menu.item < item -> Decision(Keys.DOWN)
                     menu.item > item -> Decision(Keys.UP)
-                    else -> Decision(Keys.A, done = cmd !is BattleCommand.Fight)
+                    else -> Decision(Keys.A, done = cmd !is GameCommand.Fight)
                 }
             }
         }

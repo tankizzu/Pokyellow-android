@@ -22,7 +22,8 @@
 - [x] Squadra in alto con dati reali (da verificare su partita vera con un compagno in squadra)
 - [x] Esecutore comandi a circuito chiuso per la lotta (provato sul gioco vero)
 - [ ] Ponte: pathfinding e tocco su persone/oggetti
-- [ ] Sì/No nativi nei dialoghi; tipo e PP massimi delle mosse
+- [x] Sì/No nativi nelle domande del gioco
+- [ ] Tipo e PP massimi delle mosse dalla ROM
 - [ ] Tocco su persone/oggetti; vista estesa; lotta sovrapposta; menu nativi
 
 ## Prova del motore su computer
@@ -37,7 +38,7 @@ SB=third_party/SameBoy/Core; D=(-D_GNU_SOURCE -D_USE_MATH_DEFINES -DGB_DISABLE_T
    `app/src/main/cpp/gbcore_jni.c` e `boot_rom.c`, inclusi `$JAVA_HOME/include` e `include/linux`,
    collegati con `clang -shared ... -lm -o CARTELLA/libgbcore.so`.
 2. Preparare uno stato salvato al menu di lotta con `tools/native-test/runner.c` (sequenza in docs/MEMORY_MAP_IT.md).
-3. `./gradlew testDebugUnitTest -Pgiallo.rom=ROM -Pgiallo.state=STATO -Pgiallo.hostlib=CARTELLA`
+3. `./gradlew testDebugUnitTest -Pgiallo.rom=ROM -Pgiallo.state=STATO_MENU_LOTTA -Pgiallo.state.yesno=STATO_DOMANDA -Pgiallo.hostlib=CARTELLA`
 
 ## Ambiente: ripristino SDK se il container viene ricreato
 ```

@@ -73,6 +73,9 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 | Principale, colonna sinistra | 0x0E | 0x07 | 0 = lotta, 1 = strumenti | colonna X, riga 14 + 2 × elemento |
 | Principale, colonna destra | 0x0E | 0x0E | 0 = squadra, 1 = fuga | colonna X, riga 14 + 2 × elemento |
 | Mosse | 0x0C | 0x05 | 1 = prima mossa … 4 | colonna 5, riga 12 + elemento |
+| Domanda Sì/No (soprannome) | 0x08 | 0x0F | 0 = Sì, 1 = No | colonna X, riga Y + 2 × elemento; tasti osservati 0x03; lettere S (0x92) e N (0x8D) accanto |
+
+Testo in attesa di un tocco: freccia ▼ (0xEE) nell'angolo in basso a destra del riquadro (colonna 18, riga 16).
 
 Le variabili restano in memoria anche a menu chiuso: il menu è attivo solo se c'è il cursore sullo schermo.
 

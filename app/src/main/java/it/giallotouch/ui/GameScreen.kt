@@ -39,7 +39,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
-import it.giallotouch.bridge.BattleCommand
+import it.giallotouch.bridge.GameCommand
+import it.giallotouch.bridge.MenuKind
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.width
 import it.giallotouch.bridge.PartyMember
 import it.giallotouch.bridge.Status
 import it.giallotouch.emu.GameSession
@@ -149,6 +152,24 @@ fun GameScreen(session: GameSession) {
             }
         }
 
+        // Domanda Sì/No del gioco: pulsanti nativi sopra il riquadro originale (a destra dell'immagine).
+        if (snapshot.menu.kind == MenuKind.YES_NO) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val imageHeight = maxWidth * 0.9f
+                val imageTop = (maxHeight - imageHeight) / 2
+                Column(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = imageTop + imageHeight * 0.30f, end = 10.dp)
+                        .width(132.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AnswerButton("Sì", primary = true, enabled = !commandBusy) { session.command(GameCommand.Answer(true)) }
+                    AnswerButton("No", primary = false, enabled = !commandBusy) { session.command(GameCommand.Answer(false)) }
+                }
+            }
+        }
+
         // Squadra in alto, con i dati letti dalla memoria del gioco (nascosta durante la lotta).
         if (snapshot.party.isNotEmpty() && !snapshot.inBattle) {
             TeamStrip(
@@ -212,7 +233,7 @@ fun GameScreen(session: GameSession) {
 private fun BattlePanel(
     moves: List<Pair<String, Int>>,
     enabled: Boolean,
-    onCommand: (BattleCommand) -> Unit,
+    onCommand: (GameCommand) -> Unit,
     modifier: Modifier,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -227,7 +248,7 @@ private fun BattlePanel(
                             .height(64.dp)
                             .background(Glass, RoundedCornerShape(16.dp))
                             .border(1.dp, Color(0xFF403C62), RoundedCornerShape(16.dp))
-                            .then(if (move != null && enabled) Modifier.clickable { onCommand(BattleCommand.Fight(index)) } else Modifier)
+                            .then(if (move != null && enabled) Modifier.clickable { onCommand(GameCommand.Fight(index)) } else Modifier)
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -238,10 +259,25 @@ private fun BattlePanel(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BarButton("Squadra", Modifier.weight(1f)) { if (enabled) onCommand(BattleCommand.Party) }
-            BarButton("Borsa", Modifier.weight(1f)) { if (enabled) onCommand(BattleCommand.Item) }
-            BarButton("Fuga", Modifier.weight(1f)) { if (enabled) onCommand(BattleCommand.Run) }
+            BarButton("Squadra", Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Party) }
+            BarButton("Borsa", Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Item) }
+            BarButton("Fuga", Modifier.weight(1f)) { if (enabled) onCommand(GameCommand.Run) }
         }
+    }
+}
+
+@Composable
+private fun AnswerButton(label: String, primary: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .background(if (primary) Yellow else Glass, RoundedCornerShape(16.dp))
+            .border(1.dp, if (primary) Yellow else Color(0xFF403C62), RoundedCornerShape(16.dp))
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = if (primary) Ink else Cream, fontWeight = FontWeight.Bold, fontSize = 19.sp)
     }
 }
 

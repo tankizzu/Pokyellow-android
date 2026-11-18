@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 03:16 UTC)
+- Domande Sì/No riconosciute dalla memoria e dal cursore sullo schermo; pulsanti nativi "Sì" e "No" sopra il riquadro originale, a destra dell'immagine di gioco.
+- Codice generalizzato: `GameMenu.kt` con `MenuReader`, `GameCommand` (lotta + risposte) e `CommandExecutor`.
+- Lo stato letto 4 volte al secondo include ora il menu attivo.
+- Test: 15 su dati simulati + 2 sul gioco vero (scelta della seconda mossa; risposta "No" al soprannome con dati del compagno completati). Tutti superati. APK ricompilato.
+
 ## 2026-11-18 (promemoria 02:16 UTC)
 - Mappati i menu di lotta della versione italiana (menu principale a due colonne, menu delle mosse) e la regola "menu attivo solo se il cursore è sullo schermo".
 - Nuovo esecutore a circuito chiuso (`BattleMenu.kt`): sceglie mossa, strumenti, squadra o fuga premendo un tasto alla volta e controllando la memoria dopo ogni pressione; si ferma da solo se la lotta finisce o se non vede il menu entro 6 s.

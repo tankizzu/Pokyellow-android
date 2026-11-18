@@ -12,6 +12,8 @@ data class GameSnapshot(
     val battleType: Int = 0,
     /** Creatura del giocatore in campo; presente solo durante la lotta. */
     val battleMon: BattleMon? = null,
+    /** Menu attivo sullo schermo (lotta, domanda Sì/No), se riconosciuto. */
+    val menu: MenuState = MenuState.NONE,
 ) {
     val inBattle: Boolean get() = battleType != 0
 
