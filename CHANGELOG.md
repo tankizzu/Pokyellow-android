@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 – scelta del nome, colori/bianco e nero, scheda del Pokédex (D-054)
+- Scelta del nome nella disposizione del committente (giocatore e rivale).
+- OPZIONI → GIOCO: A COLORI o BIANCO E NERO (tutto il gioco).
+- Pokédex: tocco su una specie vista → scheda con immagine, categoria, altezza, peso e descrizione dalla ROM;
+  PRECEDENTE e SUCCESSIVO. Verificato col banco di prova.
+
 ## 2026-11-18 – nomi proposti toccabili (D-052)
 - NUOVO GIOCO: le liste dei nomi del giocatore e del rivale sono riquadri dell'app; un tocco sceglie il nome.
   Verificato: GIALLO e BLU scelti con un tocco, nessuna tastiera, il gioco prosegue.

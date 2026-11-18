@@ -33,6 +33,16 @@ class TileCanvas(val widthTiles: Int, val heightTiles: Int, private val sheet: I
         }
     }
 
+    /** Tile specchiato in orizzontale (per esempio il cursore ▶ rivolto a sinistra). */
+    fun tileMirroredAt(t: Int, px: Int, py: Int) {
+        val sx = (t and 15) * 8
+        val sy = ((t shr 4) and 15) * 8
+        for (y in 0 until 8) for (x in 0 until 8) {
+            val dx = px + 7 - x; val dy = py + y
+            if (dx in 0 until width && dy in 0 until height) pixels[dy * width + dx] = sheet[(sy + y) * 128 + sx + x]
+        }
+    }
+
     fun textAt(s: String, px: Int, py: Int) = GameText.encode(s).forEachIndexed { i, t -> tileAt(t, px + i * 8, py) }
 
     /** Rettangolo pieno in pixel (barre di vita ed esperienza). */

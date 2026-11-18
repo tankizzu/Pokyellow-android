@@ -72,6 +72,38 @@ class RomData private constructor(
         }
     }
 
+    /**
+     * Voce del Pokédex della specie (indice interno), dalla ROM (D-054): categoria e righe della descrizione come
+     * caselle del carattere del gioco, altezza in decimetri e peso in ettogrammi. null se non disponibile.
+     */
+    class DexEntry(val category: IntArray, val heightDm: Int, val weightHg: Int, val lines: List<IntArray>)
+
+    fun dexEntry(index: Int): DexEntry? = runCatching {
+        val r = rom ?: return null
+        val p = M.ROM_DEX_ENTRY_POINTERS + 2 * (index - 1)
+        val ptr = u8(r, p) or (u8(r, p + 1) shl 8)
+        if (ptr !in 0x4000..0x7FFF) return null
+        var o = 0x40000 + ptr - 0x4000
+        val cat = ArrayList<Int>()
+        while (u8(r, o) != 0x50 && cat.size < 12) cat += u8(r, o++)
+        o++
+        val h = u8(r, o); val w = u8(r, o + 1) or (u8(r, o + 2) shl 8)
+        if (u8(r, o + 3) != 0x17) return DexEntry(cat.toIntArray(), h, w, emptyList())
+        val addr = u8(r, o + 4) or (u8(r, o + 5) shl 8); val bank = u8(r, o + 6)
+        var t = bank * 0x4000 + addr - 0x4000
+        if (u8(r, t) == 0x00) t++
+        val lines = ArrayList<IntArray>(); var cur = ArrayList<Int>()
+        while (lines.size < 8) {
+            val b = u8(r, t++)
+            when (b) {
+                0x50, 0x5F -> { if (cur.isNotEmpty()) lines += cur.toIntArray(); break }
+                0x4E, 0x49, 0x51, 0x55 -> { lines += cur.toIntArray(); cur = ArrayList() }
+                else -> if (cur.size < 18) cur += b
+            }
+        }
+        DexEntry(cat.toIntArray(), h, w, lines)
+    }.getOrNull()
+
     /** Indice interno della specie con quel numero del Pokédex (0 se sconosciuto). */
     fun indexForDex(dex: Int): Int = dexOrder.indexOf(dex) + 1
 

@@ -118,6 +118,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
     }
     LaunchedEffect(startCursor) { session.startMenuCursor = startCursor }
     LaunchedEffect(autoText) { session.autoTextSpeed = autoText; settings.autoTextSpeed = autoText }
+    var blackWhite by remember { mutableStateOf(settings.blackWhite) }
+    LaunchedEffect(blackWhite) { session.blackWhite = blackWhite; settings.blackWhite = blackWhite }
     var volume by remember { mutableStateOf(settings.volume) }
     LaunchedEffect(volume) { session.volume = volume; settings.volume = volume }
     // Dito tenuto premuto per più di 0,3 s: durante i testi il gioco scorre più veloce.
@@ -314,25 +316,32 @@ fun GameScreen(session: GameSession, settings: Settings) {
         // Domanda Sì/No del gioco: pulsanti nativi sopra il riquadro originale (a destra dell'immagine).
         val names = nameList
         if (names != null && sheet != null) {
-            // Nomi proposti dal Professore (D-052): riquadro dell'app sotto il dialogo; tocco sul nome = scelta.
+            // Nomi proposti dal Professore (D-052, disposizione del committente D-054): i nomi pronti in un riquadro
+            // 11×11 alla riga 15 (ogni 3 righe), NUOVO NOME da solo in un riquadro 14×5 alla riga 28. Tocco = scelta.
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val tilePx = 8 * unit
-                val h = 2 * names.size + 3
+                val ready = names.drop(1)
                 TileImage(
-                    sheet!!, 11, h, unit, key = names.map { it.toList() },
+                    sheet!!, 11, 11, unit, key = names.map { it.toList() },
                     modifier = Modifier
-                        .offset { IntOffset(0, (16 * tilePx).toInt()) }
+                        .offset { IntOffset(0, (15 * tilePx).toInt()) }
                         .pointerInput(names.size, commandBusy) {
                             detectTapGestures { pos ->
-                                val i = (((pos.y / tilePx).toInt() - 1) / 2).coerceIn(0, names.size - 1)
-                                if (!commandBusy) session.command(GameCommand.MainMenu(i))
+                                val i = (((pos.y / tilePx).toInt() - 1) / 3).coerceIn(0, ready.size - 1)
+                                if (!commandBusy) session.command(GameCommand.MainMenu(i + 1))
                             }
                         }
                 ) {
-                    box(0, 0, 10, h - 1)
-                    names.forEachIndexed { i, w -> w.forEachIndexed { x, t -> tile(t, 2 + x, 2 + 2 * i) } }
+                    box(0, 0, 10, 10)
+                    ready.forEachIndexed { i, w -> w.forEachIndexed { x, t -> tile(t, 2 + x, 2 + 3 * i) } }
                 }
+                TileImage(
+                    sheet!!, 14, 5, unit, key = "nuovo-nome",
+                    modifier = Modifier
+                        .offset { IntOffset((3 * tilePx).toInt(), (28 * tilePx).toInt()) }
+                        .pointerInput(commandBusy) { detectTapGestures { if (!commandBusy) session.command(GameCommand.MainMenu(0)) } }
+                ) { box(0, 0, 13, 4); text("NUOVO NOME", 2, 2) }
             }
         }
         val yn = yesNo
@@ -455,6 +464,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 onAutoText = { autoText = (autoText + 1) % 4 },
                 volume = volume,
                 onVolume = { volume = it },
+                blackWhite = blackWhite,
+                onBlackWhite = { blackWhite = !blackWhite },
                 onBack = { optionsOpen = false },
             )
         }

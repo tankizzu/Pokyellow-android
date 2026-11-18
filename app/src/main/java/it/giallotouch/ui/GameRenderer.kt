@@ -70,7 +70,7 @@ class GameRenderer(private val session: GameSession) {
         val eb = extBitmap
         val w = width
         if (ext.active && eb != null && ext.height == eb.height) {
-            eb.setPixels(ext.pixels, 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, ext.height)
+            eb.setPixels(gray(s, ext.pixels, NativeCore.WIDTH * ext.height), 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, ext.height)
             val h = (w.toLong() * ext.height / NativeCore.WIDTH).toInt()
             val top = (height - h) / 2   // la mappa estesa copre lo schermo; l'inquadratura dentro è già spostata dal motore
             dst.set(0, top, w, top + h)
@@ -79,7 +79,7 @@ class GameRenderer(private val session: GameSession) {
             return
         }
         val frame = s.latestFrame.get()
-        frameBitmap.setPixels(frame, 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, NativeCore.HEIGHT)
+        frameBitmap.setPixels(gray(s, frame, NativeCore.WIDTH * NativeCore.HEIGHT), 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, NativeCore.HEIGHT)
         if (s.namingShown) {
             // Schermata dei nomi del gioco: mai visibile, nemmeno per un attimo prima della schermata dell'app (D-046).
             val sheet = s.tileSheet.get()
@@ -154,6 +154,20 @@ class GameRenderer(private val session: GameSession) {
         val b = Bitmap.createBitmap(c.pixels, c.width, c.height, Bitmap.Config.ARGB_8888)
         emptyBox = sheet to b
         return b
+    }
+
+    /** Gioco in bianco e nero (D-054): copia dell'immagine in 4 grigi; a colori l'immagine resta com'è. */
+    private var grayBuf = IntArray(0)
+    private fun gray(s: GameSession, px: IntArray, n: Int): IntArray {
+        if (!s.blackWhite) return px
+        if (grayBuf.size < n) grayBuf = IntArray(n)
+        for (i in 0 until n) {
+            val c = px[i]
+            val l = (((c shr 16) and 255) * 30 + ((c shr 8) and 255) * 59 + (c and 255) * 11) / 100
+            val g = when { l >= 190 -> 0xF8; l >= 120 -> 0xA8; l >= 60 -> 0x58; else -> 0x18 }
+            grayBuf[i] = (0xFF shl 24) or (g shl 16) or (g shl 8) or g
+        }
+        return grayBuf
     }
 
     /** Menu iniziale ridisegnato con i tile del gioco (D-040), nello stesso fotogramma: copre il menu originale. */

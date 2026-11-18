@@ -68,5 +68,10 @@ class RomDataTest {
         val pics = (1..151).map { data.frontPic(data.indexForDex(it)) }
         assertEquals(true, pics.all { p -> p != null && p.width in 40..56 && p.height in 40..56 && p.pixels.count { it == 3 } > 30 })
         assertEquals(40, data.frontPic(0x54)!!.width)
+        // Pokédex: Pikachu 0,4 m e 6,0 kg, categoria e descrizione presenti; tutte le 151 voci leggibili
+        val pika2 = data.dexEntry(0x54)!!
+        assertEquals(4, pika2.heightDm); assertEquals(60, pika2.weightHg)
+        assertEquals(true, pika2.category.size in 3..10 && pika2.lines.size in 3..6)
+        assertEquals(true, (1..151).all { n -> data.dexEntry(data.indexForDex(n))?.let { it.lines.isNotEmpty() && it.heightDm > 0 } == true })
     }
 }

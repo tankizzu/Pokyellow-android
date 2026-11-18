@@ -16,6 +16,11 @@ class Settings(context: Context) {
         get() = prefs.getInt("volume", 5)
         set(value) { prefs.edit().putInt("volume", value).apply() }
 
+    /** Gioco in bianco e nero (true) o a colori (false) (D-054). */
+    var blackWhite: Boolean
+        get() = prefs.getBoolean("bianco_nero", false)
+        set(value) { prefs.edit().putBoolean("bianco_nero", value).apply() }
+
     /** Lato del pulsante laterale che fa comparire i pulsanti durante il gioco: "destra" o "sinistra" (D-037). */
     var panelSide: String
         get() = prefs.getString("lato_pulsanti", "destra") ?: "destra"

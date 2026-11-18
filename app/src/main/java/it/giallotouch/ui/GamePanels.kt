@@ -129,7 +129,8 @@ private fun drawTeam(c: TileCanvas, party: List<PartyMember>, romData: RomData) 
  * OPZIONI (D-040), nello stile del gioco: testo automatico (tocco = cambia velocità) e INDIETRO.
  */
 @Composable
-fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: Int, onVolume: (Int) -> Unit, onBack: () -> Unit) {
+fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: Int, onVolume: (Int) -> Unit, onBack: () -> Unit,
+                blackWhite: Boolean = false, onBlackWhite: () -> Unit = {}) {
     val speeds = listOf("NO", "LENTO", "MEDIO", "VELOCE")
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8]))
         .pointerInput(Unit) { detectTapGestures { } }) {
@@ -142,7 +143,7 @@ fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: 
         }
         // Riquadro grande (D-046): COMPARSA TESTO (tocco = cambia) e VOLUME con 6 livelli (tocco sul livello).
         TileImage(
-            sheet, 20, 28, unit, key = Pair(autoText, volume),
+            sheet, 20, 28, unit, key = Triple(autoText, volume, blackWhite),
             modifier = Modifier
                 .offset { g.at(0f, (top + 4).toFloat()) }
                 .pointerInput(Unit) {
@@ -151,6 +152,7 @@ fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: 
                         when {
                             row in 1..5 -> onAutoText()
                             row in 7..12 -> onVolume((((pos.x / unit) - 18) / 22).toInt().coerceIn(0, 5))
+                            row in 15..19 -> onBlackWhite()
                         }
                     }
                 }
@@ -164,6 +166,7 @@ fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: 
                 if (volume == 0 || i > volume) fill(x + 1, y + 1, 12, 6, paper)   // 6 scelte: tocco sulla prima = muto
             }
             text(if (volume == 0) "MUTO" else "", 2, 13)
+            text("GIOCO", 2, 16); text(if (blackWhite) "BIANCO E NERO" else "A COLORI", 2, 18)
         }
         TileImage(
             sheet, 11, 4, unit, key = "opz-indietro",
@@ -587,27 +590,41 @@ fun GameMonScreen(sheet: IntArray, m: PartyMember, romData: RomData, onClose: ()
     }
 }
 
-/** POKéDEX nello stile del gioco (D-046): lista dei numeri fino all'ultimo visto (scorre col dito), visti e presi. */
+/** POKéDEX nello stile del gioco (D-046): lista dei numeri fino all'ultimo visto (scorre col dito), visti e presi;
+ *  tocco su una specie vista = sua scheda (D-054). */
 @Composable
 fun GameDexScreen(sheet: IntArray, seen: List<Int>, owned: List<Int>, romData: RomData, onClose: () -> Unit) {
+    var open by remember { mutableStateOf<Int?>(null) }
+    val o = open
+    if (o != null) { GameDexEntryScreen(sheet, o, seen, owned, romData, onMove = { open = it }, onClose = { open = null }); return }
     BackHandler { onClose() }
     val last = seen.maxOrNull() ?: 0
-    var first by remember { mutableStateOf(0) }
     val visible = 12
+    // la lista parte dalla prima specie vista
+    var first by remember { mutableStateOf(((seen.minOrNull() ?: 1) - 1).coerceIn(0, maxOf(0, last - visible))) }
     BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
         val density = LocalDensity.current
         val unit = with(density) { maxWidth.toPx() } / 160f
         val tilePx = 8 * unit
         TileImage(
             sheet, 20, 39, unit, key = listOf(seen, owned, first),
-            modifier = Modifier.pointerInput(last) {
-                var acc = 0f
-                detectVerticalDragGestures { _, dy ->
-                    acc -= dy
-                    val step = (acc / (2 * tilePx)).toInt()
-                    if (step != 0) { acc -= step * 2 * tilePx; first = (first + step).coerceIn(0, maxOf(0, last - visible)) }
+            modifier = Modifier
+                .pointerInput(last, first) {
+                    detectTapGestures { pos ->
+                        val row = (pos.y / tilePx).toInt()
+                        val k = (row - 8) / 2
+                        val n = first + k + 1
+                        if (row in 8..32 && k in 0 until visible && n in seen) open = n
+                    }
                 }
-            }
+                .pointerInput(last) {
+                    var acc = 0f
+                    detectVerticalDragGestures { _, dy ->
+                        acc -= dy
+                        val step = (acc / (2 * tilePx)).toInt()
+                        if (step != 0) { acc -= step * 2 * tilePx; first = (first + step).coerceIn(0, maxOf(0, last - visible)) }
+                    }
+                }
         ) {
             box(0, 3, 19, 5); text("POKéDEX", 6, 4)
             box(0, 7, 19, 33)
@@ -622,6 +639,52 @@ fun GameDexScreen(sheet: IntArray, seen: List<Int>, owned: List<Int>, romData: R
             }
             box(0, 34, 19, 38)
             text("VISTI ${seen.size}", 2, 36); text("PRESI ${owned.size}", 11, 36)
+        }
+        BackBox(sheet, unit, 5, 39, textX = 8, onBack = onClose)
+    }
+}
+
+/**
+ * Scheda della specie nel Pokédex (D-054, disposizione del committente): PRECEDENTE e SUCCESSIVO in alto, immagine,
+ * numero e nome, categoria, altezza e peso, descrizione del gioco. Una specie solo vista mostra immagine e nome.
+ */
+@Composable
+fun GameDexEntryScreen(sheet: IntArray, dex: Int, seen: List<Int>, owned: List<Int>, romData: RomData, onMove: (Int) -> Unit, onClose: () -> Unit) {
+    BackHandler { onClose() }
+    val sorted = seen.sorted()
+    val prev = sorted.lastOrNull { it < dex }
+    val next = sorted.firstOrNull { it > dex }
+    val index = romData.indexForDex(dex)
+    val entry = if (dex in owned) romData.dexEntry(index) else null
+    BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        for ((col, target) in listOf(2 to prev, 12 to next)) {
+            TileImage(
+                sheet, 6, 6, unit, key = Pair(col, target != null),
+                modifier = Modifier
+                    .offset { IntOffset((col * tilePx).toInt(), (7 * tilePx).toInt()) }
+                    .pointerInput(target) { detectTapGestures { target?.let(onMove) } }
+            ) {
+                box(0, 0, 5, 5)
+                if (target != null) { if (col == 12) tileAt(TileCanvas.CURSOR, 20, 20) else tileMirroredAt(TileCanvas.CURSOR, 20, 20) }
+            }
+        }
+        val lines = entry?.lines ?: emptyList()
+        TileImage(sheet, 20, 30, unit, key = Pair(dex, entry != null), modifier = Modifier.offset { IntOffset(0, (13 * tilePx).toInt()) }) {
+            // righe relative alla riga 13 dello schermo
+            romData.frontPic(index)?.let { p -> pic(p, 8 + (56 - p.width + 1) / 2, 8 + 56 - p.height) }
+            text("%03d".format(dex) + " " + romData.speciesNameForDex(dex).take(10), 9, 1)
+            if (entry != null) {
+                entry.category.forEachIndexed { i, t -> tile(t, 9 + i, 3) }
+                text("ALT %d,%d m".format(entry.heightDm / 10, entry.heightDm % 10), 9, 5)
+                text("PESO %d,%d kg".format(entry.weightHg / 10, entry.weightHg % 10), 9, 7)
+            }
+            val h = maxOf(12, 2 * lines.size + 3)
+            box(0, 9, 19, 9 + h - 1)
+            if (entry == null) text("?????", 1, 11)
+            lines.forEachIndexed { k, l -> l.forEachIndexed { x, t -> tile(t, 1 + x, 11 + 2 * k) } }
         }
         BackBox(sheet, unit, 5, 39, textX = 8, onBack = onClose)
     }

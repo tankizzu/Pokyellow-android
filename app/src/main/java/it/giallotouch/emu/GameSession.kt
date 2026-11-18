@@ -201,6 +201,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var autoTextSpeed: Int = 0
         set(value) { field = value.coerceIn(0, 3) }
 
+    /** Gioco in bianco e nero (opzione del committente, D-054): l'immagine si riporta a 4 grigi. */
+    @Volatile var blackWhite: Boolean = false
+
     /** Volume 0–5 (D-046), applicato al suono del gioco. */
     @Volatile var volume: Int = 5
         set(value) { field = value.coerceIn(0, 5); runCatching { audioTrack?.setVolume(field / 5f) } }

@@ -460,12 +460,25 @@ abstract class AppScreensHarness {
         pump(800)
         tapTile(4f, 33f)             // POKéDEX
         assertTrue("Pokédex", shotUntil("17-pokedex") { boxAt(it, 0, 7, 20, 27) && boxAt(it, 0, 34, 20, 5) })
+        // prima specie vista in cima alla lista: tocco = scheda (D-054); SUCCESSIVO porta alla specie vista dopo
+        tapTile(8f, 9.5f)
+        assertTrue("scheda della specie", shotUntil("17b-pokedex-scheda") { boxAt(it, 0, 22, 20, 12) && boxAt(it, 12, 7, 6, 6) })
+        tapTile(15f, 10f)            // SUCCESSIVO
+        shot("17c-pokedex-successivo")
+        tapTile(9f, 40.5f)           // INDIETRO → lista
         tapTile(9f, 40.5f)
         pump(800)
         tapTile(10f, rows() - 2f)
         pump(800)
         tapTile(15f, 33f)            // OPZIONI
         assertTrue("OPZIONI", shotUntil("18-opzioni") { boxAt(it, 0, 10, 20, 28) && boxAt(it, 5, 39, 11, 4) })
+        tapTile(4f, 27f)             // GIOCO: bianco e nero
+        assertTrue("opzione bianco e nero", waitFor(3_000) { s.blackWhite })
+        tapTile(9f, 40.5f)           // INDIETRO
+        shot("18b-bianco-e-nero")
+        tapTile(10f, rows() - 2f); pump(800); tapTile(15f, 33f); pump(800)
+        tapTile(4f, 27f)             // di nuovo a colori
+        assertTrue("di nuovo a colori", waitFor(3_000) { !s.blackWhite })
     }
 
     /** Domanda Sì/No del gioco: due riquadri dell'app sotto il dialogo (D-046). */
@@ -560,8 +573,8 @@ class AppNameListTest : AppScreensHarness() {
             while (s.nameList == null && k++ < 80) tapTile(15f, 30f)
             val names = s.nameList
             assertTrue("lista dei nomi ${round + 1}", names != null)
-            assertTrue("riquadro dell'app", shotUntil("30-lista-nomi-$round") { b -> boxAt(b, 0, 16, 11, 2 * names!!.size + 3) })
-            tapTile(4f, 16f + 4.5f)              // seconda voce (un nome già pronto)
+            assertTrue("riquadri dell'app", shotUntil("30-lista-nomi-$round") { b -> boxAt(b, 0, 15, 11, 11) && boxAt(b, 3, 28, 14, 5) })
+            tapTile(4f, 17.5f)                   // primo nome pronto
             assertTrue("scelto", waitFor(10_000) { s.nameList == null })
             assertTrue("nessuna tastiera dei nomi", s.latestSnapshot.get().naming == null)
         }
