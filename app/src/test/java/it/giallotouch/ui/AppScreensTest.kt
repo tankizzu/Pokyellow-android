@@ -645,7 +645,13 @@ class ZzScenarioTest : AppScreensHarness() {
     }
     private fun textThrough(max: Int = 80) {
         var k = 0
-        while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < max) { tapTile(10f, 2f); if (k % 20 == 0) log("testo, tocco $k") }
+        while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < max) {
+            // domanda Sì/No (per esempio "Vuoi dare un soprannome?"): sempre NO; schermata del nome: FINE col nome proposto
+            if (s.yesNo != null) tapTile(14f, 39f)
+            else if (s.latestSnapshot.get().naming != null) tapTile(15f, rows() - 5f)
+            else tapTile(10f, 2f)
+            if (k % 20 == 0) log("testo, tocco $k")
+        }
         if (s.latestSnapshot.get().inBattle) fightIfNeeded()
     }
     private fun save(name: String) {
