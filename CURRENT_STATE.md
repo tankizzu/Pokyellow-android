@@ -37,6 +37,6 @@
 - Pulsanti di lotta con tipo e PP massimi dalla ROM; 20 test superati; APK ricompilato (non ancora consegnato).
 
 ## Prossimo passo
-1. Tocco su persone e oggetti: collisioni del set di tile corrente (tabelle nella ROM) e percorso automatico.
-3. Tocco su persone/oggetti con percorso automatico: servono collisioni (tabelle nella ROM) e posizioni degli sprite.
-4. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.
+1. Tocco su persone e oggetti con percorso automatico: collisioni del set di tile corrente (tabelle nella ROM),
+   posizioni degli sprite (C100/C200), percorso sulla griglia e passi eseguiti a circuito chiuso.
+2. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.
