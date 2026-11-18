@@ -149,6 +149,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var battleList by remember { mutableStateOf(0) }       // in lotta: 1 = SQUADRA, 2 = BORSA dell'app (D-050)
     var battleBusy by remember { mutableStateOf(false) }
     var pendingBattlePick by remember { mutableStateOf(false) }
+    var usePick by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // strumento (posto, codice) da usare: su chi? (D-051)
     /** Voce del riquadro dei pulsanti (D-046): 0 POKéMON, 1 allenatore, 2 POKéDEX, 3 OPZIONI, 4 BORSA, 5 SALVA. */
     fun panelActivate(i: Int) {
         panelCursor = i
@@ -494,6 +495,22 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         }
 
+        val pick = usePick
+        if (pick != null && sheet != null && !snapshot.inBattle) {
+            BackHandler { usePick = null; bagOpen = true }
+            GameTeamScreen(
+                sheet = sheet!!, party = snapshot.party, romData = session.romData,
+                onOpen = { target ->
+                    usePick = null
+                    itemRequested = true
+                    session.itemAction(ItemAction.Use(pick.first, session.romData.itemName(pick.second), target))
+                },
+                onSwap = { _, _ -> },
+                onClose = { usePick = null; bagOpen = true },
+                title = "SU CHI?",
+                pickMode = true,
+            )
+        }
         if (bagOpen && !snapshot.inBattle && sheet != null) {
             GameBagScreen(
                 sheet = sheet!!,
@@ -501,8 +518,11 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 romData = session.romData,
                 onUse = { slot, item ->
                     bagOpen = false
-                    itemRequested = true
-                    session.itemAction(ItemAction.Use(slot, session.romData.itemName(item.id)))
+                    if (it.giallotouch.bridge.Items.usedOnPokemon(item.id) && snapshot.party.isNotEmpty()) usePick = slot to item.id
+                    else {
+                        itemRequested = true
+                        session.itemAction(ItemAction.Use(slot, session.romData.itemName(item.id)))
+                    }
                 },
                 onToss = { slot, item ->
                     bagOpen = false

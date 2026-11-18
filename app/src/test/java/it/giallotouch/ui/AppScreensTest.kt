@@ -245,7 +245,7 @@ abstract class AppScreensHarness {
      * dopo la lotta col rivale si esce dal laboratorio, si va sulla Strada 1 e si parla con chi regala la Pozione,
      * poi si va avanti solo toccando lo schermo. Il dialogo deve finire e la Pozione essere nella borsa.
      */
-    fun riceviOggetto(thenBattle: Boolean = false) {
+    fun riceviOggetto(thenBattle: Boolean = false, usePotion: Boolean = false) {
         val s = start(auto = "giallo.state") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
@@ -317,36 +317,71 @@ abstract class AppScreensHarness {
         }
         shot("21-dopo-oggetto")
         assertTrue("oggetto nella borsa", s.latestSnapshot.get().bag.size > bag0)
-        if (!thenBattle) return
-        // Nell'erba fino a un Pokémon selvatico (su e giù), poi BORSA dell'app → POZIONE (D-050).
-        var walks = 0
-        // mete a caso sulla Strada 1: i percorsi attraversano l'erba alta
-        val rnd = java.util.Random(7)
-        while (!s.latestSnapshot.get().inBattle && walks++ < 25) {
-            val p = s.positionForTest()
-            if (p.first != 12) break
-            val g5 = s.mapGridForTest() ?: break
-            val free = (0 until g5.width).flatMap { x -> (4 until g5.height - 4).map { y -> x to y } }.filter { g5.isFree(it.first, it.second) }
-            val target = free[rnd.nextInt(free.size)]
-            goTo(target.first, target.second)
-            waitFor(500) { s.latestSnapshot.get().inBattle }
+        // Lotta con un selvatico nell'erba (mete a caso sulla Strada 1), fino al menu di lotta.
+        fun wildBattle() {
+            val rnd = java.util.Random(7)
+            var walks = 0
+            while (!s.latestSnapshot.get().inBattle && walks++ < 25) {
+                val p = s.positionForTest()
+                if (p.first != 12) break
+                val g5 = s.mapGridForTest() ?: break
+                val free = (0 until g5.width).flatMap { x -> (4 until g5.height - 4).map { y -> x to y } }.filter { g5.isFree(it.first, it.second) }
+                val target = free[rnd.nextInt(free.size)]
+                goTo(target.first, target.second)
+                waitFor(500) { s.latestSnapshot.get().inBattle }
+            }
+            assertTrue("lotta con un selvatico", waitFor(10_000) { s.latestSnapshot.get().inBattle })
+            var intro = 0
+            while (!(s.battleMenuShown && !s.commandBusy) && intro++ < 30) tapTile(10f, 2f)
+            assertTrue("menu di lotta", s.battleMenuShown)
         }
-        assertTrue("lotta con un selvatico", waitFor(10_000) { s.latestSnapshot.get().inBattle })
-        var intro = 0
-        while (!(s.battleMenuShown && !s.commandBusy) && intro++ < 30) tapTile(10f, 2f)   // testi d'inizio lotta
-        assertTrue("menu di lotta", s.battleMenuShown)
+        fun growlUntilHurt() {
+            var turns = 0
+            while (s.latestSnapshot.get().battleMon!!.hp >= s.latestSnapshot.get().battleMon!!.maxHp && turns++ < 8) {
+                tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 4.5f)
+                var t = 0
+                while (!(s.battleMenuShown && !s.commandBusy) && s.latestSnapshot.get().inBattle && t++ < 40) tapTile(10f, 2f)
+            }
+        }
+        if (usePotion) {
+            // Pikachu deve aver perso un po' di vita: lotta con un selvatico, RUGGITO finché viene colpito, poi FUGA.
+            wildBattle(); growlUntilHurt()
+            var runs = 0
+            while (s.latestSnapshot.get().inBattle && runs++ < 10) {
+                if (s.battleMenuShown && !s.commandBusy) tapTile(9f, 40.5f) else tapTile(10f, 2f)
+            }
+            assertTrue("fuggiti", waitFor(15_000) { s.latestSnapshot.get().freeRoam })
+            pump(1500)
+            // BORSA dell'app → POZIONE → USA → "SU CHI?" dell'app → PIKACHU (D-051): niente menu vecchi, si torna a camminare.
+            tapTile(10f, rows() - 2f); pump(800)
+            tapTile(4f, 36f)                      // BORSA
+            assertTrue("borsa", shotUntil("26-borsa") { b -> boxAt(b, 0, 3, 20, 3) })
+            tapTile(4f, 10f); pump(800)           // POZIONE
+            tapTile(4f, 37f)                      // USA
+            assertTrue("su chi? dell'app", shotUntil("27-su-chi") { b -> boxAt(b, 0, 3, 20, 3) && boxAt(b, 0, 7, 20, 32) && boxAt(b, 5, 39, 10, 4) })
+            val hpBefore = s.latestSnapshot.get().party[0].hp
+            tapTile(4f, 9f)                       // PIKACHU
+            waitFor(20_000) { !s.itemBusy }
+
+            shot("28-dopo-uso")
+            var t = 0
+            while (!s.latestSnapshot.get().freeRoam && t++ < 30) { tapTile(10f, 20f); if (t == 1) shot("28b-messaggio") }
+            assertTrue("di nuovo a camminare", waitFor(15_000) { s.latestSnapshot.get().freeRoam })
+            shot("29-di-nuovo-in-giro")
+            assertTrue("Pikachu curato", s.latestSnapshot.get().party[0].hp > hpBefore)
+            assertEquals("Pozione consumata", 0, s.latestSnapshot.get().bag.count { it.id == 0x14 })
+            return
+        }
+        if (!thenBattle) return
+        // Lotta con un selvatico, poi BORSA dell'app → POZIONE (D-050).
+        wildBattle()
         val row = it.giallotouch.bridge.BattleLayout.ACTIONS_TOP_ROW + 2.5f
         tapTile(3f, row)                                           // SQUADRA
         assertTrue("lista SQUADRA dell'app", shotUntil("22-lotta-squadra") { b -> boxAt(b, 0, 23, 20, 16) && boxAt(b, 5, 39, 10, 4) })
         tapTile(9f, 40.5f)                                         // INDIETRO
         assertTrue("di nuovo azioni e mosse", shotUntil("22b-lotta") { b -> boxAt(b, 0, 28, 20, 11) })
         // la Pozione si usa solo se Pikachu non ha tutta la vita: qualche turno con RUGGITO (nessun danno al selvatico)
-        var turns = 0
-        while (s.latestSnapshot.get().battleMon!!.hp >= s.latestSnapshot.get().battleMon!!.maxHp && turns++ < 8) {
-            tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 4.5f)   // seconda mossa
-            var t = 0
-            while (!(s.battleMenuShown && !s.commandBusy) && s.latestSnapshot.get().inBattle && t++ < 40) tapTile(10f, 2f)
-        }
+        growlUntilHurt()
         val hp0 = s.latestSnapshot.get().battleMon!!.hp; val max = s.latestSnapshot.get().battleMon!!.maxHp
         val potions0 = s.latestSnapshot.get().bag.first { it.id == 0x14 }.quantity
         tapTile(15f, row)                                          // BORSA
@@ -502,4 +537,8 @@ class AppReceiveItemTest : AppScreensHarness() {
 
 class AppBattleItemTest : AppScreensHarness() {
     @Test fun pozioneInLotta() = riceviEUsaInLotta()
+}
+
+class AppUseItemTest : AppScreensHarness() {
+    @Test fun pozioneSuPikachu() = riceviOggetto(usePotion = true)
 }

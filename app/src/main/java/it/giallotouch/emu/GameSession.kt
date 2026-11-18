@@ -95,6 +95,21 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var yesNo: YesNo? = null
         private set
 
+    /**
+     * Caselle utilizzabili: la lettera "A" (0x80) ha inchiostro e carta di colori diversi. Durante le dissolvenze (per
+     * esempio all'uscita da una lotta) il gioco sbianca la tavolozza: quelle caselle non vanno prese, altrimenti i
+     * riquadri dell'app diventerebbero invisibili.
+     */
+    private fun sheetReadable(sheet: IntArray): Boolean {
+        val sx = (0x80 and 15) * 8; val sy = (0x80 shr 4) * 8
+        val paper = sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8]
+        var ink = 0
+        for (y in 0 until 8) for (x in 0 until 8) if (sheet[(sy + y) * 128 + sx + x] != paper) ink++
+        val c = sheet[(sy + 3) * 128 + sx + 3]
+        fun lum(v: Int) = ((v shr 16) and 255) + ((v shr 8) and 255) + (v and 255)
+        return ink >= 8 && kotlin.math.abs(lum(paper) - lum(sheet.firstOrNull { it != paper } ?: paper)) > 150
+    }
+
     private val frameMask = BoxMask()
     private val extMask = BoxMask()
 
@@ -251,7 +266,28 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
      * non si vedono (D-049), resta l'immagine di prima. [trainerOpening]: fotogrammi di attesa della scheda allenatore.
      */
     private var trainerOpening = 0
-    private fun hidingOldMenus(): Boolean = !trainerCardShown && (itemExecutor.busy || battleExecutor.busy || closingFrames > 0 || trainerOpening > 0)
+    /** Dopo aver usato uno strumento su un Pokémon: si aspetta il ritorno ai menu del gioco per richiuderli. */
+    @Volatile private var pendingClose = false
+    private var pendingCloseFrames = 0
+    private var pendingFree = 0
+    private fun hidingOldMenus(): Boolean = !trainerCardShown &&
+        (itemExecutor.busy || battleExecutor.busy || closingFrames > 0 || trainerOpening > 0 || (pendingClose && !textAtBottom(frameTiles)))
+
+    private fun textAtBottom(t: ByteArray) = (t[12 * 20].toInt() and 0xFF) == 0x79 && (t[17 * 20].toInt() and 0xFF) == 0x7D
+
+    /** Una volta per fotogramma: con [pendingClose], appena il gioco torna a un menu (lista, START) lo si chiude. */
+    private fun checkPendingClose(free: Boolean) {
+        if (!pendingClose) return
+        // Si smette solo dopo un secondo di cammino libero: nei passaggi tra una schermata e l'altra il gioco può
+        // sembrare per qualche fotogramma sulla mappa.
+        pendingFree = if (free && closingFrames == 0) pendingFree + 1 else 0
+        if (--pendingCloseFrames <= 0 || pendingFree >= 60) { pendingClose = false; return }
+        if (closingFrames > 0) return
+        val kind = ItemMenus.read(frameVars, frameTiles, 0).kind
+        if (kind == ItemMenus.Kind.ITEM_LIST || kind == ItemMenus.Kind.START_MENU || kind == ItemMenus.Kind.USE_TOSS || kind == ItemMenus.Kind.PARTY) {
+            closingFrames = 60 * 8; closingCalm = 0
+        }
+    }
 
     /**
      * Sulla scheda allenatore il gioco riusa le caselle dei riquadri per la cornice della scheda: finché la scheda è
@@ -275,6 +311,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             itemResult = itemExecutor.result == ItemActionExecutor.Result.DONE
             itemBusy = false
             if (currentItemAction is ItemAction.OpenTrainer && itemResult == true) trainerOpening = 120
+            // Usato su un Pokémon: dopo il messaggio del gioco ("…recupera 20 PS") si richiudono i menu vecchi (D-051).
+            if ((currentItemAction as? ItemAction.Use)?.target != null && itemResult == true) { pendingClose = true; pendingCloseFrames = 60 * 60; pendingFree = 0 }
             currentItemAction = null
         }
         return keys
@@ -359,6 +397,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (closingCalm >= 3) closingFrames = 0
             }
             return if (closingFrames % 24 >= 20 && closingCalm == 0) NativeCore.KEY_B else 0
+        }
+        // Dopo aver usato uno strumento: il giocatore manda avanti solo il messaggio; i menu del gioco li chiude l'app.
+        if (pendingClose) {
+            NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
+            if (!textAtBottom(tileMap)) return 0
         }
         if (pendingA > 0) { pendingA--; return if (pendingA >= 4) NativeCore.KEY_A else 0 }
         if (nameExecutor.busy) {
@@ -500,6 +543,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         })
     }
 
+    /** Solo per il banco di prova: stato della chiusura automatica dei menu. */
+    fun closingForTest() = "pendingClose=$pendingClose frames=$pendingCloseFrames closing=$closingFrames calm=$closingCalm item=${itemExecutor.busy}"
+
+    /** Solo per il banco di prova: variabili dei menu e mappa dello schermo. */
+    fun screenForTest(): Pair<ByteArray, ByteArray> {
+        val v = ByteArray(MenuReader.MENU_VARS_SIZE); val t = ByteArray(MenuReader.SCREEN_SIZE)
+        runOnGameThread { NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, v); NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, t) }
+        return v to t
+    }
+
     /** Solo per il banco di prova: luogo e posizione del giocatore (mappa, x, y). */
     fun positionForTest(): Triple<Int, Int, Int> {
         var p = Triple(0, 0, 0)
@@ -565,7 +618,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
                 val onScreen = dialog || yn != null || hidingOldMenus() ||
-                    (NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
+                    ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 if (dialog && !frameMask.ready) dialog = false
                 if (dialog) {
                     System.arraycopy(back, 96 * NativeCore.WIDTH, stripA, 0, stripA.size)
@@ -573,12 +626,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val t = stripA; stripA = stripB; stripB = t
                 } else dialogStrip = null
                 if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
+                checkPendingClose(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles))
                 val hide = hidingOldMenus()
                 val boxes = buildList {
                     // In lotta si copre solo la scena (righe 0–11): il testo del gioco ("…si è ripreso di 8!") resta.
                     // Anche la schermata della squadra che il gioco mostra dopo una Pozione resta nascosta.
                     val inBattleNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0
-                    val partyScreen = inBattleNow && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71
+                    val partyScreen = (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71 && (inBattleNow || pendingClose)
                     if ((hide || partyScreen) && frameMask.ready) add(if (inBattleNow) BoxMask.Box(0, 0, 19, 11) else BoxMask.Box(0, 0, 19, 17))
                     if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
                     if (dialog) add(BoxMask.Box(0, 12, 19, 17))
@@ -599,7 +653,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (frames % AUTOSAVE_FRAMES == 0L) runCatching { saveBatteryIfChanged() }
                 if (frames % SNAPSHOT_FRAMES == 0L) readSnapshot()
                 if (holdSheet && !trainerCardShown && !itemExecutor.busy && closingFrames == 0 && latestSnapshot.get().freeRoam) holdSheet = false
-                if (frames % SHEET_FRAMES == 0L && !holdSheet && !trainerCardShown && NativeCore.nativeGameTiles(handle, sheetBuf) >= 0) {
+                if (frames % SHEET_FRAMES == 0L && !holdSheet && !trainerCardShown && NativeCore.nativeGameTiles(handle, sheetBuf) >= 0 &&
+                    sheetReadable(sheetBuf)) {
                     val old = tileSheet.get()
                     if (old == null || !old.contentEquals(sheetBuf)) tileSheet.set(sheetBuf.copyOf())
                 }

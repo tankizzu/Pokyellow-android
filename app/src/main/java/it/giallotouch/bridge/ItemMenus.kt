@@ -19,7 +19,7 @@ object ItemMenus {
     private const val MORE = 0xEE
     private val STRUM = intArrayOf(0x92, 0x93, 0x91, 0x94, 0x8C)   // "STRUM" nel menu START
 
-    enum class Kind { START_MENU, ITEM_LIST, USE_TOSS, QUANTITY, YES_NO, TEXT_WAIT, OTHER }
+    enum class Kind { START_MENU, ITEM_LIST, USE_TOSS, QUANTITY, YES_NO, TEXT_WAIT, PARTY, OTHER }
 
     data class Screen(
         val kind: Kind,
@@ -66,6 +66,10 @@ object ItemMenus {
                 return Screen(Kind.ITEM_LIST, cursor = scrollOffset + row, name = name)
             }
         }
+        // Menu squadra "su chi usarlo?": Y = 1, X = 0, tasti 0x03, cursore ▶ in (0, 1 + 2i) (come in lotta).
+        if (topY == 1 && topX == 0 && watched == 0x03) {
+            (0..5).firstOrNull { t(0, 1 + 2 * it) == CURSOR }?.let { return Screen(Kind.PARTY, cursor = it) }
+        }
         if (t(18, 16) == MORE && t(0, 12) == 0x79) return Screen(Kind.TEXT_WAIT)
         return Screen(Kind.OTHER)
     }
@@ -76,8 +80,11 @@ sealed interface ItemAction {
     val slot: Int
     val name: String
 
-    /** Usa: l'app sceglie lo strumento e "USA", poi il gioco continua (per esempio chiedendo su chi usarlo). */
-    data class Use(override val slot: Int, override val name: String) : ItemAction
+    /**
+     * Usa: l'app sceglie lo strumento e "USA"; con [target] sceglie anche il Pokémon quando il gioco chiede su chi
+     * usarlo (D-051), altrimenti il gioco continua da solo.
+     */
+    data class Use(override val slot: Int, override val name: String, val target: Int? = null) : ItemAction
 
     /** Getta [quantity] pezzi, con conferma "Sì", poi chiude i menu. */
     data class Toss(override val slot: Int, override val name: String, val quantity: Int) : ItemAction
@@ -107,6 +114,10 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
     /** true dopo aver risposto "Sì" alla conferma: da lì si chiudono i menu. */
     private var tossed = false
     private var useChosen = false
+    /** Usa con un Pokémon da scegliere: "USA" premuto, si aspetta il menu squadra del gioco. */
+    private var awaitingTarget = false
+    private var lastScreen: ItemMenus.Screen? = null
+    private var stable = 0
 
     var result: Result? = null
         private set
@@ -116,7 +127,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
         action = a
         framesLeft = timeoutFrames
         heldKey = 0; holdFrames = 0; waitFrames = 0; minWait = 0
-        before = null; unknownFrames = 0; tossed = false; useChosen = false; firstSelected = false; result = null
+        before = null; unknownFrames = 0; tossed = false; useChosen = false; awaitingTarget = false; firstSelected = false; result = null; lastScreen = null; stable = 0
     }
 
     fun cancel() = finish(Result.FAILED)
@@ -137,6 +148,9 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
             waitFrames = 0
         }
         if (useChosen) { finish(Result.DONE); return 0 }
+        // Un menu appena comparso (o cambiato) non ascolta subito i tasti: si aspetta che resti uguale per un po'.
+        if (screen != lastScreen) { lastScreen = screen; stable = 0; return 0 }
+        if (++stable < SETTLE) return 0
         val key = decide(a, screen, freeRoam)
         if (key == DONE) { finish(Result.DONE); return 0 }
         if (key == 0) {
@@ -189,9 +203,19 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
         ItemMenus.Kind.USE_TOSS -> {
             val target = if (a is ItemAction.Toss) 1 else 0
             when {
+                awaitingTarget -> 0
                 s.cursor < target -> Keys.DOWN
                 s.cursor > target -> Keys.UP
-                else -> { if (a is ItemAction.Use) useChosen = true; Keys.A }
+                else -> { if (a is ItemAction.Use) { if (a.target == null) useChosen = true else awaitingTarget = true }; Keys.A }
+            }
+        }
+        ItemMenus.Kind.PARTY -> {
+            val t = (a as? ItemAction.Use)?.target
+            when {
+                t == null || !awaitingTarget -> 0
+                s.cursor < t -> Keys.DOWN
+                s.cursor > t -> Keys.UP
+                else -> { useChosen = true; Keys.A }
             }
         }
         ItemMenus.Kind.QUANTITY -> {
@@ -224,5 +248,6 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
         private const val RELEASE = 3
         private const val CHANGE_WAIT = 45
         private const val MAX_UNKNOWN = 150
+        private const val SETTLE = 8
     }
 }

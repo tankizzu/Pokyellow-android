@@ -478,6 +478,9 @@ fun GameTeamScreen(
     onOpen: (Int) -> Unit,
     onSwap: (Int, Int) -> Unit,
     onClose: () -> Unit,
+    /** Scelta del Pokémon su cui usare uno strumento (D-051): titolo diverso, niente SELECT né spostamenti. */
+    title: String = "SQUADRA",
+    pickMode: Boolean = false,
 ) {
     var swapFrom by remember { mutableStateOf<Int?>(null) }
     var swapMode by remember { mutableStateOf(false) }
@@ -506,7 +509,8 @@ fun GameTeamScreen(
                         }
                     }
                 }
-                .pointerInput(party) {
+                .pointerInput(party, pickMode) {
+                    if (pickMode) return@pointerInput
                     detectDragGesturesAfterLongPress(
                         onDragStart = { p -> dragFrom = memberAt(p.y); dragTo = dragFrom },
                         onDrag = { change, _ -> memberAt(change.position.y)?.let { dragTo = it } },
@@ -519,7 +523,7 @@ fun GameTeamScreen(
                     )
                 }
         ) {
-            box(0, 3, 19, 5); text("SQUADRA", 6, 4)
+            box(0, 3, 19, 5); text(title, (20 - title.length) / 2, 4)
             box(0, 7, 19, 38)
             party.take(6).forEachIndexed { i, m ->
                 val r = 9 + 5 * i
@@ -535,6 +539,7 @@ fun GameTeamScreen(
                 }
             }
         }
+        if (pickMode) { BackBox(sheet, unit, 5, 39, textX = 8) { onClose() }; return@BoxWithConstraints }
         BackBox(sheet, unit, 0, 39, textX = 8) { if (swapMode) { swapMode = false; swapFrom = null } else onClose() }
         TileImage(
             sheet, 10, 4, unit, key = Pair("select", swapMode),
