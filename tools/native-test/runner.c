@@ -13,6 +13,8 @@
  *   save NOME | load NOME       salva / carica lo stato completo in CARTELLA/NOME.state
  *   ext NOME ALTEZZA            disegna la vista estesa (160 × ALTEZZA) in CARTELLA/NOME.ppm
  *   hold TASTO N                tiene premuto un tasto per N fotogrammi (senza rilasciarlo dopo)
+ *   vram NOME                   salva memoria video (2 banchi), palette sfondo/sprite, registri LCD in CARTELLA/NOME.vram
+ *   reset                       riavvia la console (come spegnere e riaccendere, il salvataggio del gioco resta)
  * Le immagini restano nella cartella di uscita (temporanea): mai nel repository.
  */
 #include <stdio.h>
@@ -147,6 +149,18 @@ int main(int argc, char **argv) {
         else if (!strcmp(cmd, "ext")) ext_dump(a1, atoi(a2));
         else if (!strcmp(cmd, "hold")) { GB_set_key_state(gb, key_of(a1), true); frames(atoi(a2)); GB_set_key_state(gb, key_of(a1), false); }
         else if (!strcmp(cmd, "load")) state_io(a1, 0);
+        else if (!strcmp(cmd, "reset")) GB_reset(gb);
+        else if (!strcmp(cmd, "vram")) {
+            char path[1024]; snprintf(path, sizeof path, "%s/%s.vram", outdir, a1);
+            FILE *f = fopen(path, "wb");
+            if (f) {
+                size_t n = 0; const uint8_t *v = GB_get_direct_access(gb, GB_DIRECT_ACCESS_VRAM, &n, NULL); fwrite(v, 1, 0x4000, f);
+                const uint8_t *bp = GB_get_direct_access(gb, GB_DIRECT_ACCESS_BGP, &n, NULL); fwrite(bp, 1, 64, f);
+                const uint8_t *op = GB_get_direct_access(gb, GB_DIRECT_ACCESS_OBP, &n, NULL); fwrite(op, 1, 64, f);
+                for (int r = 0xFF40; r <= 0xFF4B; r++) fputc(rd((uint16_t)r), f);
+                fclose(f);
+            }
+        }
         else printf("  comando sconosciuto: %s\n", cmd);
         fflush(stdout);
     }

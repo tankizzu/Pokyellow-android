@@ -30,13 +30,13 @@
 - Al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
 - L'app non è stata provata qui su un telefono (nessun emulatore Android): verificati motore e logica su computer.
 
-## Prossimo passo – AVVIO "IN TEMA" (richiesta del committente)
-Si lavora sulla parte dall'accensione all'ingresso nella cameretta, con il committente.
-1. Laboratorio d'avvio: https://claude.ai/artifact/8sMG68hS9aFD7wJWH7A535 (file `docs/demo/laboratorio-avvio.html`),
-   scelte inviate nella raccolta "invii" (leggere con ArtifactData).
-2. Applicare all'app lo stile scelto (D-038): riquadri e pulsanti come il gioco, carattere a pixel incluso nell'app,
-   posizioni e dimensioni scelte per CARICA PARTITA, schermata "Carica partita", nome, pulsante laterale e pannello.
-3. Poi riprendere: Usa con scelta del compagno, "Sposta" nella Squadra.
+## Prossimo passo – AVVIO CON LE GRAFICHE DEL GIOCO (D-039), da decidere con il committente
+Prove private inviate il 2026-11-18 (foglio con: titolo, menu con CARICA PARTITA come voce in più o riquadro sotto,
+schermata dei salvataggi in stile gioco, introduzione intera o divisa, nome con FINE e tastiera del telefono,
+cameretta con linguetta e riquadro dei pulsanti come il menu START). In attesa delle scelte; poi:
+1. Nel motore/app: disegnare le aggiunte con i tile del gioco presi dalla memoria video (carattere, riquadri, ▶).
+2. Applicare alle schermate dall'accensione alla cameretta; poi estendere lo stile ai menu nativi.
+Strumenti: `tools/mockup/gbui.py`, comandi `vram` e `reset` del runner.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.
