@@ -146,8 +146,8 @@ fun GameScreen(session: GameSession) {
             }
         }
 
-        // Squadra in alto, con i dati letti dalla memoria del gioco.
-        if (snapshot.party.isNotEmpty()) {
+        // Squadra in alto, con i dati letti dalla memoria del gioco (nascosta durante la lotta).
+        if (snapshot.party.isNotEmpty() && !snapshot.inBattle) {
             TeamStrip(
                 snapshot.party,
                 Modifier

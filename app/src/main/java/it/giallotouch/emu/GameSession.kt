@@ -8,6 +8,7 @@ import android.util.Log
 import it.giallotouch.bridge.GameSnapshot
 import it.giallotouch.bridge.GameStateReader
 import it.giallotouch.bridge.MemoryMapIt
+import it.giallotouch.bridge.RomData
 import it.giallotouch.storage.SaveStorage
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
@@ -35,6 +36,9 @@ class GameSession(private val storage: SaveStorage, rom: ByteArray) {
     /** Ultimo stato letto dalla memoria del gioco (squadra, soldi, posizione), aggiornato 4 volte al secondo. */
     val latestSnapshot = AtomicReference(GameSnapshot.EMPTY)
     private val stateBlock = ByteArray(GameStateReader.BLOCK_SIZE)
+
+    /** Dati letti dalla ROM dell'utente (nomi delle mosse), solo per la versione italiana supportata. */
+    val romData: RomData = RomData.load(rom, SaveStorage.sha1(rom) == SaveStorage.SUPPORTED_SHA1)
 
     /** true se all'avvio è stata ripresa la partita dal punto esatto in cui era stata lasciata. */
     var resumedFromState = false

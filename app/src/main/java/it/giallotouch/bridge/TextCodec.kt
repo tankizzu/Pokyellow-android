@@ -3,7 +3,7 @@ package it.giallotouch.bridge
 /**
  * Decodifica dei testi del gioco (nomi) nel set di caratteri del Game Boy.
  * Copre lettere, cifre e i simboli usati nei nomi; i caratteri non riconosciuti diventano "?".
- * Le lettere accentate della versione italiana vanno ancora mappate (servono per i dialoghi, non per i nomi).
+ * Lettere accentate della versione italiana trovate finora nei nomi delle mosse: 0xBE = À, 0xC6 = É.
  */
 object TextCodec {
     const val TERMINATOR = 0x50
@@ -29,6 +29,8 @@ object TextCodec {
         0x9B -> ')'
         0x9C -> ':'
         0x9D -> ';'
+        0xBE -> 'À'
+        0xC6 -> 'É'
         0xE0 -> '\''
         0xE3 -> '-'
         0xE6 -> '?'

@@ -8,11 +8,27 @@ data class GameSnapshot(
     val mapId: Int,
     val x: Int,
     val y: Int,
+    /** 0 = nessuna lotta, 1 = selvatico, 2 = allenatore. */
+    val battleType: Int = 0,
+    /** Creatura del giocatore in campo; presente solo durante la lotta. */
+    val battleMon: BattleMon? = null,
 ) {
+    val inBattle: Boolean get() = battleType != 0
+
     companion object {
         val EMPTY = GameSnapshot("", emptyList(), 0, 0, 0, 0)
     }
 }
+
+data class BattleMon(
+    val species: Int,
+    val level: Int,
+    val hp: Int,
+    val maxHp: Int,
+    val moves: List<MoveSlot>,
+)
+
+data class MoveSlot(val id: Int, val pp: Int)
 
 data class PartyMember(
     val species: Int,

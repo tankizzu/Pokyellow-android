@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 01:16 UTC)
+- Trovati e verificati: creatura in campo durante la lotta (wBattleMon D018: mosse, PP, PS, livello) e tabella dei nomi delle mosse nella ROM italiana (0xBC000, 165 voci).
+- Ponte: legge tipo di lotta e creatura in campo; `RomData` legge i nomi delle mosse dalla ROM dell'utente all'avvio.
+- La squadra in alto si nasconde durante la lotta.
+- 7 test automatici, tutti superati (solo dati sintetici, nessun contenuto del gioco). APK ricompilato.
+
 ## 2026-11-18 (promemoria 00:16 UTC)
 - Nuovo strumento di prova sul motore SameBoy (`tools/native-test/runner.c`): esegue sequenze di tasti, salva stati, immagini e memoria (solo in cartelle temporanee).
 - Lettura della squadra **verificata su partita vera**: il primo compagno risulta a D16F (livello 5, PS 19/19) con soprannome a D2B9.

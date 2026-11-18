@@ -23,6 +23,7 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 | wCurrentMenuItem | CC26 | ✅ | voce selezionata nei menu |
 | wJoyIgnore | CD6B | ✅ | 0 quando il giocatore ha il controllo; FC durante la scena di Oak (tasti bloccati) |
 | wIsInBattle | D05B | ✅ | 0 fuori dalla lotta, 2 nella lotta con allenatore (1 = selvatico, da confermare) |
+| wBattleMon | D018 (battle_struct) | ✅ | creatura in campo: specie +0, PS +1, mosse +8, livello +14, PS max +15, PP +25 (bit 0-5) |
 | wMaxMenuItem | CC28 | 🟡 | 6 nel menu START (7 voci) |
 | wMenuWatchedKeys | CC29 | 🟡 | |
 | wLastMenuItem | CC2A | ✅ | |
@@ -61,9 +62,16 @@ Stato: ✅ verificato · 🟡 dedotto dall'ordine delle variabili, coerente con 
 ## Da trovare
 | Variabile | Uso | Stato |
 |---|---|---|
-| wTextBoxID, dati della lotta (mosse, PS avversario) | dialoghi e lotta sovrapposta | ⏳ |
+| wTextBoxID, stato del menu di lotta, dati dell'avversario | dialoghi e comandi di lotta | ⏳ |
 | wWalkBikeSurfState | a piedi / bici / surf | ⏳ (probabile +5) |
-| Tabelle nella ROM (nomi, mosse, collisioni) | menu nativi, percorsi | ⏳ |
+| Tabelle nella ROM: tipi e PP massimi delle mosse, nomi creature e strumenti, collisioni | menu nativi, percorsi | ⏳ |
+
+## Tabelle nella ROM (lette a ogni avvio dalla ROM dell'utente, mai copiate nell'app)
+| Tabella | Offset nella ROM | Stato | Note |
+|---|---|---|---|
+| Nomi delle mosse | 0xBC000 (banco 0x2F) | ✅ | 165 nomi chiusi da 0x50; verificati alle posizioni 45 e 84 |
+
+Caratteri accentati trovati: 0xBE = À, 0xC6 = É.
 
 ## Sequenza di prova riproducibile (motore SameBoy, `tools/native-test/runner.c`)
 Nuova partita con nomi predefiniti → camera → scendere → uscire → nord fino all'erba alta (scena di Oak)

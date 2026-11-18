@@ -14,6 +14,12 @@ object MemoryMapIt {
     const val JOY_IGNORE = 0xCD6B
     /** 0 = nessuna lotta, 1 = lotta con creatura selvatica, 2 = lotta con allenatore. */
     const val IS_IN_BATTLE = 0xD05B
+    /** Creatura del giocatore in campo durante la lotta (battle_struct): mosse +8, livello +14, PS max +15, PP +25. */
+    const val BATTLE_MON = 0xD018
+
+    /** Tabella dei nomi delle mosse nella ROM italiana: 165 nomi chiusi da 0x50, a partire da questo offset. */
+    const val ROM_MOVE_NAMES = 0xBC000
+    const val NUM_MOVES = 165
 
     const val PLAYER_NAME = 0xD15C
     const val PARTY_COUNT = 0xD167
@@ -36,7 +42,7 @@ object MemoryMapIt {
     const val PARTY_STRUCT_LENGTH = 44
     const val NAME_LENGTH = 11
 
-    /** Primo e ultimo indirizzo da copiare per leggere squadra, borsa, soldi e mappa in un colpo solo. */
-    const val BLOCK_START = PLAYER_NAME
+    /** Primo e ultimo indirizzo da copiare per leggere lotta, squadra, borsa, soldi e mappa in un colpo solo. */
+    const val BLOCK_START = BATTLE_MON
     const val BLOCK_END = CUR_MAP_WIDTH
 }

@@ -33,12 +33,13 @@
 ## Ultimo lavoro (promemoria 23:16 UTC)
 - Ponte di sola lettura + squadra in alto con dati veri; 4 test superati; APK ricompilato (non ancora consegnato).
 
-## Ultimo lavoro (promemoria 00:16 UTC)
-- Squadra verificata su partita vera; trovati wIsInBattle (D05B) e wJoyIgnore (CD6B); nuovo runner di prova su SameBoy.
+## Ultimo lavoro (promemoria 01:16 UTC)
+- Creatura in campo (D018) e nomi delle mosse dalla ROM (0xBC000) letti dal ponte; squadra nascosta in lotta; 7 test superati.
 
 ## Prossimo passo
-1. Usare wIsInBattle nell'app: nascondere la barra in alto durante la lotta e preparare i pulsanti di lotta
-   (servono mosse e PP del compagno in campo: wBattleMon, zona +5).
+1. Comandi di lotta veri: pulsanti delle mosse sovrapposti allo sfondo che scelgono la mossa nel menu originale
+   con un esecutore a circuito chiuso (premere, controllare la memoria, ripetere). Serve trovare lo stato
+   "menu di lotta in attesa" e il cursore del menu delle mosse.
 2. Trovare wTextBoxID / stato dei dialoghi per sapere quando un tocco deve far avanzare il testo.
 3. Tocco su persone/oggetti con percorso automatico: servono collisioni (tabelle nella ROM) e posizioni degli sprite.
 4. Raccogliere il riscontro del committente sull'APK 0.1 e correggere.

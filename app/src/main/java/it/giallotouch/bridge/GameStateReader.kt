@@ -17,6 +17,7 @@ object GameStateReader {
 
         val party = readParty(block, ::u8, ::u16be)
         val money = bcd(u8(M.PLAYER_MONEY)) * 10000 + bcd(u8(M.PLAYER_MONEY + 1)) * 100 + bcd(u8(M.PLAYER_MONEY + 2))
+        val battleType = u8(M.IS_IN_BATTLE).takeIf { it in 0..2 } ?: 0
         return GameSnapshot(
             playerName = TextCodec.decode(block, M.PLAYER_NAME - M.BLOCK_START, M.NAME_LENGTH),
             party = party,
@@ -24,7 +25,23 @@ object GameStateReader {
             mapId = u8(M.CUR_MAP),
             x = u8(M.X_COORD),
             y = u8(M.Y_COORD),
+            battleType = battleType,
+            battleMon = if (battleType != 0) readBattleMon(::u8, ::u16be) else null,
         )
+    }
+
+    private fun readBattleMon(u8: (Int) -> Int, u16be: (Int) -> Int): BattleMon? {
+        val b = M.BATTLE_MON
+        val species = u8(b)
+        val level = u8(b + 14)
+        val hp = u16be(b + 1)
+        val maxHp = u16be(b + 15)
+        if (species == 0 || level !in 1..100 || maxHp == 0 || hp > maxHp) return null
+        val moves = (0 until 4).mapNotNull { i ->
+            val id = u8(b + 8 + i)
+            if (id in 1..M.NUM_MOVES) MoveSlot(id, u8(b + 25 + i) and 0x3F) else null
+        }
+        return BattleMon(species, level, hp, maxHp, moves)
     }
 
     private fun readParty(block: ByteArray, u8: (Int) -> Int, u16be: (Int) -> Int): List<PartyMember> {
