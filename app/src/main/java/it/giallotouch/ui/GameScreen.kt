@@ -414,7 +414,29 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         }
 
-        if (bagOpen && !snapshot.inBattle) {
+        if (bagOpen && !snapshot.inBattle && sheet != null) {
+            GameBagScreen(
+                sheet = sheet!!,
+                bag = snapshot.bag,
+                romData = session.romData,
+                onUse = { slot, item ->
+                    bagOpen = false
+                    itemRequested = true
+                    session.itemAction(ItemAction.Use(slot, session.romData.itemName(item.id)))
+                },
+                onToss = { slot, item ->
+                    bagOpen = false
+                    itemRequested = true
+                    session.itemAction(ItemAction.Toss(slot, session.romData.itemName(item.id), 1))
+                },
+                onSwap = { from, to ->
+                    bagOpen = false
+                    itemRequested = true
+                    session.itemAction(ItemAction.Swap(from, session.romData.itemName(snapshot.bag[from].id), to))
+                },
+                onClose = { bagOpen = false }
+            )
+        } else if (bagOpen && !snapshot.inBattle) {
             BagSheet(
                 bag = snapshot.bag,
                 romData = session.romData,

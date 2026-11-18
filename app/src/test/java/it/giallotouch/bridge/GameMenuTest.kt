@@ -164,3 +164,25 @@ class StartMenuLayoutTest {
         org.junit.Assert.assertEquals(Keys.A, CommandExecutor.decide(GameCommand.MainMenu(2), MenuState(MenuKind.MAIN_MENU, item = 2, items = 3))?.key)
     }
 }
+
+class ItemSwapTest {
+    private fun list(cursor: Int, name: String) = ItemMenus.Screen(ItemMenus.Kind.ITEM_LIST, cursor = cursor, name = name)
+
+    @org.junit.Test
+    fun scambioConSelect() {
+        val ex = ItemActionExecutor().apply { start(ItemAction.Swap(1, "POZIONE", 3)) }
+        var obs = 0
+        var prev = 0
+        // nuovo tasto premuto dopo almeno un fotogramma senza tasti (lo schermo è cambiato: nuova osservazione)
+        fun step(s: ItemMenus.Screen): Int {
+            obs++
+            repeat(200) { val k = ex.step(s, false, obs); if (k != 0 && prev == 0) { prev = k; return k }; prev = k }
+            return 0
+        }
+        org.junit.Assert.assertEquals(Keys.DOWN, step(list(0, "ANTIDOTO")))
+        org.junit.Assert.assertEquals(64, step(list(1, "POZIONE")))       // SELECT sul primo
+        org.junit.Assert.assertEquals(Keys.DOWN, step(list(1, "POZIONE")))
+        org.junit.Assert.assertEquals(64, step(list(3, "ESCA")))          // SELECT sul secondo
+        org.junit.Assert.assertEquals(Keys.B, step(list(3, "POZIONE")))   // poi chiude
+    }
+}

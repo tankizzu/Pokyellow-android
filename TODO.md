@@ -35,7 +35,9 @@
 - [x] Borsa: Usa (fino alla scelta nel gioco) e Getta (completo) tramite il menu originale
 - [x] Avvio senza pulsanti dell'app; pulsante laterale con i pulsanti in colonna (D-037)
 - [x] Avvio con le grafiche del gioco come nel mockup del committente (D-039, D-040, D-041)
-- [ ] **Prossimo passo**: prova sul telefono; poi Squadra, Borsa, Pokédex, Select e messaggi nello stile del gioco
+- [x] Borsa nello stile del gioco con SELECT e trascinamento (D-043)
+- [ ] **Prossimo passo**: Squadra nello stile del gioco con spostamento (tenere premuto + SELECT, menu POKéMON del gioco); Pokédex e messaggi
+- [ ] Prova sul gioco vero dello scambio di strumenti (serve uno stato con almeno 2 strumenti)
 - [ ] Usa con scelta del compagno nell'app (pozioni, cure); Squadra: "Sposta"
 - [ ] Copia di sicurezza dei salvataggi (esporta/importa) prima di eventuali reinstallazioni
 - [ ] Pokédex: scheda della specie (descrizione, altezza, peso) dalla ROM, solo per le specie prese

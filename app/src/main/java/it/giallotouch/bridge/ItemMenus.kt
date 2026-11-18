@@ -74,6 +74,9 @@ sealed interface ItemAction {
 
     /** Getta [quantity] pezzi, con conferma "Sì", poi chiude i menu. */
     data class Toss(override val slot: Int, override val name: String, val quantity: Int) : ItemAction
+
+    /** Sposta lo strumento [slot] al posto [to], come nel gioco: SELECT sul primo, SELECT sul secondo (scambio). */
+    data class Swap(override val slot: Int, override val name: String, val to: Int) : ItemAction
 }
 
 /**
@@ -103,7 +106,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
         action = a
         framesLeft = timeoutFrames
         heldKey = 0; holdFrames = 0; waitFrames = 0; minWait = 0
-        before = null; unknownFrames = 0; tossed = false; useChosen = false; result = null
+        before = null; unknownFrames = 0; tossed = false; useChosen = false; firstSelected = false; result = null
     }
 
     fun cancel() = finish(Result.FAILED)
@@ -139,6 +142,19 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
         return key
     }
 
+    /** Scambio: SELECT sullo strumento [ItemAction.slot], poi SELECT su [ItemAction.Swap.to], poi si chiudono i menu. */
+    private var firstSelected = false
+    private fun decideSwap(a: ItemAction.Swap, s: ItemMenus.Screen): Int = when {
+        tossed -> Keys.B
+        !firstSelected && s.cursor < a.slot -> Keys.DOWN
+        !firstSelected && s.cursor > a.slot -> Keys.UP
+        !firstSelected && a.name.isNotEmpty() && !a.name.startsWith("MT") && !a.name.startsWith("MN") && s.name != a.name -> { action = null; result = Result.FAILED; 0 }
+        !firstSelected -> { firstSelected = true; SELECT }
+        s.cursor < a.to -> Keys.DOWN
+        s.cursor > a.to -> Keys.UP
+        else -> { tossed = true; SELECT }
+    }
+
     private fun decide(a: ItemAction, s: ItemMenus.Screen, freeRoam: Boolean): Int = when (s.kind) {
         ItemMenus.Kind.START_MENU -> when {
             tossed -> Keys.B
@@ -147,7 +163,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
             s.cursor > s.value -> Keys.UP
             else -> Keys.A
         }
-        ItemMenus.Kind.ITEM_LIST -> when {
+        ItemMenus.Kind.ITEM_LIST -> if (a is ItemAction.Swap) decideSwap(a, s) else when {
             tossed -> Keys.B
             s.cursor < a.slot -> Keys.DOWN
             s.cursor > a.slot -> Keys.UP
@@ -185,6 +201,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
     }
 
     private object NativeKeys { const val START = 128 }
+    private val SELECT = 64
 
     companion object {
         private const val DONE = -1

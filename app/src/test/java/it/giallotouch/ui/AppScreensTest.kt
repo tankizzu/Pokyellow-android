@@ -173,6 +173,14 @@ abstract class AppScreensHarness {
         assertTrue("pulsante MENU visibile", shotUntil("05-gioco") { boxAt(it, 7, rows() - 4, 7, 4) })
         tapTile(10f, rows() - 2f)
         assertTrue("riquadro dei pulsanti aperto", shotUntil("06-menu-aperto") { boxAt(it, 0, rows() - 13, 20, 9) })
+        tapTile(4f, rows() - 7f)     // BORSA
+        assertTrue("Borsa aperta", shotUntil("06b-borsa") { boxAt(it, 0, 3, 20, 3) })
+        tapTile(4f, 3f)              // fuori dalle voci: niente
+        root.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_BACK))
+        root.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_BACK))
+        pump(800)
+        tapTile(10f, rows() - 2f)    // MENU di nuovo
+        pump(800)
         tapTile(15f, rows() - 10f)   // OPZIONI
         assertTrue("OPZIONI aperte", shotUntil("07-opzioni") { boxAt(it, 0, 10, 20, 8) })
     }

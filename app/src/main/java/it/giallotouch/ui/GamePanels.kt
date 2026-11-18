@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +42,7 @@ class TileGrid(val unit: Float, val rows: Int) {
 
 /**
  * Pulsanti durante il gioco, scelti dal committente nel mockup (D-040), tutti disegnati con i tile del gioco:
- * MENU in basso al centro; aperto: squadra in alto (piccola, con vita ed esperienza) e riquadro con
+ * START in basso al centro (D-043); aperto: squadra in alto (piccola, con vita ed esperienza) e riquadro con
  * POKéDEX, BORSA, OPZIONI, SALVA. Si tocca la voce, oppure si sposta il cursore ▶ con la levetta e si conferma
  * con un tocco fuori dal riquadro (D-041). MENU o il gesto indietro chiudono.
  */
@@ -112,7 +113,7 @@ fun GamePanel(
                 .pointerInput(Unit) { detectTapGestures { onToggle() } }
         ) {
             box(0, 0, 6, 3)
-            textAt("MENU", 12, 12)
+            textAt("START", 8, 12)
         }
     }
 }
@@ -243,6 +244,124 @@ fun GameLoadScreen(sheet: IntArray, entries: List<SlotEntry>, onLoad: (SlotEntry
             box(0, backRow, 19, backRow + 3); text("INDIETRO", 2, backRow + 2)
             val cursorRow = if (cursor < entries.size) 9 + 11 * cursor else backRow + 2
             tile(TileCanvas.CURSOR, 1, cursorRow)
+        }
+    }
+}
+
+/**
+ * Borsa nello stile del gioco (D-038, D-040): riquadro BORSA, lista degli strumenti con quantità (gli strumenti chiave
+ * senza, come nel gioco), INDIETRO. Toccando uno strumento compare in basso il riquadro USA / GETTA / ANNULLA
+ * (Getta ne butta uno). Cursore ▶ sullo strumento scelto. Le azioni passano dal menu originale del gioco.
+ */
+@Composable
+fun GameBagScreen(
+    sheet: IntArray,
+    bag: List<it.giallotouch.bridge.BagItem>,
+    romData: RomData,
+    onUse: (Int, it.giallotouch.bridge.BagItem) -> Unit,
+    onToss: (Int, it.giallotouch.bridge.BagItem) -> Unit,
+    onSwap: (Int, Int) -> Unit,
+    onClose: () -> Unit,
+) {
+    var selected by remember { mutableStateOf<Int?>(null) }
+    var swapMode by remember { mutableStateOf(false) }          // SELECT premuto: si sceglie dove spostare
+    var dragFrom by remember { mutableStateOf<Int?>(null) }     // tenuto premuto e trascinato
+    var dragTo by remember { mutableStateOf<Int?>(null) }
+    BackHandler { if (selected != null) selected = null else onClose() }
+    val paper = Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8])
+    val step = if (bag.size <= 12) 2 else 1
+    val listTop = 7
+    val listRows = maxOf(1, bag.size) * step + 3
+    val backRow = listTop + listRows + 1
+    BoxWithConstraints(Modifier.fillMaxSize().background(paper)) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        val rows = (with(density) { maxHeight.toPx() } / tilePx).toInt()
+        val sel = selected
+        TileImage(
+            sheet, 20, backRow + 4, unit, key = listOf(bag, sel, step, swapMode, dragFrom, dragTo),
+            modifier = Modifier
+                .pointerInput(bag, step, swapMode, sel) {
+                    detectTapGestures { pos ->
+                        val row = (pos.y / tilePx).toInt()
+                        val col = (pos.x / tilePx).toInt()
+                        when {
+                            row in backRow until backRow + 4 && col >= 10 -> {
+                                // SELECT: come nel gioco, sposta lo strumento indicato in un altro posto
+                                swapMode = !swapMode
+                            }
+                            row in backRow until backRow + 4 -> onClose()
+                            row in listTop + 1 until listTop + listRows - 1 -> {
+                                val i = (row - listTop - 2 + (step - 1)) / step
+                                if (i in bag.indices) {
+                                    val from = sel
+                                    if (swapMode && from != null && from != i) { swapMode = false; onSwap(from, i) }
+                                    else selected = i
+                                }
+                            }
+                        }
+                    }
+                }
+                .pointerInput(bag, step) {
+                    // Tenere premuto e trascinare: sposta lo strumento dove si lascia il dito.
+                    fun itemAt(y: Float): Int? {
+                        val row = (y / tilePx).toInt()
+                        val i = (row - listTop - 2 + (step - 1)) / step
+                        return if (row in listTop + 1 until listTop + listRows - 1 && i in bag.indices) i else null
+                    }
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { p -> dragFrom = itemAt(p.y); dragTo = dragFrom; selected = null },
+                        onDrag = { change, _ -> itemAt(change.position.y)?.let { dragTo = it } },
+                        onDragEnd = {
+                            val f = dragFrom; val t = dragTo
+                            dragFrom = null; dragTo = null
+                            if (f != null && t != null && f != t) onSwap(f, t)
+                        },
+                        onDragCancel = { dragFrom = null; dragTo = null },
+                    )
+                }
+        ) {
+            box(0, 3, 19, 5); text("BORSA", 7, 4)
+            box(0, listTop, 19, listTop + listRows - 1)
+            if (bag.isEmpty()) text("VUOTA", 2, listTop + 2)
+            bag.forEachIndexed { i, item ->
+                val r = listTop + 2 + i * step
+                text(romData.itemName(item.id).take(12), 2, r)
+                if (!it.giallotouch.bridge.Items.isKeyItem(item.id)) {
+                    val q = "×" + item.quantity
+                    text(q, 19 - q.length, r)
+                }
+                if (dragFrom == i) tile(0xEC, 1, r)                       // ▷ strumento che si sposta
+                else if (sel == i) tile(if (swapMode) 0xEC else TileCanvas.CURSOR, 1, r)
+                if (dragTo == i && dragFrom != i) tile(TileCanvas.CURSOR, 1, r)
+            }
+            box(0, backRow, 9, backRow + 3); text("INDIETRO", 1, backRow + 2)
+            box(10, backRow, 19, backRow + 3); text("SELECT", 12, backRow + 2)
+            if (swapMode) tile(TileCanvas.CURSOR, 11, backRow + 2)
+        }
+        if (sel != null && sel in bag.indices) {
+            val item = bag[sel]
+            val key = it.giallotouch.bridge.Items.isKeyItem(item.id)
+            val top = rows - 9
+            TileImage(
+                sheet, 20, 8, unit, key = Pair(sel, key),
+                modifier = Modifier
+                    .offset { IntOffset(0, (top * tilePx).toInt()) }
+                    .pointerInput(sel, key) {
+                        detectTapGestures { pos ->
+                            when (((pos.y / tilePx).toInt() - 1) / 2) {
+                                0 -> onUse(sel, item)
+                                1 -> if (!key) onToss(sel, item) else selected = null
+                                else -> selected = null
+                            }
+                        }
+                    }
+            ) {
+                box(0, 0, 19, 7)
+                text("USA", 2, 2)
+                if (!key) { text("GETTA", 2, 4); text("ANNULLA", 2, 6) } else text("ANNULLA", 2, 4)
+            }
         }
     }
 }

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-18 (promemoria 10:16 UTC) – Borsa nello stile del gioco, START, spostare gli strumenti (D-043)
+- Il pulsante in basso si chiama **START**.
+- **Borsa nello stile del gioco**: lista con quantità, tocco su uno strumento → USA / GETTA / ANNULLA; INDIETRO e **SELECT**.
+- **Spostare uno strumento**: tenere premuto e trascinare, oppure SELECT e poi toccare il nuovo posto; l'app esegue lo
+  scambio nel menu originale del gioco (SELECT, SELECT). Verificata la logica; sul gioco vero manca ancora una prova con
+  almeno due strumenti nella borsa.
+- Banco di prova dell'interfaccia esteso alla Borsa.
+
 ## 2026-11-18 – 0.4.1-prototipo: correzioni verificate sull'app vera
 - Corretti B-002 (lettere rovinate sulla mappa), B-003 (MENU e Select sul titolo), B-004 (MENU invisibile in gioco).
 - Nuovo **banco di prova dell'interfaccia** (D-042): l'app intera gira sul computer su un telefono simulato e viene
