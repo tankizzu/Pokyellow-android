@@ -21,6 +21,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("bianco_nero", false)
         set(value) { prefs.edit().putBoolean("bianco_nero", value).apply() }
 
+    /** Vibrazione ai colpi e nel Tuonoshock dell'introduzione (D-075). */
+    var vibration: Boolean
+        get() = prefs.getBoolean("vibrazione", true)
+        set(value) { prefs.edit().putBoolean("vibrazione", value).apply() }
+
     /** Lato del pulsante laterale che fa comparire i pulsanti durante il gioco: "destra" o "sinistra" (D-037). */
     var panelSide: String
         get() = prefs.getString("lato_pulsanti", "destra") ?: "destra"

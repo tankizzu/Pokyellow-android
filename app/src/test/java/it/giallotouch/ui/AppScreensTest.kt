@@ -1445,7 +1445,15 @@ class ZzGlitchTest : AppScreensHarness() {
         val entries = it.giallotouch.bridge.StartMenuLayout.entries(s.mainMenuItems)
         val frameTop = (root.height - 144 * unit) / 2 / (8 * unit)
         tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(entries.indexOf(it.giallotouch.bridge.StartMenuLayout.Entry.OPZIONI)) + 0.5f)
-        for (i in 0 until 6) { pump(500); shot("op-opzioni-$i") }
+        // OPZIONI uniche dell'app (D-075): un tocco su VELOCITÀ TESTO cambia la velocità nella memoria del gioco
+        assertTrue("OPZIONI dell'app", shotUntil("op-opzioni") { boxAt(it, 0, 6, 20, 15) && boxAt(it, 0, 22, 20, 15) })
+        val before = s.gameOptions and 0x0F
+        tapTile(4f, 8.5f)
+        assertTrue("velocità cambiata", waitFor(3_000) { (s.gameOptions and 0x0F) != before })
+        pump(500)
+        val hf = GameSession::class.java.getDeclaredField("handle").apply { isAccessible = true }
+        assertEquals("scritta nel gioco", s.gameOptions, NativeCore.nativeReadMemory(hf.getLong(s), 0xD359))
+        shot("op-opzioni-dopo")
     }
 
     /** Introduzione dall'accensione (D-072): nessuna riga scura che attraversa lo schermo (bande nere o righine). */

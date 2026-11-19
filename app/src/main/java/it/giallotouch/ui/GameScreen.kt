@@ -125,6 +125,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var blackWhite by remember { mutableStateOf(settings.blackWhite) }
     LaunchedEffect(blackWhite) { session.blackWhite = blackWhite; settings.blackWhite = blackWhite }
     var volume by remember { mutableStateOf(settings.volume) }
+    var vibration by remember { mutableStateOf(settings.vibration) }
+    LaunchedEffect(vibration) { settings.vibration = vibration }
+    var gameOpts by remember { mutableStateOf(0x03) }
     LaunchedEffect(volume) { session.volume = volume; settings.volume = volume }
     // Dito tenuto premuto per più di 0,3 s: durante i testi il gioco scorre più veloce.
     LaunchedEffect(pressedSince) {
@@ -182,6 +185,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
     fun startMenuChoose(entry: StartMenuLayout.Entry, items: Int) {
         startCursor = StartMenuLayout.entries(items).indexOf(entry).coerceAtLeast(0)
         val game = StartMenuLayout.gameIndex(entry, items)
+        // OPZIONI dal menu iniziale: la schermata unica dell'app (D-075), non quella del gioco
+        if (entry == StartMenuLayout.Entry.OPZIONI) { optionsOpen = true; return }
         if (game == null) { slots = session.savedSlots(); loadOpen = true } else session.command(GameCommand.MainMenu(game))
     }
     var sheet by remember { mutableStateOf<IntArray?>(null) }   // tile del gioco per le aggiunte "come il gioco"
@@ -264,7 +269,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 else @Suppress("DEPRECATION") view.context.getSystemService(android.os.Vibrator::class.java)
             }.getOrNull()
             session.onHit = {
-                runCatching { vib?.vibrate(android.os.VibrationEffect.createOneShot(45, 110)) }
+                if (settings.vibration) runCatching { vib?.vibrate(android.os.VibrationEffect.createOneShot(45, 110)) }
             }
             onDispose { session.onHit = null }
         }
@@ -526,6 +531,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 playerName = snapshot.playerName,
             )
         }
+        LaunchedEffect(optionsOpen) { if (optionsOpen) gameOpts = session.gameOptions }
         if (optionsOpen && sheet != null) {
             BackHandler { optionsOpen = false }
             GameOptions(
@@ -537,7 +543,21 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 blackWhite = blackWhite,
                 onBlackWhite = { blackWhite = !blackWhite },
                 onBack = { optionsOpen = false },
-                gameOptions = session.gameOptions,
+                gameOptions = gameOpts,
+                onGameOption = { which ->
+                    // VELOCITÀ TESTO: VELOCE 1 → MEDIO 3 → LENTO 5; ANIMAZIONE bit 7 (1 = NO); STILE LOTTA bit 6 (1 = FISSO);
+                    // SUONO bit 4-5 (MONO, CUFFIA 1, 2, 3)
+                    val o = gameOpts
+                    val n = when (which) {
+                        0 -> (o and 0xF0) or when (o and 0x0F) { 1 -> 3; 3 -> 5; else -> 1 }
+                        1 -> o xor 0x80
+                        2 -> o xor 0x40
+                        else -> (o and 0xCF) or ((((o shr 4) and 3) + 1) and 3 shl 4)
+                    }
+                    gameOpts = n; session.writeGameOptions(n)
+                },
+                vibration = vibration,
+                onVibration = { vibration = !vibration },
             )
         }
 

@@ -154,6 +154,13 @@ Java_it_giallotouch_emu_NativeCore_nativeReadMemory(JNIEnv *env, jclass cls, jlo
     return GB_safe_read_memory(as_core(handle)->gb, (uint16_t)address);
 }
 
+/* Scrittura di un byte (opzioni del gioco dalla schermata OPZIONI dell'app, D-075). */
+JNIEXPORT void JNICALL
+Java_it_giallotouch_emu_NativeCore_nativeWriteMemory(JNIEnv *env, jclass cls, jlong handle, jint address, jint value) {
+    (void)env; (void)cls;
+    GB_write_memory(as_core(handle)->gb, (uint16_t)address, (uint8_t)value);
+}
+
 /* Vista estesa a tutto schermo: 1 se attiva (out riempito con 160 × height pixel), 0 altrimenti. */
 JNIEXPORT jint JNICALL
 Java_it_giallotouch_emu_NativeCore_nativeRenderExtended(JNIEnv *env, jclass cls, jlong handle, jintArray out, jint height, jint frameTop) {

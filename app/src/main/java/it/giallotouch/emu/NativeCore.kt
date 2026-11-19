@@ -28,6 +28,7 @@ object NativeCore {
     @JvmStatic external fun nativeSetKeys(handle: Long, mask: Int)
     @JvmStatic external fun nativeRunFrame(handle: Long, pixels: IntArray, audio: ShortArray): Int
     @JvmStatic external fun nativeReadMemory(handle: Long, address: Int): Int
+    @JvmStatic external fun nativeWriteMemory(handle: Long, address: Int, value: Int)
     @JvmStatic external fun nativeReadRange(handle: Long, address: Int, out: ByteArray)
     /**
      * Vista estesa: riempie [out] (160 × height) con l'inquadratura originale alla riga [frameTop] (−1 = al centro);

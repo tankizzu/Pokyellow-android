@@ -76,6 +76,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Gli sprite dell'introduzione vanno disegnati anche sopra l'immagine del gioco (stelline di GAME FREAK). */
     @Volatile var introSpritesOver = false
     private var introSpritesMiss = 0
+    /** Nuove opzioni del gioco (D-075): scritte nella memoria dal thread del gioco. */
+    fun writeGameOptions(value: Int) {
+        gameOptions = value
+        tasks.add(Runnable { NativeCore.nativeWriteMemory(handle, MemoryMapIt.OPTIONS, value) })
+    }
     /** Opzioni del gioco (byte a 0xD359: velocità del testo, animazione, stile lotta, suono). */
     @Volatile var gameOptions = 0x03
     private var lastPlayerHp = -1
@@ -1101,8 +1106,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }.onFailure { Log.e(TAG, "Audio non disponibile", it) }.getOrNull()
 
     companion object {
-        const val SPRITE_LAYER_TOP = 64
-        const val SPRITE_LAYER_H = NativeCore.HEIGHT + 128
+        const val SPRITE_LAYER_TOP = 128
+        const val SPRITE_LAYER_H = NativeCore.HEIGHT + 256
         /** Solo per il banco di prova: la sessione nasce già in modalità fotogramma per fotogramma. */
         @Volatile @JvmStatic var testStepFromStart = false
         private const val TAG = "GameSession"
