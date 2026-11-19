@@ -1115,6 +1115,15 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val plainBackground = !frameMask.ready && !extendedActive && back[0] == back[NativeCore.WIDTH - 1] &&
                     back[0] == back[11 * 8 * NativeCore.WIDTH] && back[0] == back[12 * 8 * NativeCore.WIDTH - 1]
                 if (dialog && !frameMask.ready && !plainBackground) dialog = false
+                // Il riquadro deve essere già disegnato nell'immagine (bordo superiore scuro alla riga 96-103): nei primi
+                // fotogrammi la mappa delle caselle lo ha già ma l'immagine no, e si spostava un pezzo di mappa (D-086).
+                if (dialog) {
+                    var best = 0
+                    for (y in 96 until 104) { var n = 0; val b = y * NativeCore.WIDTH
+                        for (x in 8 until NativeCore.WIDTH - 8) { val c = back[b + x]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200) n++ }
+                        if (n > best) best = n }
+                    if (best < 120) dialog = false
+                }
                 if (dialog) {
                     System.arraycopy(back, 96 * NativeCore.WIDTH, stripA, 0, stripA.size)
                     dialogStrip = stripA
