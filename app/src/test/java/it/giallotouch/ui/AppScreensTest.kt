@@ -305,7 +305,8 @@ abstract class AppScreensHarness {
         fun fightIfNeeded() {
             var g = 0
             while (s.latestSnapshot.get().inBattle && g++ < 300) {
-                if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
+                if (s.battleMenuShown && !s.commandBusy && (lead()?.moves?.firstOrNull()?.pp ?: 1) == 0) tapTile(10f, 34f)   // PP finiti: FUGA
+                else if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
             }
             waitFor(10_000) { s.latestSnapshot.get().freeRoam }
         }
