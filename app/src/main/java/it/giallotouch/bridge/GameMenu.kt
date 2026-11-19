@@ -122,13 +122,18 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
     /** Sta ancora attraversando i menu prima del tasto finale di una mossa (LOTTA → mossa): suoni da tacere (D-069). */
     val navigatingFight: Boolean get() = command is GameCommand.Fight && !finishing
 
-    fun start(cmd: GameCommand) {
+    fun start(cmd: GameCommand, direct: Boolean = false) {
         command = cmd
         framesLeft = timeoutFrames
         // Si parte con i tasti rilasciati per qualche fotogramma: se il giocatore stava tenendo premuto A, la prima
         // pressione del comando deve essere una pressione nuova, altrimenti il gioco la ignora.
         heldKey = 0; holdFrames = 0; cooldown = RELEASE; finishing = false; lastMenu = null; stable = 0
+        // Scelta diretta (D-081): il cursore è già stato scritto nella memoria del gioco, il menu è fermo da tempo:
+        // basta un fotogramma senza tasti e poi A (scelta immediata, col suono del gioco).
+        this.direct = direct
+        if (direct) cooldown = 1
     }
+    private var direct = false
 
     private var settleNeeded = 8
 
@@ -142,6 +147,7 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
         if (cooldown > 0) { cooldown--; return 0 }
         if (finishing) { cancel(); return 0 }
         // Un menu appena comparso (o cambiato) non ascolta subito i tasti: si aspetta che resti uguale per un po'.
+        if (direct && lastMenu == null) { lastMenu = menu; stable = 0; settleNeeded = 0 }
         if (menu != lastMenu) { settleNeeded = if (lastMenu?.kind == menu.kind) SETTLE_MOVE else SETTLE; lastMenu = menu; stable = 0; return 0 }
         if (++stable < settleNeeded) return 0
         val decision = decide(cmd, menu) ?: return 0

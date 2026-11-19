@@ -495,8 +495,8 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
  * (introduzione, D-076): out = 160 × out_h ARGB, la riga 0 del gioco alla riga top; 0 = trasparente.
  * Si saltano gli sprite nascosti dal gioco (Y = 0 o 160, X = 0 o ≥ 168). Restituisce quanti sprite ha disegnato.
  */
-static struct { int x, y; uint8_t c[8][8]; uint32_t pal[4]; } fall[40];
-static int nfall = 0, fall_off = 0, frozen = 0, last_sum = -1;
+static struct { int x, y, gy, last_game, last_own, every, oam_seen, sat; uint8_t c[8][8]; uint32_t pal[4]; } star_t[40];
+static int nstar_t = 0;
 static bool falling = false;
 
 int ev_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int top) {
@@ -523,51 +523,75 @@ int ev_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int top) {
     bool gf = false;
     if (on) for (int i = 0; i < 40; i++) if (oam[i * 4 + 2] == 0x8D && oam[i * 4] != 0) gf = true;
     if (!gf) memset(star_known, 0, sizeof(star_known));
-    /* Le stelline cadono fino in fondo allo schermo (richiesta del committente): quando il gioco le ferma (posizioni
-     * uguali per 3 fotogrammi) si prende una copia di ognuna e la si fa scendere di 3 pixel a fotogramma, anche dopo
-     * la fine della scena, finché non esce dallo schermo; le stelline ferme del gioco si coprono di bianco. */
-    int sum = 0, nstar = 0;
-    if (gf) for (int i = 0; i < 40; i++) if (oam[i * 4 + 2] == 0xA2 && oam[i * 4] != 0) { sum += oam[i * 4] * 3 + oam[i * 4 + 1]; nstar++; }
-    if (gf && !falling) {
-        frozen = (nstar > 0 && sum == last_sum) ? frozen + 1 : 0;
-        last_sum = sum;
-        if (frozen >= 3 && tall == 8) {
-            nfall = 0;
-            for (int i = 0; i < 40 && nfall < 40; i++) {
-                const uint8_t *o = oam + i * 4;
-                if (o[2] != 0xA2 || o[0] == 0 || o[1] == 0 || o[1] >= 168) continue;
+    /* Stelline (D-081): ognuna si segue per conto suo (colonna, riga, ogni quanti fotogrammi scende di un pixel).
+     * Quando il gioco la ferma o la toglie, continua a scendere col suo ritmo finché arriva in fondo all'immagine del
+     * gioco o finisce la scena; la copia ferma del gioco si copre di bianco. */
+    static int fc = 0;
+    fc++;
+    if (!gf) nstar_t = 0;
+    else if (tall == 8) {
+        bool used[40] = { false };
+        for (int i = 0; i < 40; i++) {
+            const uint8_t *o = oam + i * 4;
+            if (o[2] != 0xA2 || o[0] == 0 || o[1] == 0 || o[1] >= 168) continue;
+            int gx = o[1] - 8, gy = o[0] - 16, k = -1;
+            for (int t = 0; t < nstar_t; t++)
+                if (!used[t] && star_t[t].x == gx && gy - star_t[t].gy >= 0 && gy - star_t[t].gy <= 2) { k = t; break; }
+            if (k < 0 && nstar_t < 40) {
+                k = nstar_t++;
+                star_t[k].x = gx; star_t[k].gy = gy; star_t[k].y = gy; star_t[k].last_game = fc; star_t[k].last_own = fc; star_t[k].every = 3; star_t[k].sat = -1;
                 const uint8_t *data = (o[3] & 0x08) ? vram + 0x2000 : vram;
-                fall[nfall].x = o[1] - 8; fall[nfall].y = o[0] - 16;
                 for (int py = 0; py < 8; py++) {
                     int yy = (o[3] & 0x40) ? 7 - py : py;
                     uint8_t lo = data[0xA2 * 16 + yy * 2], hi = data[0xA2 * 16 + yy * 2 + 1];
-                    for (int px = 0; px < 8; px++) { int xx = (o[3] & 0x20) ? px : 7 - px; fall[nfall].c[py][px] = (((hi >> xx) & 1) << 1) | ((lo >> xx) & 1); }
+                    for (int px = 0; px < 8; px++) { int xx = (o[3] & 0x20) ? px : 7 - px; star_t[k].c[py][px] = (((hi >> xx) & 1) << 1) | ((lo >> xx) & 1); }
                 }
-                const uint32_t *pp = (o[1] < FRAME_W + 8 && star_known[o[1]]) ? star_pal[o[1]] : pal[o[3] & 7];
-                memcpy(fall[nfall].pal, pp, sizeof(fall[nfall].pal));
-                nfall++;
             }
-            falling = nfall > 0; fall_off = 0;
+            if (k < 0) continue;
+            used[k] = true;
+            if (gy != star_t[k].gy) {   /* il gioco l'ha mossa: si impara il suo ritmo */
+                int e = fc - star_t[k].last_game;
+                if (e >= 1 && e <= 8) star_t[k].every = e;
+                star_t[k].last_game = fc; star_t[k].last_own = fc; star_t[k].gy = gy;
+                if (gy > star_t[k].y) star_t[k].y = gy;
+            }
+            star_t[k].oam_seen = fc;
+            /* colore più vivo visto per questa stellina: non sbiadisce */
+            const uint32_t *pp = pal[o[3] & 7];
+            int sat = 0;
+            for (int c = 1; c < 4; c++) {
+                uint32_t v = pp[c]; int r = (v >> 16) & 255, g = (v >> 8) & 255, b = v & 255;
+                int mx = r > g ? (r > b ? r : b) : (g > b ? g : b), mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+                if (mx - mn > sat) sat = mx - mn;
+            }
+            if (sat >= star_t[k].sat) { memcpy(star_t[k].pal, pp, sizeof(star_t[k].pal)); star_t[k].sat = sat; }
         }
+        /* ferma (o tolta) da più del suo ritmo: scende da sola */
+        for (int t = 0; t < nstar_t; t++)
+            if (fc - star_t[t].last_game >= star_t[t].every && fc - star_t[t].last_own >= star_t[t].every) { star_t[t].y++; star_t[t].last_own = fc; }
     }
-    if (falling && !gf) { falling = false; nfall = 0; frozen = 0; last_sum = -1; }
+    falling = gf && nstar_t > 0;
     if (falling) {
-        static int tick = 0;
-        if (++tick % 3 == 0) fall_off += 1;   /* stessa velocità del gioco: 1 pixel ogni 3 fotogrammi */
-        int alive = 0;
-        for (int k = 0; k < nfall; k++) {
+        /* prima si coprono le copie del gioco rimaste indietro, poi si disegnano tutte alla loro riga */
+        for (int t = 0; t < nstar_t; t++) {
+            if (star_t[t].y == star_t[t].gy || star_t[t].oam_seen != fc) continue;
             for (int py = 0; py < 8; py++) for (int px = 0; px < 8; px++) {
-                if (!fall[k].c[py][px]) continue;
-                int col = fall[k].x + px; if (col < 0 || col >= FRAME_W) continue;
-                int row0 = top + fall[k].y + py, row = row0 + fall_off;
-                if (gf && row0 >= 0 && row0 < out_h) out[(size_t)row0 * FRAME_W + col] = 0xFFFFFFFFu;   /* copre quella ferma */
-                if (row >= 0 && row < out_h) { out[(size_t)row * FRAME_W + col] = fall[k].pal[fall[k].c[py][px]] | 0xFF000000u; alive++; }
+                if (!star_t[t].c[py][px]) continue;
+                int col = star_t[t].x + px, row = top + star_t[t].gy + py;
+                if (col >= 0 && col < FRAME_W && row >= 0 && row < out_h) out[(size_t)row * FRAME_W + col] = 0xFFFFFFFFu;
             }
         }
-        if (!alive) { falling = false; nfall = 0; frozen = 0; last_sum = -1; }
-        else n += 1;
+        for (int t = 0; t < nstar_t; t++) {
+            if (star_t[t].y + 8 > FRAME_H) continue;   /* arrivata in fondo all'immagine: sparisce intera, non tagliata */
+            for (int py = 0; py < 8; py++) for (int px = 0; px < 8; px++) {
+                int c = star_t[t].c[py][px]; if (!c) continue;
+                int col = star_t[t].x + px, gyy = star_t[t].y + py, row = top + gyy;
+                if (gyy >= FRAME_H) continue;   /* restano dentro l'immagine del gioco */
+                if (col >= 0 && col < FRAME_W && row >= 0 && row < out_h) out[(size_t)row * FRAME_W + col] = star_t[t].pal[c] | 0xFF000000u;
+            }
+        }
+        n++;
     }
-    if (!gf && !falling) { frozen = 0; last_sum = -1; }
     for (int i = 39; on && i >= 0; i--) {   /* il primo sprite sta sopra gli altri */
         const uint8_t *o = oam + i * 4;
         if (o[0] == 0 || o[1] == 0 || o[1] >= 168) continue;

@@ -364,6 +364,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Chiede di eseguire un comando di lotta (scegliere una mossa, fuggire…). */
     fun command(cmd: GameCommand) {
         commandBusy = true
+        // Nomi del Professore e menu iniziale (D-081): si scrive la voce scelta nel cursore del gioco e si preme subito A.
+        if (cmd is GameCommand.MainMenu && (nameList != null || mainMenuItems > 0)) {
+            tasks.add(Runnable { NativeCore.nativeWriteMemory(handle, MemoryMapIt.CURRENT_MENU_ITEM, cmd.index); executor.start(cmd, direct = true) })
+            return
+        }
         tasks.add(Runnable { executor.start(cmd) })
     }
 

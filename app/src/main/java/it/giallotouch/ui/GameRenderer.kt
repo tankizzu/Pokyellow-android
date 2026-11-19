@@ -256,6 +256,9 @@ class GameRenderer(private val session: GameSession) {
         val b = menuBitmap ?: return
         val unit = w.toFloat() / NativeCore.WIDTH
         dst.set(0, frameTop, (b.width * unit).toInt(), frameTop + (b.height * unit).toInt())
+        // fondo pieno sotto il riquadro: i pixel trasparenti del bordo non lasciano vedere il menu del gioco (D-081)
+        bandPaint.color = sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8]
+        canvas.drawRect(dst, bandPaint)
         canvas.drawBitmap(b, null, dst, paint)
     }
 }

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-19 – stelline una per una, nomi immediati, menu senza niente dietro (D-081)
+- Introduzione: ogni stellina scende col suo ritmo e sparisce intera in fondo.
+- Nomi del Professore e voci del menu iniziale: scelta immediata insieme al suono.
+- Menu iniziale: non si vede più il menu del gioco dietro.
+
 ## 2026-11-19 – OPZIONI in un riquadro, volume a 5 tacche, ritocchi all'introduzione (D-080)
 - OPZIONI: un solo riquadro GIOCO; tolte velocità testo e suono del gioco; volume 5 tacche da 20% e muto.
 - Introduzione: stelline alla velocità originale, niente testa di Pikachu in basso nel surf, vibrazione anche nei lampi dopo il Tuonoshock.
