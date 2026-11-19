@@ -752,6 +752,75 @@ class ZzScenarioTest : AppScreensHarness() {
         save("center.state")
     }
 
+    /**
+     * Quinta tappa (da -Pgiallo.state.grind=center.state, Centro di Smeraldopoli): lotte nell'erba della Strada 1 col
+     * primo Pokémon finché il gioco chiede di dimenticare una mossa; cura al Centro quando i PS scendono sotto metà.
+     * Salva mossa.state appena compare la domanda (per il mockup della mossa da dimenticare) e livello-N.state ogni
+     * livello guadagnato.
+     */
+    @Test fun costruisci5() {
+        assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.grind") != null)
+        s = start(auto = "giallo.state.grind") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        val rnd = java.util.Random(23)
+        fun lead() = s.latestSnapshot.get().party.firstOrNull()
+        fun heal() {
+            var k = 0
+            while (pos().first != 1 && k++ < 6) edge(north = true)
+            if (pos().first == 1) warpTo(0x29)
+            textThrough()
+            if (pos().first != 41) { log("Centro non raggiunto"); return }
+            goTo(3, 3)
+            s.setKeys(NativeCore.KEY_UP); pump(150); s.setKeys(0); pump(400)
+            tapTile(10f, 20f)
+            k = 0
+            while (s.yesNo == null && k++ < 20) { tapTile(10f, 20f); pump(300) }
+            tapTile(5f, 39f)
+            k = 0
+            while (!s.latestSnapshot.get().freeRoam && k++ < 30) { tapTile(10f, 20f); pump(400) }
+            log("curato: ${lead()}")
+        }
+        fun toRoute() {
+            if (pos().first == 41) warpTo(null)
+            var k = 0
+            while (pos().first != 12 && k++ < 4) edge(north = false)
+        }
+        var level = lead()?.level ?: 0
+        var battles = 0
+        heal()
+        toRoute()
+        while (battles < 120) {
+            if (pos().first != 12) { heal(); toRoute(); continue }
+            var walks = 0
+            while (!s.latestSnapshot.get().inBattle && walks++ < 25) {
+                val gg = s.mapGridForTest() ?: break
+                val free = (0 until gg.width).flatMap { x -> (6 until gg.height - 4).map { y -> x to y } }.filter { gg.isFree(it.first, it.second) }
+                val t = free[rnd.nextInt(free.size)]
+                s.walkPathForTest(t.first, t.second)
+                waitFor(30_000) { s.latestSnapshot.get().inBattle || pos().let { it.second == t.first && it.third == t.second } }
+            }
+            if (!s.latestSnapshot.get().inBattle) continue
+            battles++
+            var g = 0
+            while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && g++ < 500) {
+                if (s.yesNo != null) {
+                    // "... vuole imparare ...; dimenticare una mossa?" (o un'altra domanda): si salva e ci si ferma
+                    save("mossa.state")
+                    log("domanda in lotta dopo $battles lotte: ${lead()}")
+                    return
+                }
+                if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
+            }
+            val m = lead() ?: break
+            log("lotta $battles finita: ${m.name} L${m.level} PS ${m.hp}/${m.maxHp}")
+            if (m.level > level) { level = m.level; save("livello-$level.state") }
+            if (m.hp * 2 < m.maxHp) { heal(); toRoute() }
+        }
+        log("fine senza domanda dopo $battles lotte")
+    }
+
     /** Terza tappa (da -Pgiallo.state.items=shop.state): 5 Poké Ball al negozio, cattura sulla Strada 1. */
     @Test fun costruisci3() {
         assumeTrue(System.getProperty("giallo.scenario") != null && System.getProperty("giallo.state.items") != null && System.getProperty("giallo.state.shop") == null)
