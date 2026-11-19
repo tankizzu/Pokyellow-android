@@ -63,6 +63,10 @@ class AudioEngine {
     fun phase(toCyan: Boolean) = commands.add {
         sfx.trigger(Inst.SFX_PHASE, if (toCyan) 76f else 83f, 1f, 0.14f, if (toCyan) 1f else -0.5f)
     }
+    fun portal() = commands.add {
+        sfx.trigger(Inst.SFX_PHASE, 69f, 0.9f, 0.14f, 1f)
+        sfx.trigger(Inst.SFX_BLIP, 81f, 0.6f, 0.2f)
+    }
     fun win() = commands.add { sfx.trigger(Inst.SFX_WIN, 81f, 1f, 1.6f) }
     fun click() = commands.add { sfx.trigger(Inst.SFX_CLICK, 93f, 1f, 0.05f) }
 

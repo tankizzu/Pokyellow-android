@@ -45,12 +45,24 @@ class ScreenshotTest {
         shot(v, dir, "2-impostazioni")
         tap(v, w / 2f, tile * 3.6f + 3 * tile * 1.7f + tile * 0.4f)   // indietro
         tap(v, w / 2f, h / 2f)                         // gioca
-        // scorci di livello in vari punti
-        for ((i, pos) in listOf(Triple(170f, 0f, 1), Triple(232f, 2f, 0), Triple(410f, 3f, 0), Triple(515f, 0f, 0)).withIndex()) {
-            v.debugSim.debugPlace(pos.first, pos.second, pos.third)
-            v.debugUpdate(0f)
-            shot(v, dir, "3-livello-${i + 1}")
+        // scorci di livello: (colonna, altezza, colore, navicella, specchio, gravità dei portali, tasto gravità)
+        data class P(val x: Float, val y: Float, val ph: Int, val ship: Boolean = false, val mir: Boolean = false, val g: Int = 1, val gh: Boolean = false)
+        val punti = listOf(
+            "gravita" to P(268f, 2.1f, 0, gh = true),
+            "portale-nave" to P(377f, 0f, 0),
+            "navicella" to P(408f, 5.2f, 0, ship = true),
+            "navicella-muri" to P(436f, 3f, 1, ship = true),
+            "portali-cubo-specchio" to P(494f, 0f, 0),
+            "specchio" to P(536f, 0f, 0, mir = true),
+            "sottosopra" to P(680f, 6.1f, 0, g = -1),
+        )
+        for ((nome, p) in punti) {
+            v.debugSim.debugPlace(p.x, p.y, p.ph, p.ship, p.mir, p.g)
+            v.debugSim.setGravityHeld(p.gh)
+            v.debugSnapMirror()
+            shot(v, dir, "3-$nome")
         }
+        v.debugSim.setGravityHeld(false)
         tap(v, w - tile * 1.1f, tile * 1.1f)          // pausa
         shot(v, dir, "4-pausa")
     }

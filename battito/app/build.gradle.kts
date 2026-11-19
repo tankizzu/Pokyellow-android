@@ -2,6 +2,10 @@ plugins {
     id("com.android.application")
 }
 
+// ── Numero di aggiornamento: +1 a ogni APK consegnato (vedi "Aggiornamenti" nel README) ──
+val aggiornamento = 3
+val versione = "0.$aggiornamento.0"
+
 android {
     namespace = "it.battito.game"
     compileSdk = 36
@@ -10,8 +14,8 @@ android {
         applicationId = "it.battito.game"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0-prototipo"
+        versionCode = aggiornamento
+        versionName = versione
     }
 
     buildTypes {
@@ -59,3 +63,11 @@ tasks.withType<Test>().configureEach {
         systemProperty("robolectric.dependency.dir", layout.buildDirectory.dir("robolectric-jars").get().asFile.absolutePath)
     }
 }
+
+// APK con il numero di aggiornamento nel nome: build/dist/Battito-agg3-v0.3.0.apk
+val apkNumerato = tasks.register<Copy>("apkNumerato") {
+    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    into(layout.buildDirectory.dir("dist"))
+    rename { "Battito-agg$aggiornamento-v$versione.apk" }
+}
+tasks.matching { it.name == "assembleDebug" }.configureEach { finalizedBy(apkNumerato) }

@@ -28,8 +28,10 @@ import kotlin.random.Random
 
 /**
  * Vista di gioco: ciclo a passo fisso (240 Hz) agganciato al Choreographer, disegno su Canvas.
- * Comandi: metà DESTRA dello schermo = salto (tieni premuto per saltare di continuo),
- *          metà SINISTRA = cambio colore (ciano ↔ magenta). In alto a destra: pausa / impostazioni.
+ * Comandi: metà DESTRA dello schermo = salto (tieni premuto per saltare di continuo; in navicella: ogni tocco sale),
+ *          metà SINISTRA = cambio colore (ciano ↔ magenta),
+ *          tasto rotondo in basso a destra = gravità invertita finché lo tieni premuto.
+ *          In alto a destra: pausa / impostazioni.
  */
 @SuppressLint("ViewConstructor")
 class GameView(context: Context, private val audio: AudioEngine) : View(context), Choreographer.FrameCallback {
@@ -64,7 +66,17 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
 
     // Input
     private val jumpPointers = HashSet<Int>()
+    private val gravityPointers = HashSet<Int>()
     private var keyJump = false
+    private var keyGravity = false
+    /** Animazione dello specchio: 1 = dritto, -1 = specchiato (in mezzo il mondo "si gira"). */
+    private var mirrorAnim = 1f
+    private var portalFlash = 0f
+    private val versionLabel: String = try {
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        @Suppress("DEPRECATION")
+        "v${info.versionName} · aggiornamento ${info.versionCode}"
+    } catch (e: Exception) { "" }
     private var dragSlider = -1      // 0 = musica, 1 = effetti
     private var dragPointer = -1
 
@@ -104,6 +116,7 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
     // Agganci per le foto di prova (test sul computer)
     internal val debugSim: Sim get() = sim
     internal fun debugUpdate(dt: Float) = update(dt)
+    internal fun debugSnapMirror() { mirrorAnim = if (sim.mirror) -1f else 1f }
 
     // ───────────────────────── ciclo di vita ─────────────────────────
 
@@ -118,8 +131,8 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
     fun pause() {
         running = false
         Choreographer.getInstance().removeFrameCallback(this)
-        jumpPointers.clear(); keyJump = false
-        sim.setHold(false)
+        jumpPointers.clear(); gravityPointers.clear(); keyJump = false; keyGravity = false
+        syncInput()
         when (mode) {
             Mode.PLAY -> pauseGame()
             Mode.DEAD -> { mode = Mode.MENU }
@@ -158,7 +171,8 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
 
     private fun startRun() {
         sim.reset()
-        sim.setHold(jumpPointers.isNotEmpty() || keyJump)
+        syncInput()
+        mirrorAnim = 1f
         attempts++
         mode = Mode.PLAY
         acc = 0f; rot = 0f
@@ -168,7 +182,7 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
 
     private fun pauseGame() {
         mode = Mode.PAUSED
-        jumpPointers.clear(); sim.setHold(keyJump)
+        jumpPointers.clear(); gravityPointers.clear(); syncInput()
         audio.pauseMusic()
     }
 
@@ -181,8 +195,9 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
 
     private fun goToMenu() {
         mode = Mode.MENU
-        jumpPointers.clear(); sim.setHold(false)
+        jumpPointers.clear(); gravityPointers.clear(); syncInput()
         particles.clear()
+        sim.reset(); mirrorAnim = 1f
         audio.playMenuLoop()
     }
 
@@ -203,6 +218,11 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
 
     private fun click() = audio.click()
 
+    private fun syncInput() {
+        sim.setHold(jumpPointers.isNotEmpty() || keyJump)
+        sim.setGravityHeld(gravityPointers.isNotEmpty() || keyGravity)
+    }
+
     private fun vibrate(kind: Int) {
         if (settings.vibration) performHapticFeedback(kind, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
     }
@@ -214,6 +234,9 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
         shake = (shake - dt * 3f).coerceAtLeast(0f)
         flash = (flash - dt * 2.5f).coerceAtLeast(0f)
         phaseFlash = (phaseFlash - dt * 4f).coerceAtLeast(0f)
+        portalFlash = (portalFlash - dt * 3f).coerceAtLeast(0f)
+        val mirrorTarget = if (sim.mirror) -1f else 1f
+        mirrorAnim += (mirrorTarget - mirrorAnim).coerceIn(-dt * 5f, dt * 5f)
 
         when (mode) {
             Mode.PLAY -> {
@@ -226,17 +249,27 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
                             burst(sim.x + Sim.SIZE / 2, sim.y, yellow, 10, 4f)
                             audio.blip()
                         }
+                        Sim.Event.FLAP -> burst(sim.x, sim.y + Sim.SIZE / 2, Color.argb(255, 255, 170, 60), 4, 3f)
+                        Sim.Event.PORTAL -> {
+                            portalFlash = 1f
+                            burst(sim.x + Sim.SIZE, sim.y + Sim.SIZE / 2, Color.WHITE, 16, 7f)
+                            audio.portal()
+                        }
                         else -> {}
                     }
                     if (!sim.alive) { onDeath(); break }
                     if (sim.won) { onWin(); break }
                 }
                 if (mode == Mode.PLAY) {
-                    if (sim.grounded) {
+                    if (sim.ship) {
+                        // la navicella si inclina secondo la velocità verticale
+                        val target = -Math.toDegrees(kotlin.math.atan2(sim.vy.toDouble(), Sim.SPEED.toDouble())).toFloat() * 0.8f
+                        rot += (target - rot) * (dt * 12f).coerceAtMost(1f)
+                    } else if (sim.grounded) {
                         val target = (rot / 90f).roundToInt() * 90f
                         rot += (target - rot) * (dt * 25f).coerceAtMost(1f)
                     } else {
-                        rot += 430f * dt
+                        rot += 430f * dt * sim.gravity
                     }
                     trail.addLast(floatArrayOf(sim.x, sim.y))
                     while (trail.size > 14) trail.removeFirst()
@@ -318,6 +351,12 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
     private fun inCornerButton(x: Float, y: Float) =
         hypot(x - cornerButtonX(), y - cornerButtonY()) < cornerButtonR() * 1.6f
 
+    private fun gravityButtonX() = width - tile * 1.6f
+    private fun gravityButtonY() = height - tile * 1.6f
+    private fun gravityButtonR() = tile * 1.0f
+    private fun inGravityButton(x: Float, y: Float) =
+        hypot(x - gravityButtonX(), y - gravityButtonY()) < gravityButtonR() * 1.25f
+
     /** Pulsanti del menu di pausa: 0 riprendi, 1 impostazioni, 2 menu. */
     private fun pauseButton(i: Int, out: RectF): RectF {
         val bw = tile * 7f; val bh = tile * 1.15f
@@ -366,14 +405,15 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
                 jumpPointers -= id
+                gravityPointers -= id
                 if (id == dragPointer) {
                     if (dragSlider == 1) audio.blip()   // anteprima del volume effetti
                     dragSlider = -1; dragPointer = -1
                 }
             }
-            MotionEvent.ACTION_CANCEL -> { jumpPointers.clear(); dragSlider = -1 }
+            MotionEvent.ACTION_CANCEL -> { jumpPointers.clear(); gravityPointers.clear(); dragSlider = -1 }
         }
-        sim.setHold(jumpPointers.isNotEmpty() || keyJump)
+        syncInput()
         return true
     }
 
@@ -382,6 +422,7 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
             Mode.MENU -> if (inCornerButton(x, y)) openSettings() else startRun()
             Mode.PLAY -> when {
                 inCornerButton(x, y) -> { pauseGame(); click() }
+                inGravityButton(x, y) -> gravityPointers += id
                 x < width / 2f -> togglePhase()
                 else -> jumpPointers += id
             }
@@ -432,6 +473,7 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
                 else -> { keyJump = true; sim.setHold(true) }
             }
             KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_X, KeyEvent.KEYCODE_DPAD_LEFT -> togglePhase()
+            KeyEvent.KEYCODE_G, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_S -> { keyGravity = true; syncInput() }
             KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_ESCAPE -> if (mode == Mode.PLAY) pauseGame() else if (mode == Mode.PAUSED) resumeGame()
             else -> return super.onKeyDown(keyCode, event)
         }
@@ -441,7 +483,12 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_SPACE || keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_W) {
             keyJump = false
-            sim.setHold(jumpPointers.isNotEmpty())
+            syncInput()
+            return true
+        }
+        if (keyCode == KeyEvent.KEYCODE_G || keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_S) {
+            keyGravity = false
+            syncInput()
             return true
         }
         return super.onKeyUp(keyCode, event)
@@ -474,17 +521,21 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
             val m = shake * shake * tile * 0.35f
             c.translate((rnd.nextFloat() - 0.5f) * m, (rnd.nextFloat() - 0.5f) * m)
         }
+        // Specchio: il mondo si ribalta orizzontalmente (con animazione)
+        if (mirrorAnim < 0.999f) c.scale(mirrorAnim, 1f, w / 2f, h / 2f)
 
         drawBackdrop(c, w)
         drawLevel(c, w)
         drawGround(c, w, h)
+        if (sim.ship) drawShipCeiling(c, w)
         drawFinish(c)
         if (mode != Mode.DEAD && mode != Mode.WON) drawPlayer(c)
         drawParticles(c)
         c.restore()
 
-        if (flash > 0f) {
-            fill.color = Color.argb((flash * 120).toInt().coerceIn(0, 255), 255, 255, 255)
+        val f = maxOf(flash, portalFlash * 0.35f)
+        if (f > 0f) {
+            fill.color = Color.argb((f * 120).toInt().coerceIn(0, 255), 255, 255, 255)
             c.drawRect(0f, 0f, w, h, fill)
         }
 
@@ -493,7 +544,7 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
             Mode.SETTINGS -> drawSettings(c, w, h)
             Mode.PAUSED -> { drawHud(c, w, h); drawPauseMenu(c, w, h) }
             Mode.WON -> drawWin(c, w, h)
-            else -> { drawHud(c, w, h); drawPauseIcon(c) }
+            else -> { drawHud(c, w, h); drawPauseIcon(c); drawGravityButton(c) }
         }
     }
 
@@ -537,6 +588,10 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
         val b = beat
         val from = floor(camX).toInt() - 1
         val to = (camX + w / tile).toInt() + 1
+        for (tx in from..to) {
+            val p = level.portalAt(tx)
+            if (p != '.') drawPortal(c, tx, p, b)
+        }
         for (tx in from..to) for (ty in 0 until level.height) {
             val ch = level.at(tx, ty)
             if (ch == '.') continue
@@ -572,6 +627,74 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
                     c.drawCircle(cx, cy, tile * 0.2f, fill)
                 }
             }
+        }
+    }
+
+    private fun portalColor(p: Char): Int = when (p) {
+        'N' -> Color.rgb(255, 150, 40)     // navicella: arancio
+        'Q' -> Color.rgb(90, 255, 140)     // cubo: verde
+        '<', '>' -> Color.rgb(255, 230, 90) // specchio: oro
+        'U' -> Color.rgb(120, 140, 255)    // sottosopra: blu
+        else -> Color.rgb(230, 230, 255)   // gravità normale: bianco
+    }
+
+    private fun portalLabel(p: Char): String = when (p) {
+        'N' -> "NAVE"; 'Q' -> "CUBO"; '<' -> "⇄"; '>' -> "⇄"; 'U' -> "⇅"; else -> "⇅"
+    }
+
+    private fun drawPortal(c: Canvas, tx: Int, p: Char, b: Float) {
+        val col = portalColor(p)
+        val cx = sx(tx + 0.5f)
+        val top = sy(Sim.WORLD_TOP - 0.2f); val bottom = sy(0.1f)
+        val rw = tile * (0.55f + b * 0.08f)
+        // alone
+        fill.color = Color.argb(45, Color.red(col), Color.green(col), Color.blue(col))
+        rect.set(cx - rw * 1.6f, top - tile * 0.2f, cx + rw * 1.6f, bottom + tile * 0.1f)
+        c.drawRoundRect(rect, rw * 1.6f, rw * 1.6f, fill)
+        // anello
+        stroke.color = col
+        rect.set(cx - rw, top, cx + rw, bottom)
+        c.drawRoundRect(rect, rw, rw, stroke)
+        fill.color = Color.argb(70, Color.red(col), Color.green(col), Color.blue(col))
+        c.drawRoundRect(rect, rw, rw, fill)
+        // scritta (girata insieme al mondo se c'è lo specchio, quindi la raddrizziamo)
+        c.save()
+        val my = (sy(Sim.WORLD_TOP / 2f))
+        if (mirrorAnim < 0f) c.scale(-1f, 1f, cx, my)
+        text.textSize = tile * (if (portalLabel(p).length > 1) 0.34f else 0.8f)
+        text.color = Color.WHITE
+        c.drawText(portalLabel(p), cx, my + tile * 0.12f, text)
+        c.restore()
+    }
+
+    private fun drawShipCeiling(c: Canvas, w: Float) {
+        val y = sy(Sim.WORLD_TOP)
+        fill.color = Color.rgb(12, 8, 30)
+        c.drawRect(0f, 0f, w, y, fill)
+        fill.color = Color.argb((90 + beat * 120).toInt(), 255, 150, 40)
+        c.drawRect(0f, y - tile * 0.12f, w, y + tile * 0.04f, fill)
+        fill.color = Color.WHITE
+        c.drawRect(0f, y - 1.5f, w, y + 1.5f, fill)
+    }
+
+    private fun drawGravityButton(c: Canvas) {
+        val x = gravityButtonX(); val y = gravityButtonY(); val r = gravityButtonR()
+        val on = sim.gravityHeld
+        fill.color = if (on) Color.argb(200, 120, 140, 255) else Color.argb(120, 10, 8, 28)
+        c.drawCircle(x, y, r, fill)
+        stroke.color = Color.argb(220, 160, 175, 255)
+        c.drawCircle(x, y, r, stroke)
+        // frecce su/giù
+        path.reset()
+        val a = r * 0.42f
+        path.moveTo(x - a * 0.7f, y - a * 0.2f); path.lineTo(x, y - a * 1.1f); path.lineTo(x + a * 0.7f, y - a * 0.2f); path.close()
+        path.moveTo(x - a * 0.7f, y + a * 0.2f); path.lineTo(x, y + a * 1.1f); path.lineTo(x + a * 0.7f, y + a * 0.2f); path.close()
+        fill.color = Color.WHITE
+        c.drawPath(path, fill)
+        if (attempts <= 3) {
+            text.textSize = tile * 0.26f
+            text.color = Color.argb(170, 255, 255, 255)
+            c.drawText("GRAVITÀ", x, y - r - tile * 0.2f, text)
         }
     }
 
@@ -649,13 +772,49 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
         fill.color = Color.argb((60 + phaseFlash * 120).toInt(), Color.red(pc), Color.green(pc), Color.blue(pc))
         val g = s * (0.18f + phaseFlash * 0.3f)
         c.drawRect(l - g, t - g, l + s + g, t + s + g, fill)
-        fill.color = pc
-        c.drawRect(l, t, l + s, t + s, fill)
-        fill.color = Color.rgb(10, 8, 26)
-        c.drawRect(l + s * 0.2f, t + s * 0.2f, l + s * 0.8f, t + s * 0.8f, fill)
-        fill.color = Color.WHITE
-        c.drawRect(l + s * 0.36f, t + s * 0.36f, l + s * 0.64f, t + s * 0.64f, fill)
+        if (sim.ship) {
+            drawShip(c, l, t, s, pc)
+        } else {
+            fill.color = pc
+            c.drawRect(l, t, l + s, t + s, fill)
+            fill.color = Color.rgb(10, 8, 26)
+            c.drawRect(l + s * 0.2f, t + s * 0.2f, l + s * 0.8f, t + s * 0.8f, fill)
+            fill.color = Color.WHITE
+            c.drawRect(l + s * 0.36f, t + s * 0.36f, l + s * 0.64f, t + s * 0.64f, fill)
+        }
         c.restore()
+    }
+
+    /** Navicella: scafo a freccia con il cubo come cabina e la fiamma del motore. */
+    private fun drawShip(c: Canvas, l: Float, t: Float, s: Float, pc: Int) {
+        val flip = sim.gravity < 0
+        val cy = t + s / 2
+        fun yy(v: Float) = if (flip) cy - (v - cy) else v
+        // fiamma
+        val fl = s * (0.35f + 0.25f * abs(sin(time * 40f)))
+        fill.color = Color.rgb(255, 150, 40)
+        path.reset()
+        path.moveTo(l - fl, yy(t + s * 0.72f)); path.lineTo(l, yy(t + s * 0.58f)); path.lineTo(l, yy(t + s * 0.9f)); path.close()
+        c.drawPath(path, fill)
+        // scafo
+        path.reset()
+        path.moveTo(l - s * 0.1f, yy(t + s * 0.55f))
+        path.lineTo(l + s * 1.25f, yy(t + s * 0.72f))
+        path.lineTo(l + s * 0.85f, yy(t + s * 1.0f))
+        path.lineTo(l - s * 0.1f, yy(t + s * 1.0f))
+        path.close()
+        fill.color = pc
+        c.drawPath(path, fill)
+        stroke.color = Color.WHITE
+        c.drawPath(path, stroke)
+        // cabina (cubo piccolo)
+        val q = s * 0.5f
+        val qx = l + s * 0.18f
+        val qy = if (flip) yy(t + s * 0.55f) else t + s * 0.55f - q
+        fill.color = pc
+        c.drawRect(qx, qy, qx + q, qy + q, fill)
+        fill.color = Color.rgb(10, 8, 26)
+        c.drawRect(qx + q * 0.25f, qy + q * 0.25f, qx + q * 0.75f, qy + q * 0.75f, fill)
     }
 
     private fun drawParticles(c: Canvas) {
@@ -749,7 +908,7 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
             text.textSize = tile * 0.42f
             text.color = Color.argb(a, 255, 255, 255)
             c.drawText("◀ CAMBIA COLORE", w * 0.25f, h - tile * 0.55f, text)
-            c.drawText("SALTA ▶", w * 0.75f, h - tile * 0.55f, text)
+            c.drawText(if (sim.ship) "TOCCA PER SALIRE ▶" else "SALTA ▶", w * 0.72f, h - tile * 0.55f, text)
             fill.color = Color.argb(a / 4, 255, 255, 255)
             c.drawRect(w / 2 - 1f, groundY + tile * 0.3f, w / 2 + 1f, h - tile * 0.2f, fill)
         }
@@ -777,11 +936,18 @@ class GameView(context: Context, private val audio: AudioEngine) : View(context)
         text.color = Color.argb(170, 255, 255, 255)
         c.drawText("DESTRA: salta (tieni premuto per saltare di continuo)", w / 2, ty + tile * 1.9f, text)
         c.drawText("SINISTRA: cambia colore. Il tuo colore è solido, l'altro è un fantasma.", w / 2, ty + tile * 2.4f, text)
+        c.drawText("TASTO ⇅ in basso a destra: tienilo premuto per invertire la gravità.", w / 2, ty + tile * 2.9f, text)
 
         val pulse = 0.55f + 0.45f * sin(time * 4f)
         text.textSize = tile * 0.48f
         text.color = Color.argb((pulse * 255).toInt(), 255, 255, 255)
-        c.drawText("TOCCA PER GIOCARE", w / 2, ty + tile * 3.7f, text)
+        c.drawText("TOCCA PER GIOCARE", w / 2, ty + tile * 4.0f, text)
+
+        text.textAlign = Paint.Align.LEFT
+        text.textSize = tile * 0.26f
+        text.color = Color.argb(140, 255, 255, 255)
+        c.drawText(versionLabel, tile * 0.5f, h - tile * 0.5f, text)
+        text.textAlign = Paint.Align.CENTER
     }
 
     private fun drawPauseMenu(c: Canvas, w: Float, h: Float) {

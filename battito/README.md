@@ -19,17 +19,39 @@ Ingranaggio in alto a destra nel menu (in partita: pausa → Impostazioni):
 volume musica, volume effetti (passi del 5%, cursore trascinabile o −/+), vibrazione sì/no.
 Anche i tasti volume del telefono regolano l'audio del gioco.
 
+## Aggiornamenti
+Ogni APK consegnato ha un numero di aggiornamento (`aggiornamento` in `app/build.gradle.kts`):
+compare nel menu in basso a sinistra e nel nome del file (`app/build/dist/Battito-aggN-vX.apk`).
+
+| Agg. | Versione | Novità |
+|---|---|---|
+| 1 | 0.1.0 | Prototipo: cubo, salto, cambio di fase, livello breve |
+| 2 | 0.2.0 | Livello completo da 90 s, musica originale, impostazioni volume, pausa |
+| 3 | 0.3.0 | Navicella, portali (navicella/cubo, specchio, sottosopra), tasto gravità, numero di aggiornamento |
+
 ## Comandi
-- **Metà destra dello schermo**: salto (tieni premuto per saltare di continuo)
+- **Metà destra dello schermo**: salto (tieni premuto per saltare di continuo).
+  In **navicella**: ogni tocco la fa salire, se non tocchi scende
 - **Metà sinistra**: cambia colore
+- **Tasto ⇅ in basso a destra**: finché lo tieni premuto la gravità è invertita (corri sul soffitto).
+  Attenzione: dove non c'è un soffitto si precipita nel vuoto
 - **Cerchio in alto a destra**: pausa
-- Tastiera (emulatore): Spazio/↑ salto, X/Shift/← colore, P/Esc pausa
+- Tastiera (emulatore): Spazio/↑ salto, X/Shift/← colore, G/↓ gravità, P/Esc pausa
+
+## Portali
+| Portale | Effetto |
+|---|---|
+| NAVE (arancio) | diventi navicella |
+| CUBO (verde) | torni cubo |
+| ⇄ (oro) | specchio: il mondo si gira e corri da destra verso sinistra; un secondo ⇄ lo rimette dritto |
+| ⇅ (blu) | sottosopra: la gravità tira verso l'alto; ⇅ bianco la rimette normale |
 
 ## Struttura
 | File | Contenuto |
 |---|---|
 | `app/src/main/java/it/battito/game/Sim.kt` | Livello a griglia + fisica deterministica a 240 Hz (Kotlin puro, senza Android) |
-| `app/src/main/java/it/battito/game/Levels.kt` | Livelli disegnati come testo (legenda in `Sim.kt`) |
+| `app/src/main/java/it/battito/game/Levels.kt` | Livelli disegnati come testo (legenda in `Sim.kt`), generati da `tools/livello.py` |
+| `tools/livello.py` | Editor del livello per coordinate: `python3 tools/livello.py` riscrive `Levels.kt` |
 | `app/src/main/java/it/battito/game/GameView.kt` | Ciclo di gioco, input multitocco, disegno su Canvas, effetti |
 | `app/src/main/java/it/battito/game/Synth.kt` | Sintetizzatore (cassa, clap, charleston, basso, pad, melodia, arpeggio, effetti) |
 | `app/src/main/java/it/battito/game/Song.kt` | Partitura del brano + sequencer |
