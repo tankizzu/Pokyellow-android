@@ -76,9 +76,31 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var battleSplit = false
         private set
     private var splitHold = 0
+    private var tilesSaved = false
     private var mainHold = 0
     private var mainTail = 0
     private var cardClosing = 0
+    /** La grafica contiene i riquadri (angolo 0x79 e lettera "A" non vuoti): si può salvare per la scelta del file. */
+    private fun hasBoxTiles(sheet: IntArray): Boolean {
+        fun dark(t: Int): Boolean {
+            val sx = (t and 15) * 8; val sy = (t shr 4) * 8; val bg = sheet[sy * 128 + sx + 7 * 128 + 7]
+            var n = 0
+            for (y in 0 until 8) for (x in 0 until 8) if (sheet[(sy + y) * 128 + sx + x] != bg) n++
+            return n >= 4
+        }
+        // 0x7A = lato orizzontale (ogni riga di un solo colore), 0x7C = lato verticale (ogni colonna di un solo colore)
+        fun striped(t: Int, rows: Boolean): Boolean {
+            val sx = (t and 15) * 8; val sy = (t shr 4) * 8
+            for (a in 0 until 8) for (b in 1 until 8) {
+                val p0 = if (rows) sheet[(sy + a) * 128 + sx] else sheet[sy * 128 + sx + a]
+                val p = if (rows) sheet[(sy + a) * 128 + sx + b] else sheet[(sy + b) * 128 + sx + a]
+                if (p != p0) return false
+            }
+            return true
+        }
+        return dark(0x79) && dark(0x7A) && dark(0x7C) && dark(0x80) && striped(0x7A, rows = true) && striped(0x7C, rows = false)
+    }
+
     /** Immagine quasi tutta bianca (dissolvenza del gioco in corso). */
     private fun mostlyWhite(px: IntArray): Boolean {
         val white = px[0]
@@ -861,6 +883,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     normalizeSheet(sheetBuf)
                     val old = tileSheet.get()
                     if (old == null || !old.contentEquals(sheetBuf)) tileSheet.set(sheetBuf.copyOf())
+                    // una volta per partita: grafica salvata per le schermate di scelta del file (D-066)
+                    if (!tilesSaved && latestSnapshot.get().freeRoam && hasBoxTiles(sheetBuf)) { tilesSaved = true; storage.saveGameTiles(sheetBuf.copyOf()) }
                 }
                 if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
                     // La scrittura si blocca quando il buffer è pieno: tiene il gioco alla velocità giusta.

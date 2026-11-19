@@ -47,6 +47,8 @@ Pensato per essere passato a un nuovo progetto. Aggiornato al 2026-11-18 (versio
 - **Segnala** (D-064): tre dita sullo schermo → file con foto, stato della partita e note, da condividere.
 
 ## 4. Avvio e salvataggi
+- **Prima apertura** (D-066): scelta della cartella di Android, l'app trova da sola il file del gioco; schermata A
+  (riquadro con spiegazione, SCEGLI CARTELLA, SCEGLI FILE) con riquadri e lettere del gioco salvati sul telefono.
 - **A ogni apertura il gioco riparte come sul Game Boy**: introduzione, titolo, menu iniziale (D-034). Senza il logo
   della console (D-022).
 - **Menu iniziale** ridisegnato: riquadro 18×14 con CONTINUA, CARICA PARTITA, OPZIONI, NUOVO GIOCO, una ogni 3

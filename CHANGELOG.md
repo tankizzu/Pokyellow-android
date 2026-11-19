@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-19 – difetti grafici, menu più rapidi, prima apertura (D-065, D-066)
+- Scheda allenatore senza immagini rovinate; niente SELECT o START fuori posto; menu iniziale senza lampi.
+- Azioni dell'app nei menu del gioco più rapide.
+- Prima apertura: scelta della cartella con ricerca automatica del gioco; schermata con riquadri e lettere del gioco.
+
 ## 2026-11-19 – Box e PC dal mockup (D-062, D-063)
 - Box: cambio box scorrendo a lato, LIBERA (tenere premuto o AZIONI → LIBERA) con conferma, AZIONI → DEPOSITA.
 - PC di casa: AZIONI → DEPOSITA / BUTTA; BUTTA con quantità tra frecce, ANNULLA e OK.

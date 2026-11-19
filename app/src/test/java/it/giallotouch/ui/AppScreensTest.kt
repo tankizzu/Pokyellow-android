@@ -40,7 +40,7 @@ abstract class AppScreensHarness {
 
     protected lateinit var shots: File
     protected lateinit var root: View
-    private var controller: org.robolectric.android.controller.ActivityController<MainActivity>? = null
+    protected var controller: org.robolectric.android.controller.ActivityController<MainActivity>? = null
 
     /** Chiude l'app alla fine di ogni prova: il motore non deve restare acceso durante la prova successiva. */
     @org.junit.After
@@ -1359,5 +1359,32 @@ class ZzGlitchTest : AppScreensHarness() {
         }
         s.stepPermits = null
         println("DBGGL fotogrammi $n lampeggi $blips")
+    }
+}
+
+/** Scelta del file (D-066): dopo una partita la schermata usa riquadri e lettere presi dal file; senza, disegnata dall'app. */
+class AppPickerTest : AppScreensHarness() {
+    @Test fun sceltaFile() {
+        val s = start(auto = "giallo.state.bag") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue(waitFor(10_000) { s.latestSnapshot.get().freeRoam })
+        val ctx = root.context
+        val tiles = File(ctx.filesDir, "grafica-del-gioco.bin")
+        // un dialogo (il PC) fa caricare al gioco i riquadri; poi si torna a camminare
+        tapTile(10f, 20f); pump(1500)
+        var k = 0
+        while (!s.latestSnapshot.get().freeRoam && k++ < 20) { press(s, NativeCore.KEY_B); pump(500) }
+        assertTrue("grafica salvata", waitFor(15_000) { tiles.isFile && tiles.length() == 128L * 128 * 4 })
+        controller?.pause()?.stop()?.destroy()
+        File(ctx.filesDir, "partita/gioco.rom").delete(); File(ctx.filesDir, "partita/gioco.rom.bak").delete()
+        val c2 = Robolectric.buildActivity(MainActivity::class.java).setup(); controller = c2; root = c2.get().window.decorView
+        pump(800)
+        assertTrue("schermata con la grafica del gioco", shotUntil("60-scelta-file") { b -> boxAt(b, 0, 10, 20, 17) && boxAt(b, 1, 29, 18, 4) })
+        c2.pause().stop().destroy()
+        tiles.delete()
+        val c3 = Robolectric.buildActivity(MainActivity::class.java).setup(); controller = c3; root = c3.get().window.decorView
+        pump(800)
+        shot("61-scelta-file-prima-volta")
     }
 }

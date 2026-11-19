@@ -20,6 +20,23 @@ class SaveStorage(context: Context) {
 
     fun hasRom(): Boolean = romFile.isFile && romFile.length() > 0
 
+    /**
+     * Riquadri e lettere del gioco (D-066), presi dal file del giocatore mentre il gioco gira e tenuti solo in questo
+     * telefono: servono alle schermate di scelta del file, che così sono identiche al gioco. Fuori da "partita".
+     */
+    private val tilesFile = File(context.filesDir, "grafica-del-gioco.bin")
+
+    fun saveGameTiles(sheet: IntArray) {
+        val buf = java.nio.ByteBuffer.allocate(sheet.size * 4); buf.asIntBuffer().put(sheet)
+        runCatching { writeAtomic(tilesFile, buf.array()) }
+    }
+
+    fun loadGameTiles(): IntArray? = runCatching {
+        val b = tilesFile.takeIf { it.isFile }?.readBytes() ?: return null
+        if (b.size != 128 * 128 * 4) return null
+        IntArray(128 * 128).also { java.nio.ByteBuffer.wrap(b).asIntBuffer().get(it) }
+    }.getOrNull()
+
     fun slotFiles(slot: SaveSlot) = SlotFiles(dir, slot)
 
     /** Cancella un salvataggio dell'app (stato, scheda, miniatura e copie di riserva). */
