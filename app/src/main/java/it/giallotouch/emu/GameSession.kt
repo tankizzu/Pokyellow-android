@@ -139,13 +139,73 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var wipeOn = false
     private var wipeColor = 0
     private val colorMap = HashMap<Int, Int>()
-    /** L'immagine usa solo colori già visti nell'ultima immagine buona della mappa (lampo coi colori originali). */
-    private fun remappable(frame: IntArray): Boolean {
-        if (colorMap.isEmpty()) return false
-        var miss = 0; var i = 0; var n = 0
-        while (i < frame.size) { n++; if (!colorMap.containsKey(frame[i])) miss++; i += 5 }
-        return miss * 50 < n && colorMap.keys.any { k -> colorMap[k] != k }
+    /** Corrispondenza colori del fotogramma (anche schiariti o scuriti in una dissolvenza) → colori mostrati. */
+    private val frameMap = HashMap<Int, Int>()
+    private fun mix(c: Int, to: Int, t: Float): Int {
+        fun ch(sh: Int) = (((c shr sh) and 255) + ((((to shr sh) and 255) - ((c shr sh) and 255)) * t)).toInt().coerceIn(0, 255)
+        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
     }
+    /**
+     * L'immagine usa colori già visti nell'ultima immagine buona della mappa, oppure gli stessi schiariti verso il bianco
+     * o scuriti verso il nero (dissolvenza, lampo): si prepara [frameMap] coi colori ricolorati schiariti/scuriti della
+     * stessa misura (D-083). Falso se compare un colore che non si spiega così (lampi invertiti, altre schermate).
+     */
+    private fun remappable(frame: IntArray): Boolean {
+        if (colorMap.isEmpty() || colorMap.all { it.key == it.value }) return false
+        frameMap.clear()
+        var i = 0
+        while (i < frame.size) {
+            val c = frame[i]; i += 3
+            if (frameMap.containsKey(c)) continue
+            val exact = colorMap[c]
+            if (exact != null) { frameMap[c] = exact; continue }
+            if (frameMap.size > 24) return false
+            var best = Int.MAX_VALUE; var res = c
+            for ((o, shown) in colorMap) for (to in intArrayOf(0xFFFFFFFF.toInt(), 0xFF000000.toInt())) {
+                // t dal canale più lontano dalla meta, poi errore sugli altri
+                var t = -1f
+                for (sh in intArrayOf(16, 8, 0)) {
+                    val d = ((to shr sh) and 255) - ((o shr sh) and 255)
+                    if (kotlin.math.abs(d) > 40) { t = (((c shr sh) and 255) - ((o shr sh) and 255)).toFloat() / d; break }
+                }
+                if (t < 0f || t > 1f) continue
+                val m = mix(o, to, t)
+                val err = intArrayOf(16, 8, 0).sumOf { kotlin.math.abs(((m shr it) and 255) - ((c shr it) and 255)) }
+                if (err < best) { best = err; res = mix(shown, to, t) }
+            }
+            if (best > 24) return false
+            frameMap[c] = res
+        }
+        return true
+    }
+
+    /** Righe fuori dall'immagine del gioco: stessa schiaritura del fotogramma (misurata sul bianco/nero più usato). */
+    private fun fadeOutside(ext: IntArray, eh: Int, top: Int, fr: IntArray) {
+        // misura: colore del fotogramma più frequente non bianco e sua corrispondenza
+        var t = 0f; var to = 0xFFFFFFFF.toInt(); var bestN = 0
+        val counts = HashMap<Int, Int>()
+        var i = 0
+        while (i < fr.size) { counts[fr[i]] = (counts[fr[i]] ?: 0) + 1; i += 7 }
+        for ((c, n) in counts) {
+            if (n <= bestN || colorMap.containsKey(c)) continue
+            for ((o, _) in colorMap) for (dst in intArrayOf(0xFFFFFFFF.toInt(), 0xFF000000.toInt())) {
+                val d = ((dst shr 8) and 255) - ((o shr 8) and 255)
+                if (kotlin.math.abs(d) < 40) continue
+                val tt = (((c shr 8) and 255) - ((o shr 8) and 255)).toFloat() / d
+                if (tt !in 0f..1f) continue
+                val m = mix(o, dst, tt)
+                val err = intArrayOf(16, 8, 0).sumOf { kotlin.math.abs(((m shr it) and 255) - ((c shr it) and 255)) }
+                if (err <= 24 && n > bestN) { bestN = n; t = tt; to = dst }
+            }
+        }
+        if (bestN == 0) return
+        for (r in 0 until eh) {
+            if (r in top until top + NativeCore.HEIGHT) continue
+            val b = r * NativeCore.WIDTH
+            for (x in 0 until NativeCore.WIDTH) ext[b + x] = mix(lastMapExt[b + x], to, t)
+        }
+    }
+
     /** Caselle già nere della tendina nell'immagine del gioco (riempie [wiped] e [wipeColor]). */
     private fun wipeTiles(frame: IntArray): Int {
         var dark = frame[0]; var darkL = Int.MAX_VALUE
@@ -1089,7 +1149,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         // Lampo prima della lotta coi colori originali del luogo (D-083): immagine del gioco coi colori ricolorati.
                         System.arraycopy(lastMapExt, 0, extBack.pixels, 0, minOf(lastMapExt.size, extBack.pixels.size))
                         val fr = latestFrame.get(); val top0 = lastMapTop.coerceAtLeast(0)
-                        for (j in fr.indices) { val r = top0 + j / NativeCore.WIDTH; if (r < eh) extBack.pixels[r * NativeCore.WIDTH + j % NativeCore.WIDTH] = colorMap[fr[j]] ?: fr[j] }
+                        for (j in fr.indices) { val r = top0 + j / NativeCore.WIDTH; if (r < eh) extBack.pixels[r * NativeCore.WIDTH + j % NativeCore.WIDTH] = frameMap[fr[j]] ?: colorMap[fr[j]] ?: fr[j] }
+                        // righe sopra e sotto: l'ultima mappa buona schiarita/scurita come il fotogramma
+                        if (frameMap.any { (k, v) -> colorMap[k] == null }) fadeOutside(extBack.pixels, eh, top0, fr)
                         if (wipeTiles(fr) > 0) extendWipe(fr, extBack.pixels, eh, top0)   // tendina: anche sopra e sotto
                         extBack.height = eh; extBack.active = true; extendedActive = true
                         extBack = latestExtended.getAndSet(extBack)

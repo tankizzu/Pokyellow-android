@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 /*
  * Vista estesa a tutto schermo (D-015, D-026).
  *
@@ -133,6 +135,18 @@ static int map_of_tile(const MapTiles *mt, int cur, int tx, int ty) {
     if (bx < 3 && mt->nb_map[2] >= 0 && by >= mt->nb_from[2] && by < mt->nb_from[2] + mt->nb_len[2]) return mt->nb_map[2];
     if (bx >= bw - 3 && mt->nb_map[3] >= 0 && by >= mt->nb_from[3] && by < mt->nb_from[3] + mt->nb_len[3]) return mt->nb_map[3];
     return cur;
+}
+
+/* Colore schiarito (t > 0, verso il bianco) o scurito (t < 0, verso il nero) della stessa misura della dissolvenza. */
+static uint32_t fade_col(uint32_t c, float t) {
+    if (t == 0) return c;
+    uint32_t out = c & 0xFF000000u;
+    for (int sh = 0; sh <= 16; sh += 8) {
+        int v = (c >> sh) & 255;
+        v = t > 0 ? v + (int)((255 - v) * t + 0.5f) : (int)(v * (1 + t) + 0.5f);
+        out |= (uint32_t)(v < 0 ? 0 : v > 255 ? 255 : v) << sh;
+    }
+    return out;
 }
 
 static const uint32_t *place_colors_for(GB_gameboy_t *gb, const MapTiles *mt, uint32_t pc[64][4], bool known[64], int m) {
@@ -437,6 +451,7 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     bool place_known[64] = {false};
     int cur_pal = map_palette(map_id);
     bool recolor = cur_pal >= 0 && mt.rom_size > CGB_PALETTES + 8 * 16;
+    uint32_t src1 = 0, src2 = 0;   /* colori del luogo nel gioco (ROM): si ricolorano dovunque compaiano */
     #define PLACE_COLORS(m) (((m) >= 0 && (m) < 64 && map_palette(m) >= 0) ? place_colors_for(gb, &mt, place_colors, place_known, (m)) : NULL)
     /* Solo con i colori normali del luogo: durante una dissolvenza (tavolozza che cambia) non si ricolora niente,
      * altrimenti tutto il bianco diventa il colore del luogo (riquadro viola, D-067). */
@@ -452,15 +467,14 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
             if (colors[p][1] == game1 && colors[p][2] == game2 && colors[p][0] != colors[p][1]) { fallback = p; break; }
         recolor = game1 == colors[fallback][1] && game2 == colors[fallback][2] && colors[fallback][0] != colors[fallback][1];
         if (!recolor) {
-            /* Tendina e lampi prima della lotta (D-083): la tavolozza del luogo è un'altra ma ha ancora il bianco come
-             * colore 0 e il nero come colore 3, e i colori 1 e 2 diversi da entrambi: si ricolora lo stesso. In una
-             * dissolvenza i colori 1 e 2 vanno verso il bianco (o il nero) e la regola non vale: niente ricolore. */
-            const uint32_t *k = colors[fallback];
-            #define LUM(v) ((((v) >> 16) & 255) + (((v) >> 8) & 255) + ((v) & 255))
-            recolor = LUM(k[0]) > 690 && LUM(k[3]) < 150 && LUM(k[1]) < 660 && LUM(k[2]) < 660 && LUM(k[1]) > 150 &&
-                      LUM(k[2]) > 150 && k[1] != k[2];
-            #undef LUM
+            /* Dissolvenze, lampi e tendina (D-083): nel gioco a colori la dissolvenza sposta i colori della tavolozza da un
+             * posto all'altro (il viola del luogo passa al posto 2, poi 3...). Basta che il colore del luogo ci sia
+             * ancora: ogni pixel con quel colore prende il colore del luogo a cui appartiene. */
+            bool has = false;
+            for (int c = 0; c < 4; c++) if (colors[fallback][c] == game1 || colors[fallback][c] == game2) has = true;
+            recolor = has;
         }
+        src1 = game1; src2 = game2;
     }
 
     /* 3. Disegno: righe sopra e sotto dalla mappa, al centro l'immagine originale. */
@@ -473,13 +487,12 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
             memcpy(dst, frame + (size_t)f * FRAME_W, FRAME_W * sizeof(uint32_t));
             if (!recolor) continue;
             /* immagine del gioco: i colori 1 e 2 della mappa si riportano a quelli del luogo a cui appartiene il tile */
-            const uint32_t *src_pal = colors[fallback];
             for (int col = 0; col < FRAME_W; col++) {
-                if (dst[col] != src_pal[1] && dst[col] != src_pal[2]) continue;
+                if (dst[col] != src1 && dst[col] != src2) continue;
                 int tx = floordiv(st->base_x + col, 8);
                 const uint32_t *pc = PLACE_COLORS(map_of_tile(&mt, map_id, tx, ty));
                 if (!pc) continue;
-                dst[col] = dst[col] == src_pal[1] ? pc[1] : pc[2];
+                dst[col] = dst[col] == src1 ? pc[1] : pc[2];
             }
             continue;
         }
@@ -494,8 +507,9 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
             int base = signed_tiles ? 0x1000 + (int8_t)tile * 16 : tile * 16;
             uint8_t lo = data[base + yy * 2], hi = data[base + yy * 2 + 1];
             int c = (((hi >> xx) & 1) << 1) | ((lo >> xx) & 1);
-            const uint32_t *pc = recolor && (c == 1 || c == 2) && (attr & 7) == fallback ? PLACE_COLORS(map_of_tile(&mt, map_id, tx, ty)) : NULL;
-            dst[col] = pc ? pc[c] : colors[attr & 7][c];
+            uint32_t v = colors[attr & 7][c];
+            const uint32_t *pc = recolor && (v == src1 || v == src2) && (attr & 7) == fallback ? PLACE_COLORS(map_of_tile(&mt, map_id, tx, ty)) : NULL;
+            dst[col] = pc ? (v == src1 ? pc[1] : pc[2]) : v;
             st->bgidx[(size_t)row * FRAME_W + col] = (uint8_t)(c | (attr & 0x80));
         }
     }
