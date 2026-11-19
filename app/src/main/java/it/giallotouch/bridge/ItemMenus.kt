@@ -191,6 +191,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
     private var awaitingTarget = false
     private var lastScreen: ItemMenus.Screen? = null
     private var stable = 0
+    private var settleNeeded = 8
 
     var result: Result? = null
         private set
@@ -222,8 +223,9 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
         }
         if (useChosen) { finish(Result.DONE); return 0 }
         // Un menu appena comparso (o cambiato) non ascolta subito i tasti: si aspetta che resti uguale per un po'.
-        if (screen != lastScreen) { lastScreen = screen; stable = 0; return 0 }
-        if (++stable < SETTLE) return 0
+        // Un menu appena comparso aspetta SETTLE fotogrammi; nello stesso menu (cursore spostato) basta poco (D-065).
+        if (screen != lastScreen) { settleNeeded = if (lastScreen?.kind == screen.kind || (screen.kind == ItemMenus.Kind.OTHER && freeRoam)) SETTLE_MOVE else SETTLE; lastScreen = screen; stable = 0; return 0 }
+        if (++stable < settleNeeded) return 0
         val key = decide(a, screen, freeRoam)
         if (key == DONE) { finish(Result.DONE); return 0 }
         if (key == 0) {
@@ -458,10 +460,11 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
 
     companion object {
         private const val DONE = -1
-        private const val HOLD = 3
-        private const val RELEASE = 3
+        private const val HOLD = 2
+        private const val RELEASE = 2
         private const val CHANGE_WAIT = 45
         private const val MAX_UNKNOWN = 150
         private const val SETTLE = 8
+        private const val SETTLE_MOVE = 2
     }
 }

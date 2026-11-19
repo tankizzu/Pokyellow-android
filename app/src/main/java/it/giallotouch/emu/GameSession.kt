@@ -76,6 +76,31 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var battleSplit = false
         private set
     private var splitHold = 0
+    private var mainHold = 0
+    private var mainTail = 0
+    private var cardClosing = 0
+    /** Immagine quasi tutta bianca (dissolvenza del gioco in corso). */
+    private fun mostlyWhite(px: IntArray): Boolean {
+        val white = px[0]
+        var other = 0
+        var i = 0
+        while (i < px.size) { if (px[i] != white) other++; i += 37 }
+        return other < px.size / 37 / 20
+    }
+    private var cardOpening = 0
+    private var cardOpenCalm = 0
+    /** La scheda allenatore si sta aprendo (l'app mostra ancora la mappa e il riquadro START, D-065). */
+    @Volatile var cardOpeningActive = false
+        private set
+    /** L'app sta chiudendo da sola i menu del gioco (niente SELECT né altri pulsanti per quei menu). */
+    @Volatile var menusClosing = false
+        private set
+    private var cardCalm = 0
+    /** Mappa (gioco e vista estesa) salvata quando si apre la scheda allenatore (D-065). */
+    private val savedMap = IntArray(NativeCore.WIDTH * NativeCore.HEIGHT)
+    private val savedExt = ExtFrame(IntArray(NativeCore.WIDTH * NativeCore.EXT_MAX_HEIGHT))
+    /** Immagine ferma (passaggio con grafica rovinata del gioco, D-065). */
+    private var holdImage = false
     private var menuHold = 0
     private val HOLD_FRAMES = 12
     /** In lotta il gioco chiede quale Pokémon mandare in campo (dopo un KO). */
@@ -284,7 +309,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     fun itemAction(action: ItemAction) {
         itemBusy = true
         itemResult = null
-        if (action is ItemAction.OpenTrainer) holdSheet = true
+        if (action is ItemAction.OpenTrainer) {
+            holdSheet = true
+            // immagine della mappa di adesso, da mostrare quando si chiude la scheda (D-065)
+            tasks.add(Runnable {
+                System.arraycopy(latestFrame.get(), 0, savedMap, 0, savedMap.size)
+                val e = latestExtended.get()
+                System.arraycopy(e.pixels, 0, savedExt.pixels, 0, e.pixels.size); savedExt.height = e.height; savedExt.active = e.active
+                cardOpening = 60 * 6; cardOpenCalm = 0; cardOpeningActive = true
+            })
+        }
         tasks.add(Runnable { walker.cancel(); itemExecutor.start(action); currentItemAction = action })
     }
     private var currentItemAction: ItemAction? = null
@@ -342,7 +376,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile private var holdSheet = false
 
     /** INDIETRO della scheda allenatore: B finché si torna a camminare (chiude scheda e menu START). */
-    fun closeMenus() { tasks.add(Runnable { closingFrames = 60 * 8; closingCalm = 0 }) }
+    fun closeMenus() { tasks.add(Runnable {
+        closingFrames = 60 * 8; closingCalm = 0
+        if (trainerCardShown && savedExt.height >= 0) { cardClosing = 60 * 3; cardCalm = 0 }
+    }) }
     private var closingFrames = 0
     private var closingCalm = 0
 
@@ -637,6 +674,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Solo per il banco di prova, dal thread del gioco (onFrame): caselle dello schermo dell'ultimo fotogramma. */
     fun frameTilesForTest(): ByteArray = frameTiles.copyOf()
 
+    /** Solo per il banco di prova: con [stepPermits] il gioco avanza di un fotogramma per ogni permesso. */
+    @Volatile var stepPermits: java.util.concurrent.Semaphore? = null
+    @Volatile var stepDone: java.util.concurrent.Semaphore? = null
+
     fun screenForTest(): Pair<ByteArray, ByteArray> {
         val v = ByteArray(MenuReader.MENU_VARS_SIZE); val t = ByteArray(MenuReader.SCREEN_SIZE)
         runOnGameThread { NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, v); NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, t) }
@@ -684,6 +725,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     continue
                 }
                 if (track != null && track.playState != AudioTrack.PLAYSTATE_PLAYING) track.play()
+                // Banco di prova: un fotogramma alla volta, quando il test lo chiede (controllo dei lampeggi).
+                stepPermits?.let { p -> if (!p.tryAcquire(200, java.util.concurrent.TimeUnit.MILLISECONDS)) continue }
                 NativeCore.nativeSetKeys(handle, currentKeys())
                 val count = NativeCore.nativeRunFrame(handle, back, audio)
                 // Ogni fotogramma: schermata di lotta divisa e menu iniziale ridisegnato (in sincronia con l'immagine).
@@ -692,7 +735,14 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val inBattleRaw = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0
                 var split = inBattleRaw && BattleLayout.textBoxAtBottom(frameTiles)
                 val frameMenu = MenuReader.read(frameVars, frameTiles)
-                mainMenuItems = if (frameMenu.kind == MenuKind.MAIN_MENU) frameMenu.items else 0
+                // Menu iniziale ridisegnato: resta finché il riquadro del gioco è ancora sullo schermo (dopo la scelta il
+                // menu del gioco perde il cursore per qualche fotogramma ma si vede ancora, D-065).
+                val mainRaw = if (frameMenu.kind == MenuKind.MAIN_MENU) frameMenu.items else 0
+                // L'immagine segue la memoria dello schermo con qualche fotogramma di ritardo: si aspettano altri 4 fotogrammi.
+                if (mainRaw > 0) { mainMenuItems = mainRaw; mainHold = 30; mainTail = 4 }
+                else if (mainMenuItems > 0 && mainHold > 0 && (frameTiles[0].toInt() and 0xFF) == 0x79) mainHold--
+                else if (mainMenuItems > 0 && mainTail > 0) mainTail--
+                else { mainMenuItems = 0; mainHold = 0 }
                 val menuRaw = frameMenu.kind == MenuKind.BATTLE_MAIN || frameMenu.kind == MenuKind.BATTLE_MOVES
                 // In lotta, un altro menu del gioco con il cursore (squadra, borsa, cambio): si mostra il gioco intero e
                 // i riquadri di lotta dell'app spariscono (D-049).
@@ -712,7 +762,25 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 battleSplit = split
                 battleMenuShown = menuShown
                 battleGameMenu = gameMenu
-                trainerCardShown = ItemMenus.trainerCard(frameTiles)
+                // Scheda allenatore: chiudendola il gioco ricarica per qualche fotogramma la grafica della mappa (immagine
+                // rovinata). Si tiene ferma l'ultima immagine della scheda finché la mappa non è stabile (D-065).
+                // Chiusura: si mostra subito la mappa salvata all'apertura della scheda, finché la mappa vera non è stabile.
+                val cardRaw = ItemMenus.trainerCard(frameTiles)
+                val mapNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles)
+                if (cardClosing > 0) {
+                    cardCalm = if (mapNow && !cardRaw && closingFrames == 0) cardCalm + 1 else 0
+                    cardClosing = if (cardCalm >= 8) 0 else cardClosing - 1
+                }
+                // Apertura: la mappa salvata resta finché la scheda non è completa (4 fotogrammi di fila) o l'esecutore
+                // non si è fermato senza riuscirci.
+                if (cardOpening > 0) {
+                    cardOpenCalm = if (cardRaw && !mostlyWhite(back)) cardOpenCalm + 1 else 0
+                    cardOpening = if (cardOpenCalm >= 4 || (!itemExecutor.busy && itemResult == false)) 0 else cardOpening - 1
+                }
+                cardOpeningActive = cardOpening > 0
+                menusClosing = closingFrames > 0 || cardClosing > 0 || pendingClose
+                holdImage = cardClosing > 0 || cardOpening > 0
+                trainerCardShown = cardRaw && !holdImage
                 val itemKind = ItemMenus.read(frameVars, frameTiles, 0).kind
                 pcMenuShown = itemKind == ItemMenus.Kind.PC_MENU && closingFrames == 0
                 shopMenuShown = itemKind == ItemMenus.Kind.SHOP_MENU && closingFrames == 0
@@ -762,10 +830,19 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
                     if (dialog) add(BoxMask.Box(0, 12, 19, 17))
                 }
-                frameMask.apply(back, NativeCore.HEIGHT, 0, boxes, boxesOnScreen = onScreen)
-                back = latestFrame.getAndSet(back)
+                frameMask.apply(back, NativeCore.HEIGHT, 0, boxes, boxesOnScreen = onScreen || holdImage)
+                if (holdImage) {
+                    System.arraycopy(savedMap, 0, back, 0, back.size)
+                    back = latestFrame.getAndSet(back)
+                } else back = latestFrame.getAndSet(back)
                 val eh = extendedHeight
-                if (eh > NativeCore.HEIGHT) {
+                if (holdImage) {
+                    if (savedExt.height > 0) {
+                        System.arraycopy(savedExt.pixels, 0, extBack.pixels, 0, savedExt.pixels.size)
+                        extBack.height = savedExt.height; extBack.active = savedExt.active; extendedActive = savedExt.active
+                        extBack = latestExtended.getAndSet(extBack)
+                    }
+                } else if (eh > NativeCore.HEIGHT) {
                     val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop) == 1
                     if (active) extMask.apply(extBack.pixels, eh, extendedFrameTop, boxes, frameMask.older, boxesOnScreen = onScreen)
                     extBack.height = eh
@@ -777,6 +854,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 frames++
                 if (frames % AUTOSAVE_FRAMES == 0L) runCatching { saveBatteryIfChanged() }
                 if (frames % SNAPSHOT_FRAMES == 0L) readSnapshot()
+                stepDone?.release()
                 if (holdSheet && !trainerCardShown && !itemExecutor.busy && closingFrames == 0 && latestSnapshot.get().freeRoam) holdSheet = false
                 if (frames % SHEET_FRAMES == 0L && !holdSheet && !trainerCardShown && NativeCore.nativeGameTiles(handle, sheetBuf) >= 0 &&
                     sheetReadable(sheetBuf)) {

@@ -62,6 +62,7 @@ class BattleActionExecutor(private val timeoutFrames: Int = 60 * 20) {
     private var finishing = false
     private var lastScreen: BattleMenus.Screen? = null
     private var stable = 0
+    private var settleNeeded = 8
 
     var result: Result? = null
         private set
@@ -86,8 +87,9 @@ class BattleActionExecutor(private val timeoutFrames: Int = 60 * 20) {
         }
         if (finishing) { finish(Result.DONE); return 0 }
         // Un menu appena comparso (o cambiato) non ascolta subito i tasti: si aspetta che resti uguale per un po'.
-        if (s != lastScreen) { lastScreen = s; stable = 0; return 0 }
-        if (++stable < SETTLE) return 0
+        // Un menu appena comparso aspetta SETTLE fotogrammi; nello stesso menu (cursore spostato) basta poco (D-065).
+        if (s != lastScreen) { settleNeeded = if (lastScreen?.kind == s.kind) SETTLE_MOVE else SETTLE; lastScreen = s; stable = 0; return 0 }
+        if (++stable < settleNeeded) return 0
         val key = decide(a, s)
         if (key == 0) {
             // Strumento scelto e nessuna domanda "su chi?": il gioco lo sta già usando.
@@ -147,5 +149,6 @@ class BattleActionExecutor(private val timeoutFrames: Int = 60 * 20) {
         private const val MAX_UNKNOWN = 150
         private const val ITEM_SETTLE = 90
         private const val SETTLE = 8
+        private const val SETTLE_MOVE = 2
     }
 }

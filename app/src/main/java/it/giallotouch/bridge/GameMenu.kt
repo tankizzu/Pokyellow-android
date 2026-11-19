@@ -128,6 +128,8 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
         heldKey = 0; holdFrames = 0; cooldown = RELEASE; finishing = false; lastMenu = null; stable = 0
     }
 
+    private var settleNeeded = 8
+
     fun cancel() { command = null; heldKey = 0 }
 
     /** Chiamata una volta per fotogramma: restituisce i tasti da tenere premuti in questo fotogramma. */
@@ -138,8 +140,8 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
         if (cooldown > 0) { cooldown--; return 0 }
         if (finishing) { cancel(); return 0 }
         // Un menu appena comparso (o cambiato) non ascolta subito i tasti: si aspetta che resti uguale per un po'.
-        if (menu != lastMenu) { lastMenu = menu; stable = 0; return 0 }
-        if (++stable < SETTLE) return 0
+        if (menu != lastMenu) { settleNeeded = if (lastMenu?.kind == menu.kind) SETTLE_MOVE else SETTLE; lastMenu = menu; stable = 0; return 0 }
+        if (++stable < settleNeeded) return 0
         val decision = decide(cmd, menu) ?: return 0
         heldKey = decision.key
         holdFrames = HOLD - 1
@@ -154,6 +156,7 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
         private const val HOLD = 3
         private const val RELEASE = 5
         private const val SETTLE = 8
+        private const val SETTLE_MOVE = 2
 
         /** Prossimo tasto da premere per avvicinarsi al comando; null = aspettare (testo in corso). */
         fun decide(cmd: GameCommand, menu: MenuState): Decision? = when (menu.kind) {

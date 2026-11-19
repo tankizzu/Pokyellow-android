@@ -1188,3 +1188,176 @@ class AppSegnalaTest : AppScreensHarness() {
         assertTrue(zip.getEntry("partita.state").size > 10_000)
     }
 }
+
+/** Temporaneo: camminata con fotogrammi fitti per cercare glitch grafici (-Pgiallo.state.shop=STATO). */
+class ZzWalkCapture : AppScreensHarness() {
+    @Test fun cammina() {
+        val s = start(auto = "giallo.state.shop") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        var n = 0
+        val keys = listOf(NativeCore.KEY_LEFT to 1500L, NativeCore.KEY_UP to 1500L, NativeCore.KEY_RIGHT to 2500L, NativeCore.KEY_DOWN to 1500L, NativeCore.KEY_LEFT to 1200L)
+        for ((k, ms) in keys) {
+            s.setKeys(k)
+            var t = 0L
+            while (t < ms) { shot("wk-%03d".format(n++)); pump(40); t += 60 }
+            s.setKeys(0)
+            if (!s.latestSnapshot.get().freeRoam) { var j = 0; while (!s.latestSnapshot.get().freeRoam && j++ < 20) { tapTile(10f, 2f) } }
+        }
+        println("DBGWK fine ${s.positionForTest()}")
+    }
+}
+
+/**
+ * Temporaneo: lampeggi visibili, fotogramma per fotogramma. Il gioco avanza di un fotogramma alla volta e ogni volta si
+ * fotografa lo schermo intero (gioco + riquadri dell'app); un'immagine che compare per 1–2 fotogrammi e poi sparisce
+ * (prima e dopo uguali) è un lampeggio. -Pgiallo.state.two=two.state
+ */
+class ZzGlitchTest : AppScreensHarness() {
+    private lateinit var s: GameSession
+    private val window = ArrayDeque<IntArray>()
+    private val bitmaps = ArrayDeque<Bitmap>()
+    private var n = 0
+    private var blips = 0
+    private var tag = ""
+    private fun grab(): Pair<IntArray, Bitmap> {
+        val bmp = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(bmp))
+        val w = 160; val h = (root.height / unit).toInt()
+        val px = IntArray(w * h) { i -> bmp.getPixel(((i % w) * unit + unit / 2).toInt().coerceAtMost(root.width - 1), ((i / w) * unit + unit / 2).toInt().coerceAtMost(root.height - 1)) }
+        return px to bmp
+    }
+    /** Tag per cui salvare un foglio con i primi fotogrammi (uno ogni [sheetStep]). */
+    private val sheetTags = HashSet<String>()
+    private val sheetStep = 2
+    private fun frames(count: Int, label: String) {
+        tag = label
+        val sheet = if (label in sheetTags) ArrayList<Bitmap>() else null
+        repeat(count) { idx ->
+            if (sheet != null && idx % sheetStep == 0 && sheet.size < 24) {
+                shadowOf(Looper.getMainLooper()).idle()
+                val b = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888); root.draw(Canvas(b))
+                sheet.add(Bitmap.createScaledBitmap(b, b.width / 4, b.height / 4, false))
+            }
+            s.stepPermits!!.release()
+            s.stepDone!!.tryAcquire(3, java.util.concurrent.TimeUnit.SECONDS)
+            shadowOf(Looper.getMainLooper()).idle()
+            val (px, bmp) = grab()
+            window.addLast(px); bitmaps.addLast(bmp); n++
+            if (window.size > 4) { window.removeFirst(); bitmaps.removeFirst() }
+            if (window.size >= 3) {
+                val a = window[window.size - 3]; val b = window[window.size - 2]; val c = window[window.size - 1]
+                var cnt = 0
+                for (i in a.indices) if (b[i] != a[i] && b[i] != c[i] && a[i] == c[i]) cnt++
+                var cnt2 = 0
+                if (window.size == 4) { val z = window[0]
+                    for (i in z.indices) if (a[i] != z[i] && b[i] != z[i] && c[i] == z[i] && a[i] == b[i]) cnt2++ }
+                if ((cnt > 30 || cnt2 > 30) && tag != "cammina") {
+                    blips++
+                    println("DBGGL lampeggio al fotogramma ${n - 2} ($tag): ${cnt} pixel per 1 fotogramma, ${cnt2} per 2")
+                    if (blips <= 25) {
+                        val list = bitmaps.toList()
+                        val out = Bitmap.createBitmap(list[0].width * list.size / 2, list[0].height / 2, Bitmap.Config.ARGB_8888)
+                        val cv = Canvas(out)
+                        list.forEachIndexed { k, bm -> cv.drawBitmap(Bitmap.createScaledBitmap(bm, bm.width / 2, bm.height / 2, false), (k * bm.width / 2).toFloat(), 0f, null) }
+                        FileOutputStream(File(shots, "gl-%03d-%s.png".format(blips, tag))).use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    }
+                }
+            }
+        }
+        if (sheet != null && sheet.isNotEmpty()) {
+            val cols = 12; val w = sheet[0].width; val h = sheet[0].height
+            val out = Bitmap.createBitmap(w * cols, h * ((sheet.size + cols - 1) / cols), Bitmap.Config.ARGB_8888)
+            val cv = Canvas(out)
+            sheet.forEachIndexed { k, b -> cv.drawBitmap(b, ((k % cols) * w).toFloat(), ((k / cols) * h).toFloat(), null) }
+            FileOutputStream(File(shots, "fs-$label.png")).use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+    }
+    /** Inizio del gioco: titolo, menu iniziale, NUOVO GIOCO, discorso del Professore, nomi, fino alla cameretta. */
+    @Test fun inizio() {
+        s = start(auto = "giallo.state.title") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        pump(800)
+        s.stepDone = java.util.concurrent.Semaphore(0)
+        s.stepPermits = java.util.concurrent.Semaphore(0)
+        sheetTags += listOf("menu-iniziale", "nuovo-gioco", "intro0", "intro1", "intro2", "intro5", "intro8", "sino") + (0 until 70).map { "nome$it" } + (0 until 70).map { "sino$it" }
+        frames(240, "titolo")
+        press(s, NativeCore.KEY_START); frames(120, "titolo-start")
+        var k = 0
+        while (s.mainMenuItems == 0 && k++ < 10) { press(s, NativeCore.KEY_START); frames(60, "titolo-start") }
+        frames(30, "menu-iniziale")
+        val frameTop = (root.height - 144 * unit) / 2 / (8 * unit)
+        tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(it.giallotouch.bridge.StartMenuLayout.entries(s.mainMenuItems).size - 1) + 0.5f)
+        for (q in 0 until 60) {
+            frames(1, "nuovo-gioco")
+            val (v, t) = s.screenForTest()
+            if (q in 28..42) shot("ng-%02d".format(q))
+        }
+        frames(60, "nuovo-gioco2")
+        for (i in 0 until 70) {
+            if (s.latestSnapshot.get().freeRoam && i > 20) break
+            if (s.nameList != null) { tapTile(4f, 17.5f); frames(90, "nome$i") }
+            else if (s.yesNo != null) { tapTile(14f, 39f); frames(60, "sino$i") }
+            else { tapTile(15f, 30f); frames(45, "intro$i") }
+        }
+        s.stepPermits = null
+        println("DBGGL fotogrammi $n lampeggi $blips")
+    }
+
+    @Test fun lampeggi() {
+        s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        pump(1000)
+        s.stepDone = java.util.concurrent.Semaphore(0)
+        s.stepPermits = java.util.concurrent.Semaphore(0)
+        sheetTags += listOf("start", "pokemon", "pokemon-indietro", "borsa", "borsa-indietro", "scheda", "scheda-indietro", "opzioni", "opzioni-indietro", "salva", "dialogo0", "dialogo1", "dialogo2")
+        frames(20, "fermo")
+        val r = rows().toFloat()
+        tapTile(10f, r - 2f); frames(40, "start")
+        tapTile(4f, 30f); frames(60, "pokemon")
+        tapTile(4f, 40.5f); frames(60, "pokemon-indietro")
+        tapTile(10f, r - 2f); frames(30, "start2")
+        tapTile(4f, 36f); frames(60, "borsa")
+        tapTile(4f, 40.5f); frames(60, "borsa-indietro")
+        tapTile(10f, r - 2f); frames(30, "start3")
+        tapTile(14f, 30f)
+        var w = 0
+        var lastK = ""
+        while (!s.trainerCardShown && w < 400) {
+            frames(1, "scheda"); w++
+            val (v, t) = s.screenForTest()
+            val k = it.giallotouch.bridge.ItemMenus.read(v, t, 0).let { "${it.kind}/${it.cursor}" } + " free=" + s.latestSnapshot.get().freeRoam
+            if (k != lastK) { println("DBGGL   $w $k"); lastK = k }
+        }
+        println("DBGGL tempo START → scheda: $w fotogrammi")
+        frames(60, "scheda")
+        tapTile(9f, 40.5f)
+        w = 0
+        while (!(s.latestSnapshot.get().freeRoam && !s.itemBusy) && w < 400) { frames(1, "scheda-indietro"); w++ }
+        println("DBGGL tempo scheda → mappa libera: $w fotogrammi")
+        frames(60, "scheda-indietro")
+        tapTile(10f, r - 2f); frames(30, "start4")
+        tapTile(15f, 33f); frames(40, "opzioni")
+        tapTile(9f, 40.5f); frames(40, "opzioni-indietro")
+        tapTile(10f, r - 2f); frames(30, "start5")
+        tapTile(15f, 36f); frames(120, "salva")
+        // dialogo con un cartello o una persona vicina
+        val g = s.mapGridForTest()!!
+        val here = s.positionForTest()
+        val target = (g.signs + g.people).mapNotNull { t -> g.interactionSpots(t.first, t.second).entries.firstOrNull { g.path(here.second, here.third, setOf(it.key)) != null } }
+            .minByOrNull { kotlin.math.abs(it.key.first - here.second) + kotlin.math.abs(it.key.second - here.third) }
+        if (target != null) {
+            s.walkPathForTest(target.key.first, target.key.second)
+            var k = 0
+            while (k++ < 600 && s.positionForTest().let { it.second != target.key.first || it.third != target.key.second }) frames(1, "cammina")
+            s.setKeys(target.value.key); frames(8, "girata"); s.setKeys(0); frames(10, "girata")
+            for (i in 0 until 8) { tapTile(10f, 20f); frames(70, "dialogo$i") }
+        }
+        s.stepPermits = null
+        println("DBGGL fotogrammi $n lampeggi $blips")
+    }
+}

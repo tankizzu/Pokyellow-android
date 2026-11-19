@@ -163,14 +163,16 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var battleList by remember { mutableStateOf(0) }       // in lotta: 1 = SQUADRA, 2 = BORSA dell'app (D-050)
     var battleBusy by remember { mutableStateOf(false) }
     var pendingBattlePick by remember { mutableStateOf(false) }
+    var openingTrainer by remember { mutableStateOf(false) }   // START → nome: in attesa della scheda
     var usePick by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // strumento (posto, codice) da usare: su chi? (D-051)
     /** Voce del riquadro dei pulsanti (D-046): 0 POKéMON, 1 allenatore, 2 POKéDEX, 3 OPZIONI, 4 BORSA, 5 SALVA. */
     fun panelActivate(i: Int) {
         panelCursor = i
-        panelOpen = false
+        // Scheda allenatore: il riquadro START resta finché la scheda non è pronta (niente mappa vuota nel mezzo, D-065).
+        if (i != 1) panelOpen = false
         when (i) {
             0 -> { teamSelected = null; teamOpen = true }
-            1 -> { itemRequested = true; session.itemAction(ItemAction.OpenTrainer) }
+            1 -> { if (!itemRequested) { itemRequested = true; openingTrainer = true; session.itemAction(ItemAction.OpenTrainer) } }
             2 -> dexOpen = true
             3 -> optionsOpen = true
             4 -> bagOpen = true
@@ -197,6 +199,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             commandBusy = session.commandBusy
             inGame = session.inGame
             trainerCard = session.trainerCardShown
+            if (openingTrainer && (trainerCard || (!itemRequested && !session.cardOpeningActive))) { openingTrainer = false; panelOpen = false }
             yesNo = session.yesNo
             nameList = session.nameList
             if (session.pcMenuShown && !pcOpen) pcOpen = true
@@ -488,7 +491,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )
-        } else if (inGame && sheet != null && !trainerCard && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && (snapshot.freeRoam || panelOpen)) {
+        } else if (inGame && sheet != null && !trainerCard && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 &&
+            // START solo quando sullo schermo c'è davvero la mappa (non nelle schermate bianche dell'introduzione, D-065)
+            (snapshot.freeRoam && (session.extendedActive || session.extendedHeight <= NativeCore.HEIGHT) || panelOpen)) {
             // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
             GamePanel(
                 sheet = sheet!!,
@@ -518,7 +523,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && snapshot.cursorOnScreen && !itemRequested && !openingTrainer && !session.itemBusy && !session.menusClosing && session.mainMenuItems == 0 && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()
