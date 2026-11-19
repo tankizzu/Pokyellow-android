@@ -553,6 +553,24 @@ class AppNoPpTest : AppScreensHarness() {
     }
 }
 
+/** Mossa da dimenticare (salvataggio della partita automatica): com'è oggi, per il mockup. */
+class AppForgetMoveTest : AppScreensHarness() {
+    @Test fun dimentica() {
+        val s = start(auto = "giallo.state.mossa") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        pump(1500)
+        shot("60-mossa-domanda")
+        s.tileSheet.get()?.let { sh ->
+            val b = Bitmap.createBitmap(sh, 128, 128, Bitmap.Config.ARGB_8888)
+            FileOutputStream(File(shots, "foglio-tile.png")).use { b.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+        tapTile(5f, 39f)          // SÌ
+        for (i in 0 until 6) { pump(700); shot("61-mossa-$i") }
+        tapTile(10f, 2f); pump(1200); shot("62-mossa-dopo")
+    }
+}
+
 class AppTrainerScreenTest : AppScreensHarness() {
     @Test fun scheda() = schedaAllenatore()
 }
