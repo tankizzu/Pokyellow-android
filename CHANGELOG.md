@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-19 – vibrazione nel Tuonoshock dell'introduzione (D-073)
+- Il telefono vibra a ritmo con i lampi del Tuonoshock di Pikachu.
+
 ## 2026-11-19 – introduzione senza bande nere (D-072)
 - Tutte le scene dell'introduzione a tutto schermo col colore dello sfondo, anche con la stella di GAME FREAK; niente righine.
 - Titolo: la scritta (C) resta in basso anche mentre il logo scende.

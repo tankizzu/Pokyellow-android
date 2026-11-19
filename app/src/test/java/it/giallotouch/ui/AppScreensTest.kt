@@ -1284,9 +1284,11 @@ class ZzGlitchTest : AppScreensHarness() {
         s.stepDone = java.util.concurrent.Semaphore(0)
         s.stepPermits = java.util.concurrent.Semaphore(0)
         capture = false
+        val pulses = ArrayList<Long>(); var stepNo = 0L
+        s.onHit = { pulses.add(stepNo) }
         var saved = 0; var bad = 0
-        for (q in 0 until 2200) {
-            frames(4, "video")
+        for (q in 0 until 400) {
+            frames(4, "video"); stepNo += 4
             val (px, bmp) = grab()
             val h = px.size / 160
             var dark = 0
@@ -1304,7 +1306,7 @@ class ZzGlitchTest : AppScreensHarness() {
             if (dark in 1 until h) { bad++; if (saved < 40 && q % 3 == 0) { saved++; FileOutputStream(File(shots, "vd-%03d-%d.png".format(q, dark))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) } } }
             if (q % 25 == 0 || (q in 118..142) || (q > 700 && q % 5 == 0)) FileOutputStream(File(shots, "vv-%03d.png".format(q))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
-        println("DBGVD fotogrammi con righe scure: $bad")
+        println("DBGVD fotogrammi con righe scure: $bad; vibrazioni ai fotogrammi $pulses")
     }
 
     /** Inizio del gioco: titolo, menu iniziale, NUOVO GIOCO, discorso del Professore, nomi, fino alla cameretta. */

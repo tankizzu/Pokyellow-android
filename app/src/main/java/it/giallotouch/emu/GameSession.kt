@@ -70,6 +70,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Colpo che fa danno in lotta (vibrazione, D-069). Chiamata dal thread del gioco. */
     @Volatile var onHit: (() -> Unit)? = null
     private var lastEnemyHp = -1
+    private var lastYellow = 0
     private var lastPlayerHp = -1
 
     /** Tile del gioco (carattere, riquadri) per disegnare le aggiunte dell'app come il gioco (D-039); null all'inizio. */
@@ -866,6 +867,17 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     if ((lastEnemyHp in 1..999 && eh < lastEnemyHp) || (lastPlayerHp in 1..999 && ph < lastPlayerHp)) onHit?.invoke()
                     lastEnemyHp = eh; lastPlayerHp = ph
                 } else { lastEnemyHp = -1; lastPlayerHp = -1 }
+                // Introduzione (D-073): a ogni lampo del Tuonoshock il Pikachu grande perde il giallo (bianco o nero):
+                // una vibrazione per lampo, a ritmo.
+                if (!inGame) {
+                    var yellow = 0
+                    for (c in back) {
+                        val r = (c shr 16) and 255; val g = (c shr 8) and 255; val b = c and 255
+                        if (r > 230 && g in 170..235 && b < 60) yellow++
+                    }
+                    if (lastYellow >= 1500 && yellow < 30) onHit?.invoke()
+                    lastYellow = yellow
+                }
                 // Titolo: la scritta (C) GAME FREAK alla riga 17 (E0 E1 E2); il logo usa anche la casella del cursore ▶.
                 titleShown = (frameTiles[17 * 20 + 2].toInt() and 0xFF) == 0xE0 && (frameTiles[17 * 20 + 3].toInt() and 0xFF) == 0xE1 &&
                     (frameTiles[17 * 20 + 4].toInt() and 0xFF) == 0xE2
