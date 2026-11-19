@@ -1,7 +1,7 @@
 # CHANGELOG
 
 ## 2026-11-19 – introduzione senza stelle e Pikachu tagliati (D-076), bozza OPZIONI (D-075)
-- Stella di GAME FREAK intera quando entra; stelline colorate visibili fino in fondo; Pikachu interi.
+- Stella di GAME FREAK intera quando entra; stelline colorate visibili fino in fondo; Pikachu interi (anche i piedi di Pikachu coi palloncini, fotogramma 1388).
 - OPZIONI: schermata unica con le opzioni del gioco e del telefono (bozza in attesa di conferma).
 
 ## 2026-11-19 – analisi dell'inizio fotogramma per fotogramma (D-074)

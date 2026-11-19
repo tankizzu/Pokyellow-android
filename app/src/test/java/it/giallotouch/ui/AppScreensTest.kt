@@ -1312,10 +1312,10 @@ class ZzGlitchTest : AppScreensHarness() {
                 var blip = 0
                 if (win.size == 3) { val a = win[0]; val m = win[1]; val c = win[2]
                     for (i in a.indices) if (m[i] != a[i] && m[i] != c[i] && a[i] == c[i]) blip++ }
-                if (false && n in 400..560) {
+                if (false && n in 1385..1390) {
                     val hf = GameSession::class.java.getDeclaredField("handle").apply { isAccessible = true }
                     val oam = ByteArray(160); NativeCore.nativeReadRange(hf.getLong(s), 0xFE00, oam)
-                    println("DBGOAM $n " + (0 until 40).filter { oam[it * 4].toInt() and 0xFF != 0 && oam[it * 4].toInt() and 0xFF != 160 }
+                    println("DBGOAM $n lcdc=" + Integer.toHexString(NativeCore.nativeReadMemory(hf.getLong(s), 0xFF40)) + " scy=" + NativeCore.nativeReadMemory(hf.getLong(s), 0xFF42) + " " + (0 until 40).filter { oam[it * 4].toInt() and 0xFF != 0 && oam[it * 4].toInt() and 0xFF != 160 }
                         .joinToString(" ") { "${oam[it * 4].toInt() and 0xFF},${oam[it * 4 + 1].toInt() and 0xFF},${(oam[it * 4 + 2].toInt() and 0xFF).toString(16)}" })
                 }
                 val raw = s.latestFrame.get(); val rawWhite = raw.all { it == raw[0] }

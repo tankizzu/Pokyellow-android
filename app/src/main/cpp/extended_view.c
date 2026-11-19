@@ -520,7 +520,14 @@ int ev_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int top) {
     if (!gf) memset(star_known, 0, sizeof(star_known));
     for (int i = 39; i >= 0; i--) {   /* il primo sprite sta sopra gli altri */
         const uint8_t *o = oam + i * 4;
-        if (o[0] == 0 || o[0] == 160 || o[1] == 0 || o[1] >= 168) continue;
+        if (o[0] == 0 || o[1] == 0 || o[1] >= 168) continue;
+        if (o[0] == 160) {
+            /* Y = 160 è il valore con cui il gioco nasconde gli sprite, ma può essere anche la riga dei piedi di
+             * Pikachu che sale: si tiene se c'è uno sprite nella stessa colonna subito sopra */
+            bool part = false;
+            for (int j = 0; j < 40; j++) if (j != i && oam[j * 4 + 1] == o[1] && oam[j * 4] == 160 - tall) part = true;
+            if (!part) continue;
+        }
         int y = o[0] - 16, x = o[1] - 8;
         uint8_t attr = o[3];
         const uint8_t *data = (attr & 0x08) ? vram + 0x2000 : vram;

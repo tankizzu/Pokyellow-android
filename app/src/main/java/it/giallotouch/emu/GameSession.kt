@@ -75,6 +75,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     val introSprites = AtomicReference<IntArray?>(null)
     /** Gli sprite dell'introduzione vanno disegnati anche sopra l'immagine del gioco (stelline di GAME FREAK). */
     @Volatile var introSpritesOver = false
+    private var introSpritesMiss = 0
     /** Opzioni del gioco (byte a 0xD359: velocità del testo, animazione, stile lotta, suono). */
     @Volatile var gameOptions = 0x03
     private var lastPlayerHp = -1
@@ -883,7 +884,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val buf = IntArray(NativeCore.WIDTH * SPRITE_LAYER_H)
                     val r = NativeCore.nativeSprites(handle, buf, SPRITE_LAYER_H, SPRITE_LAYER_TOP)
                     introSpritesOver = (r and 0x10000) != 0
-                    introSprites.set(if ((r and 0xFFFF) > 0) buf else null)
+                    // lettura vuota per un attimo (sprite spenti durante l'aggiornamento): si tiene la precedente per
+                    // al massimo 2 fotogrammi, così Pikachu non perde i piedi per un fotogramma
+                    if ((r and 0xFFFF) > 0) { introSprites.set(buf); introSpritesMiss = 0 }
+                    else if (++introSpritesMiss > 2) introSprites.set(null)
                 } else introSprites.set(null)
                 // Introduzione (D-073): a ogni lampo del Tuonoshock il Pikachu grande perde il giallo (bianco o nero):
                 // una vibrazione per lampo, a ritmo.
