@@ -3,7 +3,8 @@
 **Ultimo aggiornamento:** 2026-11-19
 
 ## Dove siamo
-- **0.13.4-prototipo (consegnata il 2026-11-19)**: OPZIONI in un solo riquadro (D-075, D-080, D-082), menu e nomi
+- **0.14.0-prototipo (consegnata il 2026-11-19)**: mossa da dimenticare (D-085), tendina e dissolvenze coi colori
+  del luogo (D-083), TIPO/PP senza PP (D-084), analisi dalla cameretta al laboratorio. Prima, 0.13.4: OPZIONI in un solo riquadro (D-075, D-080, D-082), menu e nomi
   immediati (D-081), stelline una per una, vibrazione nei lampi. Prima, 0.12.4: analisi fotogramma per fotogramma dell'inizio (D-074, video con
   il numero del fotogramma), introduzione con stelle e Pikachu interi (D-076), vibrazione nel Tuonoshock (D-073),
   scritta (C) del titolo ferma in basso; bozza OPZIONI uniche (D-075). Prima, 0.12.0: introduzione senza bande nere (D-072), strumenti sui Pokémon a
@@ -39,10 +40,11 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. In attesa del committente: fotogrammi da correggere nel video di NUOVO GIOCO; prova dell'APK 0.13.4 sul telefono.
-2. In corso: partita automatica (costruisci5, in una copia del progetto in scratchpad/wt) fino alla domanda
-   "dimenticare una mossa?" (Pikachu al livello 11); poi mockup di quella schermata e delle mosse fuori lotta.
-3. PC: nessuna modifica richiesta per ora.
+1. Domani col committente (pagina "domani.html" inviata): mossa da dimenticare sul telefono; fine cattura di Pikachu
+   (rettangolo bianco, dialogo che scende); colori all'ingresso del laboratorio; lampi chiari prima della lotta;
+   menu del PC; Etere/Elisir, MT/MN e mosse fuori lotta (stesso riquadro delle 4 mosse).
+2. Da verificare: D-086 (dialogo spostato solo a riquadro disegnato) col video del laboratorio.
+3. Poi: analisi fotogramma per fotogramma della lotta col rivale, Strada 1, Smeraldopoli, Pacco.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
