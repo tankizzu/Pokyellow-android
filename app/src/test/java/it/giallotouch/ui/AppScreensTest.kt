@@ -814,7 +814,8 @@ class ZzScenarioTest : AppScreensHarness() {
                     log("domanda in lotta dopo $battles lotte: ${lead()}")
                     return
                 }
-                if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
+                if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f)
+                else if (!s.commandBusy) press(s, NativeCore.KEY_A) else pump(200)   // testi della lotta: tasto A
             }
             val m = lead() ?: break
             log("lotta $battles finita: ${m.name} L${m.level} PS ${m.hp}/${m.maxHp}")
