@@ -343,9 +343,10 @@ static int title_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, 
             dst[col] = colors[attr & 7][c];
         }
     }
-    /* logo fermo: scritta (C) dalla riga 17 del gioco alla riga 41 dello schermo, una casella più a sinistra */
+    /* scritta (C) dalla riga 17 del gioco alla riga 41 dello schermo, una casella più a sinistra: da subito, anche
+     * mentre il logo scende (la riga della scritta non scorre con il logo) */
     int dest = 41 * 8;
-    if (scy == 0 && dest + 8 <= out_h) {
+    if (dest + 8 <= out_h) {
         for (int y = 0; y < 8; y++) {
             uint32_t *from = out + (size_t)(top + 136 + y) * FRAME_W;
             uint32_t *to = out + (size_t)(dest + y) * FRAME_W;

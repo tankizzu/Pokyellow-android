@@ -2,6 +2,7 @@
 
 ## 2026-11-19 – introduzione senza bande nere (D-072)
 - Tutte le scene dell'introduzione a tutto schermo col colore dello sfondo, anche con la stella di GAME FREAK; niente righine.
+- Titolo: la scritta (C) resta in basso anche mentre il logo scende.
 
 ## 2026-11-19 – strumenti sui Pokémon, cattura, squadra nel menu START (D-070, D-071)
 - Pozione e altri strumenti fuori dalla lotta: schermo intero, solo il messaggio finale, niente menu vecchi.

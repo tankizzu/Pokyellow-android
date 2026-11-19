@@ -1302,7 +1302,7 @@ class ZzGlitchTest : AppScreensHarness() {
                 if (a == b && c != a) dark++
             }
             if (dark in 1 until h) { bad++; if (saved < 40 && q % 3 == 0) { saved++; FileOutputStream(File(shots, "vd-%03d-%d.png".format(q, dark))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) } } }
-            if (q % 25 == 0 || (q < 140 && q % 4 == 0) || (q > 700 && q % 5 == 0)) FileOutputStream(File(shots, "vv-%03d.png".format(q))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            if (q % 25 == 0 || (q in 118..142) || (q > 700 && q % 5 == 0)) FileOutputStream(File(shots, "vv-%03d.png".format(q))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
         println("DBGVD fotogrammi con righe scure: $bad")
     }
