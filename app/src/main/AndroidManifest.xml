@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Nessun permesso: l'app funziona offline e legge la ROM solo tramite il selettore di file di Android. -->
+<!-- L'app funziona offline e legge la ROM solo tramite il selettore di file di Android. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Solo la vibrazione ai colpi in lotta (D-069): nessun accesso a dati o rete. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="false"

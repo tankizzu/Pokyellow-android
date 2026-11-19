@@ -1459,30 +1459,3 @@ class AppPickerTest : AppScreensHarness() {
         shot("61-scelta-file-prima-volta")
     }
 }
-
-/** Temporaneo: indirizzo del Pokémon avversario in lotta. */
-class ZzEnemyTest : AppScreensHarness() {
-    @Test fun nemico() {
-        val s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
-        pump(1500)
-        assertTrue(s.loadSlot(SaveSlot.AUTO))
-        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
-        val rnd = java.util.Random(5)
-        var walks = 0
-        while (!s.latestSnapshot.get().inBattle && walks++ < 40) {
-            val g = s.mapGridForTest() ?: break
-            val free = (0 until g.width).flatMap { x -> (6 until g.height - 4).map { y -> x to y } }.filter { g.isFree(it.first, it.second) }
-            val t = free[rnd.nextInt(free.size)]
-            s.walkPathForTest(t.first, t.second)
-            waitFor(20_000) { s.latestSnapshot.get().inBattle || s.positionForTest().let { it.second == t.first && it.third == t.second } }
-        }
-        assumeTrue(s.latestSnapshot.get().inBattle)
-        var k = 0
-        while (!(s.battleMenuShown && !s.commandBusy) && k++ < 40) tapTile(10f, 2f)
-        fun dump(tag: String) = println("DBGEN $tag " + s.memoryForTest(0xCFE0, 0x30).joinToString(" ") { "%02x".format(it.toInt() and 255) })
-        dump("prima")
-        tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f)
-        pump(6000)
-        dump("dopo")
-    }
-}

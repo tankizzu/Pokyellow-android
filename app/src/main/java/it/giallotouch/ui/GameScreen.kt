@@ -255,6 +255,16 @@ fun GameScreen(session: GameSession, settings: Settings) {
             drawIntoCanvas { renderer.draw(it.nativeCanvas) }
         }
 
+        DisposableEffect(session) {
+            val vib = runCatching {
+                if (android.os.Build.VERSION.SDK_INT >= 31) (view.context.getSystemService(android.os.VibratorManager::class.java))?.defaultVibrator
+                else @Suppress("DEPRECATION") view.context.getSystemService(android.os.Vibrator::class.java)
+            }.getOrNull()
+            session.onHit = {
+                runCatching { vib?.vibrate(android.os.VibrationEffect.createOneShot(45, 110)) }
+            }
+            onDispose { session.onHit = null }
+        }
         LaunchedEffect(reportRequested) {
             if (!reportRequested) return@LaunchedEffect
             val shot = runCatching { view.drawToBitmap() }.getOrNull()
@@ -528,7 +538,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && !itemRequested && !openingTrainer && !session.itemBusy && !session.menusClosing && session.mainMenuItems == 0 && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && snapshot.cursorOnScreen && !itemRequested && !openingTrainer && !session.itemBusy && !session.menusClosing && session.mainMenuItems == 0 && !session.titleShown && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()

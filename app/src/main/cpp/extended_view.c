@@ -300,11 +300,69 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
 
 void ev_reset(EVState *st) { memset(st, 0, sizeof(*st)); st->map_id = -1; }
 
+/*
+ * Schermata del titolo a tutto schermo (D-069): il logo che scende dall'alto è già nella memoria video sopra la parte
+ * visibile (il gioco fa scorrere lo sfondo con SCY), quindi si disegna anche nelle righe sopra l'inquadratura. A logo
+ * fermo la scritta (C) GAME FREAK va in basso, alla riga 41 dello schermo (mockup del committente).
+ * Il titolo si riconosce dalla riga 17 della mappa dello sfondo (lettere della scritta: E0 E1 E2).
+ */
+static int title_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h, uint8_t lcdc) {
+    size_t vram_size = 0, bgp_size = 0;
+    const uint8_t *vram = GB_get_direct_access(gb, GB_DIRECT_ACCESS_VRAM, &vram_size, NULL);
+    const uint8_t *bgp = GB_get_direct_access(gb, GB_DIRECT_ACCESS_BGP, &bgp_size, NULL);
+    if (!vram || vram_size < 0x4000 || !bgp || bgp_size < 64) return 0;
+    const uint8_t *bank0 = vram, *bank1 = vram + 0x2000;
+    int bg_map = (lcdc & 0x08) ? 0x1C00 : 0x1800;
+    if (bank0[bg_map + 17 * 32 + 2] != 0xE0 || bank0[bg_map + 17 * 32 + 3] != 0xE1 || bank0[bg_map + 17 * 32 + 4] != 0xE2) return 0;
+    int scy = rd(gb, 0xFF42), scx = rd(gb, 0xFF43);
+    bool signed_tiles = !(lcdc & 0x10);
+    uint32_t colors[8][4];
+    for (int p = 0; p < 8; p++) for (int c = 0; c < 4; c++) {
+        uint16_t rgb = bgp[p * 8 + c * 2] | (bgp[p * 8 + c * 2 + 1] << 8);
+        colors[p][c] = GB_convert_rgb15(gb, rgb & 0x7FFF, false);
+    }
+    int top = (out_h - FRAME_H) / 2;
+    uint32_t paper = frame[0];
+    for (int row = 0; row < out_h; row++) {
+        uint32_t *dst = out + (size_t)row * FRAME_W;
+        int f = row - top;
+        if (f >= 0 && f < FRAME_H) { memcpy(dst, frame + (size_t)f * FRAME_W, FRAME_W * sizeof(uint32_t)); continue; }
+        int y = scy + f;                       /* riga dello sfondo (sopra: righe del logo non ancora visibili) */
+        if (f >= FRAME_H || y < 0 || y >= 256) { for (int x = 0; x < FRAME_W; x++) dst[x] = paper; continue; }
+        for (int col = 0; col < FRAME_W; col++) {
+            int bx = (scx + col) & 255;
+            int idx = bg_map + (y >> 3) * 32 + (bx >> 3);
+            uint8_t tile = bank0[idx], attr = bank1[idx];
+            const uint8_t *data = (attr & 0x08) ? bank1 : bank0;
+            int yy = (attr & 0x40) ? 7 - (y & 7) : (y & 7);
+            int xx = (attr & 0x20) ? (bx & 7) : 7 - (bx & 7);
+            int base = signed_tiles ? 0x1000 + (int8_t)tile * 16 : tile * 16;
+            uint8_t lo = data[base + yy * 2], hi = data[base + yy * 2 + 1];
+            int c = (((hi >> xx) & 1) << 1) | ((lo >> xx) & 1);
+            dst[col] = colors[attr & 7][c];
+        }
+    }
+    /* logo fermo: scritta (C) dalla riga 17 del gioco alla riga 41 dello schermo, una casella più a sinistra */
+    int dest = 41 * 8;
+    if (scy == 0 && dest + 8 <= out_h) {
+        for (int y = 0; y < 8; y++) {
+            uint32_t *from = out + (size_t)(top + 136 + y) * FRAME_W;
+            uint32_t *to = out + (size_t)(dest + y) * FRAME_W;
+            uint32_t line[FRAME_W];
+            memcpy(line, from, sizeof(line));
+            for (int x = 0; x < FRAME_W; x++) { from[x] = paper; }
+            for (int x = 0; x < FRAME_W; x++) to[x] = (x + 8 < FRAME_W) ? line[x + 8] : paper;
+        }
+    }
+    return 1;
+}
+
 int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h, int frame_top, EVState *st) {
     if (out_h < FRAME_H) return 0;
     int off_top = (frame_top < 0 || frame_top > out_h - FRAME_H) ? (out_h - FRAME_H) / 2 : frame_top;
     uint8_t lcdc = rd(gb, 0xFF40);
     if (!(lcdc & 0x80)) { st->valid = false; return 0; }
+    if (title_render(gb, frame, out, out_h, lcdc)) { st->valid = false; return 1; }
 
     MapTiles mt;
     if (!load_map(gb, &mt)) { st->valid = false; return 0; }

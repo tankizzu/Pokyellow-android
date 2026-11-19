@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-19 – difetti dalle foto del committente, scheda immediata, vibrazione (D-067, D-068, D-069)
+- Lista dei nomi, tastiera, dissolvenze, cambio di luogo, Pikachu sul bordo: corretti.
+- Tendina prima della lotta e introduzione a tutto schermo; titolo con il logo che scende dall'alto e (C) in basso.
+- Scheda allenatore immediata dalla seconda volta.
+- Tocco nel vuoto ignorato sulle scelte; mossa con un solo suono, senza riquadro TIPO/PP; vibrazione ai colpi.
+- Città e strade con gli stessi colori.
+
 ## 2026-11-19 – difetti grafici, menu più rapidi, prima apertura (D-065, D-066)
 - Scheda allenatore senza immagini rovinate; niente SELECT o START fuori posto; menu iniziale senza lampi.
 - Azioni dell'app nei menu del gioco più rapide.

@@ -67,6 +67,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var extendedActive = false
         private set
     @Volatile var onFrame: (() -> Unit)? = null
+    /** Colpo che fa danno in lotta (vibrazione, D-069). Chiamata dal thread del gioco. */
+    @Volatile var onHit: (() -> Unit)? = null
+    private var lastEnemyHp = -1
+    private var lastPlayerHp = -1
 
     /** Tile del gioco (carattere, riquadri) per disegnare le aggiunte dell'app come il gioco (D-039); null all'inizio. */
     val tileSheet = AtomicReference<IntArray?>(null)
@@ -149,6 +153,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** La scheda allenatore si sta aprendo (l'app mostra ancora la mappa e il riquadro START, D-065). */
     /** Sullo schermo c'è una scelta (cursore ▶ di un menu del gioco, SÌ/NO, nomi, PC, mosse): niente tasto A nel vuoto. */
     @Volatile var choiceOnScreen = false
+        private set
+    /** Schermata del titolo del gioco (D-069). */
+    @Volatile var titleShown = false
         private set
     /** Si cammina liberamente in questo fotogramma (l'istantanea della memoria è più lenta, ogni 15 fotogrammi). */
     @Volatile var freeRoamNow = false
@@ -836,7 +843,17 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val cardRaw = ItemMenus.trainerCard(frameTiles)
                 val mapNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles)
                 freeRoamNow = mapNow && !inBattleRaw
-                choiceOnScreen = frameTiles.any { (it.toInt() and 0xFF) == 0xED } || frameMenu.kind == MenuKind.YES_NO
+                // Vibrazione ai colpi (D-069): i PS di uno dei due Pokémon in lotta scendono.
+                if (inBattleRaw) {
+                    val eh = (NativeCore.nativeReadMemory(handle, MemoryMapIt.ENEMY_MON_HP) shl 8) or NativeCore.nativeReadMemory(handle, MemoryMapIt.ENEMY_MON_HP + 1)
+                    val ph = (NativeCore.nativeReadMemory(handle, MemoryMapIt.BATTLE_MON + 1) shl 8) or NativeCore.nativeReadMemory(handle, MemoryMapIt.BATTLE_MON + 2)
+                    if ((lastEnemyHp in 1..999 && eh < lastEnemyHp) || (lastPlayerHp in 1..999 && ph < lastPlayerHp)) onHit?.invoke()
+                    lastEnemyHp = eh; lastPlayerHp = ph
+                } else { lastEnemyHp = -1; lastPlayerHp = -1 }
+                // Titolo: la scritta (C) GAME FREAK alla riga 17 (E0 E1 E2); il logo usa anche la casella del cursore ▶.
+                titleShown = (frameTiles[17 * 20 + 2].toInt() and 0xFF) == 0xE0 && (frameTiles[17 * 20 + 3].toInt() and 0xFF) == 0xE1 &&
+                    (frameTiles[17 * 20 + 4].toInt() and 0xFF) == 0xE2
+                choiceOnScreen = !titleShown && (frameTiles.any { (it.toInt() and 0xFF) == 0xED } || frameMenu.kind == MenuKind.YES_NO)
                 if (cardClosing > 0) {
                     cardCalm = if (mapNow && !cardRaw && closingFrames == 0) cardCalm + 1 else 0
                     cardClosing = if (cardCalm >= 8) 0 else cardClosing - 1

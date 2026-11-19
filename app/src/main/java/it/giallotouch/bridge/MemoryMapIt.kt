@@ -22,6 +22,8 @@ object MemoryMapIt {
     const val IS_IN_BATTLE = 0xD05B
     /** Creatura del giocatore in campo durante la lotta (battle_struct): mosse +8, livello +14, PS max +15, PP +25. */
     const val BATTLE_MON = 0xD018
+    /** PS del Pokémon avversario in lotta (2 byte, big-endian; specie a 0xCFE9), verificato sul gioco vero (D-069). */
+    const val ENEMY_MON_HP = 0xCFEA
 
     /** Tabella dei nomi delle mosse nella ROM italiana: 165 nomi chiusi da 0x50, a partire da questo offset. */
     const val ROM_MOVE_NAMES = 0xBC000
