@@ -685,7 +685,10 @@ class ZzScenarioTest : AppScreensHarness() {
     private fun fightIfNeeded() {
         var g = 0
         while (s.latestSnapshot.get().inBattle && g++ < 400) {
-            if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
+            val pp0 = s.latestSnapshot.get().party.firstOrNull()?.moves?.firstOrNull()?.pp ?: 1
+            if (s.battleMenuShown && !s.commandBusy && pp0 == 0) tapTile(10f, 34f)   // PP finiti: FUGA
+            else if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f)
+            else if (!s.commandBusy) press(s, NativeCore.KEY_A) else pump(200)
         }
         textThrough()
     }
