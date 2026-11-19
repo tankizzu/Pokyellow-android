@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-19 – COMPARSA TESTO e AUTO-TESTO separati (D-082)
+- OPZIONI: COMPARSA TESTO cambia la velocità del testo; AUTO-TESTO (sì/no) fa andare avanti il testo da solo.
+
 ## 2026-11-19 – stelline una per una, nomi immediati, menu senza niente dietro (D-081)
 - Introduzione: ogni stellina scende col suo ritmo e sparisce intera in fondo.
 - Nomi del Professore e voci del menu iniziale: scelta immediata insieme al suono.

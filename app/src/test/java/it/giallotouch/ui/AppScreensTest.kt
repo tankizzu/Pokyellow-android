@@ -488,14 +488,14 @@ abstract class AppScreensHarness {
         tapTile(10f, rows() - 2f)
         pump(800)
         tapTile(15f, 33f)            // OPZIONI
-        // OPZIONI uniche (D-075, D-080): un solo riquadro GIOCO dalla riga 6 (COLORI alle righe 20-21)
-        assertTrue("OPZIONI", shotUntil("18-opzioni") { boxAt(it, 0, 6, 20, 21) })
-        tapTile(4f, 20.5f)           // COLORI: bianco e nero
+        // OPZIONI uniche (D-075, D-080, D-082): un solo riquadro GIOCO dalla riga 6 (COLORI alle righe 23-24)
+        assertTrue("OPZIONI", shotUntil("18-opzioni") { boxAt(it, 0, 6, 20, 24) })
+        tapTile(4f, 23.5f)           // COLORI: bianco e nero
         assertTrue("opzione bianco e nero", waitFor(3_000) { s.blackWhite })
         tapTile(9f, 40.5f)           // INDIETRO
         shot("18b-bianco-e-nero")
         tapTile(10f, rows() - 2f); pump(800); tapTile(15f, 33f); pump(800)
-        tapTile(4f, 20.5f)           // di nuovo a colori
+        tapTile(4f, 23.5f)           // di nuovo a colori
         assertTrue("di nuovo a colori", waitFor(3_000) { !s.blackWhite })
     }
 
@@ -1453,7 +1453,7 @@ class ZzGlitchTest : AppScreensHarness() {
         val frameTop = (root.height - 144 * unit) / 2 / (8 * unit)
         tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(entries.indexOf(it.giallotouch.bridge.StartMenuLayout.Entry.OPZIONI)) + 0.5f)
         // OPZIONI uniche dell'app (D-075, D-080): un tocco su ANIMAZIONE la cambia nella memoria del gioco
-        assertTrue("OPZIONI dell'app", shotUntil("op-opzioni") { boxAt(it, 0, 6, 20, 21) })
+        assertTrue("OPZIONI dell'app", shotUntil("op-opzioni") { boxAt(it, 0, 6, 20, 24) })
         val before = s.gameOptions and 0x80
         tapTile(4f, 8.5f)
         assertTrue("animazione cambiata", waitFor(3_000) { (s.gameOptions and 0x80) != before })
@@ -1461,9 +1461,15 @@ class ZzGlitchTest : AppScreensHarness() {
         pump(800)
         assertEquals("scritta nel gioco", after, s.gameOptions)
         // volume: 5 tacche da 20%; la prima tacca = 20%, toccata di nuovo = muto
-        tapTile(3.6f, 18.5f); pump(300)
+        tapTile(3.6f, 21.5f); pump(300)
         shot("op-volume-1")
-        tapTile(3.6f, 18.5f); pump(300)
+        tapTile(3.6f, 21.5f); pump(300)
+        // COMPARSA TESTO: velocità del testo del gioco; AUTO-TESTO: sì/no
+        val sp = s.gameOptions and 0x0F
+        tapTile(4f, 14.5f)
+        assertTrue("velocità del testo cambiata", waitFor(3_000) { (s.gameOptions and 0x0F) != sp })
+        tapTile(4f, 17.5f); pump(300)
+        shot("op-autotesto")
         shot("op-volume-0")
         shot("op-opzioni-dopo")
     }

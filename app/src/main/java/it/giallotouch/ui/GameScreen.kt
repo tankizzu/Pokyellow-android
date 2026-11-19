@@ -537,7 +537,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             GameOptions(
                 sheet = sheet!!,
                 autoText = autoText,
-                onAutoText = { autoText = (autoText + 1) % 4 },
+                onAutoText = { autoText = if (autoText > 0) 0 else 2 },   // AUTO-TESTO sì/no (D-082)
                 volume = volume,
                 onVolume = { volume = it },
                 blackWhite = blackWhite,
