@@ -23,3 +23,6 @@ void ev_reset(EVState *st);
  * Restituisce 1 se la vista estesa è attiva, 0 se lo schermo non mostra la mappa (out non modificato).
  */
 int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h, int frame_top, EVState *st);
+
+/* Sprite anche fuori dalle 144 righe (introduzione): riga 0 del gioco alla riga top di out (160 × out_h). */
+int ev_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int top);

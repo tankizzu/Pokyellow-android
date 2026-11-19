@@ -71,6 +71,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var onHit: (() -> Unit)? = null
     private var lastEnemyHp = -1
     private var lastYellow = 0
+    /** Sprite dell'introduzione anche fuori dalle 144 righe (D-076), riga 0 del gioco alla riga [SPRITE_LAYER_TOP]. */
+    val introSprites = AtomicReference<IntArray?>(null)
+    /** Gli sprite dell'introduzione vanno disegnati anche sopra l'immagine del gioco (stelline di GAME FREAK). */
+    @Volatile var introSpritesOver = false
     /** Opzioni del gioco (byte a 0xD359: velocità del testo, animazione, stile lotta, suono). */
     @Volatile var gameOptions = 0x03
     private var lastPlayerHp = -1
@@ -874,6 +878,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     lastEnemyHp = eh; lastPlayerHp = ph
                 } else { lastEnemyHp = -1; lastPlayerHp = -1 }
                 gameOptions = NativeCore.nativeReadMemory(handle, MemoryMapIt.OPTIONS)
+                // Introduzione (D-076): sprite anche fuori dalle 144 righe e sotto le bande, per non vederli tagliati.
+                if (!inGame && !titleShown && mainMenuItems == 0) {
+                    val buf = IntArray(NativeCore.WIDTH * SPRITE_LAYER_H)
+                    val r = NativeCore.nativeSprites(handle, buf, SPRITE_LAYER_H, SPRITE_LAYER_TOP)
+                    introSpritesOver = (r and 0x10000) != 0
+                    introSprites.set(if ((r and 0xFFFF) > 0) buf else null)
+                } else introSprites.set(null)
                 // Introduzione (D-073): a ogni lampo del Tuonoshock il Pikachu grande perde il giallo (bianco o nero):
                 // una vibrazione per lampo, a ritmo.
                 if (!inGame) {
@@ -1086,6 +1097,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }.onFailure { Log.e(TAG, "Audio non disponibile", it) }.getOrNull()
 
     companion object {
+        const val SPRITE_LAYER_TOP = 64
+        const val SPRITE_LAYER_H = NativeCore.HEIGHT + 128
         /** Solo per il banco di prova: la sessione nasce già in modalità fotogramma per fotogramma. */
         @Volatile @JvmStatic var testStepFromStart = false
         private const val TAG = "GameSession"

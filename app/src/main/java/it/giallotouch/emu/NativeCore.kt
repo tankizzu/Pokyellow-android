@@ -36,6 +36,8 @@ object NativeCore {
     @JvmStatic external fun nativeRenderExtended(handle: Long, out: IntArray, height: Int, frameTop: Int): Int
     const val EXT_MAX_HEIGHT = 512
     /** Foglio 128×128 dei tile del gioco (carattere, riquadri) con i colori dei riquadri di testo: 1 = colori dallo schermo. */
+    /** Sprite anche fuori dalle 144 righe (introduzione): 160 × height, riga 0 del gioco alla riga top. */
+    @JvmStatic external fun nativeSprites(handle: Long, out: IntArray, height: Int, top: Int): Int
     @JvmStatic external fun nativeGameTiles(handle: Long, out: IntArray): Int
     /** Versione italiana riconosciuta: il carattere del gioco si prende dalla ROM (sulla mappa la memoria video non ce l'ha). */
     @JvmStatic external fun nativeTrustRomFont(handle: Long)

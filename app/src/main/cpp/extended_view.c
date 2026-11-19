@@ -489,3 +489,68 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     draw_sprites(gb, out, out_h, off_top, lcdc, bank0, bank1, st);
     return 1;
 }
+
+/*
+ * Sprite di tutta la memoria degli sprite (OAM) anche fuori dalle 144 righe e senza la priorità dello sfondo
+ * (introduzione, D-076): out = 160 × out_h ARGB, la riga 0 del gioco alla riga top; 0 = trasparente.
+ * Si saltano gli sprite nascosti dal gioco (Y = 0 o 160, X = 0 o ≥ 168). Restituisce quanti sprite ha disegnato.
+ */
+int ev_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int top) {
+    memset(out, 0, (size_t)FRAME_W * out_h * sizeof(uint32_t));
+    uint8_t lcdc = rd(gb, 0xFF40);
+    if (!(lcdc & 0x80) || !(lcdc & 0x02)) return 0;
+    size_t oam_size = 0, obp_size = 0, vram_size = 0;
+    const uint8_t *oam = GB_get_direct_access(gb, GB_DIRECT_ACCESS_OAM, &oam_size, NULL);
+    const uint8_t *obp = GB_get_direct_access(gb, GB_DIRECT_ACCESS_OBP, &obp_size, NULL);
+    const uint8_t *vram = GB_get_direct_access(gb, GB_DIRECT_ACCESS_VRAM, &vram_size, NULL);
+    if (!oam || oam_size < 160 || !obp || obp_size < 64 || !vram || vram_size < 0x4000) return 0;
+    uint32_t pal[8][4];
+    for (int p = 0; p < 8; p++) for (int c = 0; c < 4; c++) {
+        uint16_t rgb = obp[p * 8 + c * 2] | (obp[p * 8 + c * 2 + 1] << 8);
+        pal[p][c] = GB_convert_rgb15(gb, rgb & 0x7FFF, false);
+    }
+    int tall = (lcdc & 0x04) ? 16 : 8, n = 0;
+    /* Scena di GAME FREAK (logo fatto di sprite, tile 0x8D): le stelline (tile 0xA2) scendendo diventano bianche e
+     * sembrano tagliate; si tiene il colore che avevano per colonna, così restano visibili fino in fondo. */
+    static uint32_t star_pal[FRAME_W + 8][4];
+    static bool star_known[FRAME_W + 8];
+    static int star_sat[FRAME_W + 8];
+    bool gf = false;
+    for (int i = 0; i < 40; i++) if (oam[i * 4 + 2] == 0x8D && oam[i * 4] != 0) gf = true;
+    if (!gf) memset(star_known, 0, sizeof(star_known));
+    for (int i = 39; i >= 0; i--) {   /* il primo sprite sta sopra gli altri */
+        const uint8_t *o = oam + i * 4;
+        if (o[0] == 0 || o[0] == 160 || o[1] == 0 || o[1] >= 168) continue;
+        int y = o[0] - 16, x = o[1] - 8;
+        uint8_t attr = o[3];
+        const uint8_t *data = (attr & 0x08) ? vram + 0x2000 : vram;
+        int tile = tall == 16 ? (o[2] & 0xFE) : o[2];
+        n++;
+        const uint32_t *use = pal[attr & 7];
+        if (gf && o[2] == 0xA2 && o[1] < FRAME_W + 8) {
+            /* colore più vivo visto in quella colonna: la stellina non sbiadisce */
+            int sat = 0;
+            for (int c = 1; c < 4; c++) {
+                uint32_t v = use[c]; int r = (v >> 16) & 255, g = (v >> 8) & 255, b = v & 255;
+                int mx = r > g ? (r > b ? r : b) : (g > b ? g : b), mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+                if (mx - mn > sat) sat = mx - mn;
+            }
+            if (!star_known[o[1]] || sat >= star_sat[o[1]]) { memcpy(star_pal[o[1]], use, sizeof(star_pal[0])); star_sat[o[1]] = sat; star_known[o[1]] = true; }
+            else use = star_pal[o[1]];
+        }
+        for (int py = 0; py < tall; py++) {
+            int row = top + y + py;
+            if (row < 0 || row >= out_h) continue;
+            int yy = (attr & 0x40) ? tall - 1 - py : py;
+            uint8_t lo = data[tile * 16 + yy * 2], hi = data[tile * 16 + yy * 2 + 1];
+            for (int px = 0; px < 8; px++) {
+                int col = x + px;
+                if (col < 0 || col >= FRAME_W) continue;
+                int xx = (attr & 0x20) ? px : 7 - px;
+                int c = (((hi >> xx) & 1) << 1) | ((lo >> xx) & 1);
+                if (c) out[(size_t)row * FRAME_W + col] = use[c] | 0xFF000000u;
+            }
+        }
+    }
+    return gf ? n | 0x10000 : n;   /* 0x10000: sprite da disegnare anche sopra l'immagine del gioco */
+}

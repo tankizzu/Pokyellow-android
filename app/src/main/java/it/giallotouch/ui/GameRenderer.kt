@@ -177,9 +177,26 @@ class GameRenderer(private val session: GameSession) {
         canvas.drawRect(0f, (top + h).toFloat(), w.toFloat(), height.toFloat(), bandPaint)
         dst.set(0, top, w, top + h)
         canvas.drawBitmap(frameBitmap, null, dst, paint)
+        // Introduzione (D-076): stelle e Pikachu anche fuori dall'immagine del gioco e sopra le bande, interi.
+        s.introSprites.get()?.let { layer ->
+            val T = GameSession.SPRITE_LAYER_TOP
+            System.arraycopy(layer, 0, spriteBuf, 0, spriteBuf.size)
+            for (y in 0 until NativeCore.HEIGHT) {
+                val inBand = lb != null && (y < lb.first || y >= lb.second)
+                if (!inBand && !s.introSpritesOver) java.util.Arrays.fill(spriteBuf, (T + y) * NativeCore.WIDTH, (T + y + 1) * NativeCore.WIDTH, 0)
+            }
+            spriteBitmap.setPixels(spriteBuf, 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, GameSession.SPRITE_LAYER_H)
+            val unit = w.toFloat() / NativeCore.WIDTH
+            val y0 = top - T * unit
+            spriteDst.set(0f, y0, w.toFloat(), y0 + GameSession.SPRITE_LAYER_H * unit)
+            canvas.drawBitmap(spriteBitmap, null, spriteDst, paint)
+        }
         drawStartMenu(canvas, s, top, w)
         drawDialog(canvas, s, w)
     }
+    private val spriteBuf = IntArray(NativeCore.WIDTH * GameSession.SPRITE_LAYER_H)
+    private val spriteBitmap = Bitmap.createBitmap(NativeCore.WIDTH, GameSession.SPRITE_LAYER_H, Bitmap.Config.ARGB_8888)
+    private val spriteDst = android.graphics.RectF()
 
     /** Dialogo del gioco più in alto, alla riga [DIALOG_ROW] dello schermo (D-048). */
     private val dialogBitmap = Bitmap.createBitmap(NativeCore.WIDTH, 48, Bitmap.Config.ARGB_8888)

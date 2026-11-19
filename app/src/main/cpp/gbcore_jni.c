@@ -166,6 +166,17 @@ Java_it_giallotouch_emu_NativeCore_nativeRenderExtended(JNIEnv *env, jclass cls,
     return r;   /* 1 = mappa, 2 = schermata del titolo */
 }
 
+/* Sprite anche fuori dalle 144 righe (introduzione, D-076): out = 160 × height, riga 0 del gioco alla riga top. */
+JNIEXPORT jint JNICALL
+Java_it_giallotouch_emu_NativeCore_nativeSprites(JNIEnv *env, jclass cls, jlong handle, jintArray out, jint height, jint top) {
+    (void)cls;
+    Core *core = as_core(handle);
+    if (height <= 0 || height > EXT_MAX_HEIGHT || (*env)->GetArrayLength(env, out) < WIDTH * height) return 0;
+    int n = ev_sprites(core->gb, core->ext, height, top);   /* + 0x10000: anche sopra l'immagine */
+    (*env)->SetIntArrayRegion(env, out, 0, WIDTH * height, (const jint *)core->ext);
+    return n;
+}
+
 /* Tile del gioco (carattere e riquadri) in un foglio 128×128 ARGB, con i colori dei riquadri di testo (D-039). */
 JNIEXPORT jint JNICALL
 Java_it_giallotouch_emu_NativeCore_nativeGameTiles(JNIEnv *env, jclass cls, jlong handle, jintArray out) {

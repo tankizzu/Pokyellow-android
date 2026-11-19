@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-19 – introduzione senza stelle e Pikachu tagliati (D-076), bozza OPZIONI (D-075)
+- Stella di GAME FREAK intera quando entra; stelline colorate visibili fino in fondo; Pikachu interi.
+- OPZIONI: schermata unica con le opzioni del gioco e del telefono (bozza in attesa di conferma).
+
 ## 2026-11-19 – analisi dell'inizio fotogramma per fotogramma (D-074)
 - All'accensione niente schermo viola: bianco fino al copyright.
 - Lampi finali del Tuonoshock senza bande rosse o gialle.
