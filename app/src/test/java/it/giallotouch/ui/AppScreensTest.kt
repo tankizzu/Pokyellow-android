@@ -839,7 +839,15 @@ class ZzScenarioTest : AppScreensHarness() {
             val m = lead() ?: break
             log("lotta $battles finita: ${m.name} L${m.level} PS ${m.hp}/${m.maxHp}")
             if (m.level > level) { level = m.level; save("livello-$level.state") }
-            if (m.hp * 2 < m.maxHp || (m.moves.firstOrNull()?.pp ?: 1) == 0) { heal(); toRoute() }   // PS bassi o PP finiti
+            if (m.hp * 2 < m.maxHp || (m.moves.firstOrNull()?.pp ?: 30) < 10) {
+                // solo per costruire la partita di prova: PS al massimo e PP di TUONOSHOCK pieni scritti in memoria,
+                // senza andare al Centro (il viaggio si bloccava negli incontri lungo la strada)
+                val base = 0xD16F
+                s.writeMemoryForTest(base + 1, m.maxHp shr 8); s.writeMemoryForTest(base + 2, m.maxHp and 0xFF)
+                s.writeMemoryForTest(base + 29, 30)
+                pump(500)
+                log("curato in memoria: ${lead()}")
+            }
         }
         log("fine senza domanda dopo $battles lotte")
     }
