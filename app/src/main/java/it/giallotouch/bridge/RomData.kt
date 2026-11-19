@@ -22,6 +22,8 @@ class RomData private constructor(
     private val icons: List<IntArray> = emptyList(),
     /** Tipo d'icona per numero del Pokédex (posizione 0 = n. 1). */
     private val iconTypes: List<Int> = emptyList(),
+    /** Secondo fotogramma delle icone (animazione della squadra). */
+    private val icons2: List<IntArray> = emptyList(),
 ) {
     data class MoveInfo(val type: Int, val maxPp: Int)
 
@@ -54,6 +56,10 @@ class RomData private constructor(
      * (scuro), null se sconosciuta.
      */
     fun partyIcon(index: Int): IntArray? = iconTypes.getOrNull(dexNumber(index) - 1)?.let { icons.getOrNull(it) }
+
+    /** Icona nel fotogramma [frame] (0 o 1) dell'animazione della squadra, come nel gioco (D-071). */
+    fun partyIconFrame(index: Int, frame: Int): IntArray? =
+        if (frame == 0) partyIcon(index) else iconTypes.getOrNull(dexNumber(index) - 1)?.let { icons2.getOrNull(it) } ?: partyIcon(index)
 
     private val pics = HashMap<Int, MonPic?>()
 
@@ -152,6 +158,7 @@ class RomData private constructor(
                     else emptyList(),
                 itemNames = readNameList(rom, M.ROM_ITEM_NAMES, M.NUM_ITEM_NAMES) ?: emptyList(),
                 icons = readIcons(rom) ?: emptyList(),
+                icons2 = readIcons(rom, first = 15, base = 0x8400) ?: emptyList(),
                 iconTypes = if (M.ROM_PARTY_ICON_TYPES + 76 <= rom.size)
                     List(151) { i -> u8(rom, M.ROM_PARTY_ICON_TYPES + i / 2).let { if (i % 2 == 0) it shr 4 else it and 15 } }.takeIf { t -> t.all { it <= 10 } } ?: emptyList()
                     else emptyList(),
@@ -167,14 +174,15 @@ class RomData private constructor(
          * destra). Le icone da una casella per riga (insetto, pianta, serpente, quadrupede) hanno la metà destra
          * specchiata, come fa il gioco.
          */
-        fun readIcons(rom: ByteArray): List<IntArray>? {
+        fun readIcons(rom: ByteArray, first: Int = 0, base: Int = 0x8000): List<IntArray>? {
             val vram = ByteArray(0x400)
-            for (e in 0 until 14) {
+            // 14 voci per il primo fotogramma (0x8000…), le stesse 15 voci più avanti per il secondo (0x8400…)
+            for (e in first until first + (if (first == 0) 14 else 15)) {
                 val p = M.ROM_PARTY_ICON_GFX + 6 * e
                 if (p + 6 > rom.size) return null
                 val src = u8(rom, p) or (u8(rom, p + 1) shl 8)
                 val n = u8(rom, p + 2); val bank = u8(rom, p + 3)
-                val dest = (u8(rom, p + 4) or (u8(rom, p + 5) shl 8)) - 0x8000
+                val dest = (u8(rom, p + 4) or (u8(rom, p + 5) shl 8)) - base
                 val off = bank * 0x4000 + src - 0x4000
                 if (dest !in 0 until 0x400 || dest + 16 * n > 0x400 || off < 0 || off + 16 * n > rom.size) return null
                 System.arraycopy(rom, off, vram, dest, 16 * n)

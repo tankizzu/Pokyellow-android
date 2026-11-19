@@ -67,20 +67,42 @@ fun GamePanel(
         val g = TileGrid(unit, (with(density) { maxHeight.toPx() } / (8 * unit)).toInt())
         val bottom = g.rows - 1
         if (open) {
-            // Squadra in alto: riquadro normale, contenuto a metà grandezza ("in piccolo").
-            TileImage(sheet, 20, 8, unit, key = "squadra-box", modifier = Modifier.offset { g.at(0f, 2f) }) { box(0, 0, 19, 7) }
+            // Squadra in alto (D-071, mockup del committente): riquadro 20×12 in (0,0), 3 compagni alla volta (si scorre
+            // col dito per vederli tutti e 6), icona animata come nel gioco, nome, livello e PS.
+            var first by remember(party.size) { mutableStateOf(0) }
+            var frame by remember { mutableStateOf(0) }
+            androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(270); frame = 1 - frame } }
+            val maxFirst = (party.size - 3).coerceAtLeast(0)
+            TileImage(sheet, 20, 12, unit, key = "squadra-box", modifier = Modifier.offset { g.at(0f, 0f) }) { box(0, 0, 19, 11) }
             TileImage(
-                sheet, 36, 12, unit / 2, key = party,
+                sheet, 18, 9, unit, key = listOf(party, first, frame),
                 modifier = Modifier
-                    .offset { g.at(1f, 3f) }
-                    .pointerInput(party) {
+                    .offset { g.at(1f, 2f) }
+                    .pointerInput(party, first) {
                         detectTapGestures { pos ->
-                            val half = g.tilePx / 2
-                            val i = (pos.y / half / 4).toInt() * 2 + (pos.x / half / 18).toInt()
+                            val i = first + (pos.y / g.tilePx / 3).toInt()
                             if (i in party.indices) onMember(i)
                         }
                     }
-            ) { drawTeam(this, party, romData) }
+                    .pointerInput(party.size) {
+                        var acc = 0f
+                        detectVerticalDragGestures { _, dy ->
+                            acc -= dy
+                            val steps = (acc / (3 * g.tilePx)).toInt()
+                            if (steps != 0) { acc -= steps * 3 * g.tilePx; first = (first + steps).coerceIn(0, maxFirst) }
+                        }
+                    }
+            ) {
+                for (j in 0 until 3) {
+                    val m = party.getOrNull(first + j) ?: break
+                    val r = 3 * j
+                    romData.partyIconFrame(m.species, frame)?.let { icon(it, 0, r * 8) }
+                    text(m.name.take(10), 3, r)
+                    val lv = "L${m.level}"; text(lv, 14, r + 1)
+                    text("PS ${m.hp}/${m.maxHp}", 3, r + 1)
+                }
+                if (first < maxFirst) tile(0xEE, 17, 8)     // altri compagni sotto: ▼ come nel gioco
+            }
             // Riquadro dei pulsanti sopra MENU.
             val top = bottom - 15
             TileImage(
@@ -111,18 +133,6 @@ fun GamePanel(
             box(0, 0, 7, 3)
             textAt("START", 12, 12)   // centrato sullo schermo (D-062)
         }
-    }
-}
-
-/** Squadra in piccolo: 2 colonne × 3 righe; nome e livello, barra della vita con i PS, barra dell'esperienza. */
-private fun drawTeam(c: TileCanvas, party: List<PartyMember>, romData: RomData) {
-    // Per ogni compagno (D-046): icona del gioco, nome e sotto livello e vita; scritte a metà grandezza, icona intera.
-    party.take(6).forEachIndexed { i, m ->
-        val col = (i % 2) * 18
-        val row = (i / 2) * 4
-        romData.partyIcon(m.species)?.let { c.icon(it, col * 8, row * 8, scale = 2) }
-        c.text(m.name.take(10), col + 4, row)
-        c.text("L${m.level} ${m.hp}/${m.maxHp}", col + 4, row + 2)
     }
 }
 

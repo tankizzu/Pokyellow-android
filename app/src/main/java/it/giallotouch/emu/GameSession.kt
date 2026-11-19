@@ -147,6 +147,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         return other < px.size / 37 / 20
     }
     private var cardOpening = 0
+    /** Azione su strumenti o squadra fuori dalla lotta in corso: si mostra la mappa salvata (D-071). */
+    private var itemHold = false
+    private var itemHoldCalm = 0
     /** Ultima scheda allenatore vista (immagine del gioco 160×144), anche sul telefono per la volta dopo (D-068). */
     private var cardCache: IntArray? = null
     private var cardCacheLoaded = false
@@ -382,6 +385,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     fun itemAction(action: ItemAction) {
         itemBusy = true
         itemResult = null
+        if (action !is ItemAction.OpenTrainer && !latestSnapshot.get().inBattle) {
+            // Strumenti, squadra e simili fuori dalla lotta (D-071): la mappa salvata resta a tutto schermo per tutto il
+            // passaggio nei menu del gioco; si vedono solo i messaggi del risultato.
+            tasks.add(Runnable {
+                System.arraycopy(latestFrame.get(), 0, savedMap, 0, savedMap.size)
+                val e = latestExtended.get()
+                System.arraycopy(e.pixels, 0, savedExt.pixels, 0, e.pixels.size); savedExt.height = e.height; savedExt.active = e.active
+                itemHold = true; itemHoldCalm = 0
+            })
+        }
         if (action is ItemAction.OpenTrainer) {
             holdSheet = true
             // immagine della mappa di adesso, da mostrare quando si chiude la scheda (D-065)
@@ -856,7 +869,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // Titolo: la scritta (C) GAME FREAK alla riga 17 (E0 E1 E2); il logo usa anche la casella del cursore ▶.
                 titleShown = (frameTiles[17 * 20 + 2].toInt() and 0xFF) == 0xE0 && (frameTiles[17 * 20 + 3].toInt() and 0xFF) == 0xE1 &&
                     (frameTiles[17 * 20 + 4].toInt() and 0xFF) == 0xE2
-                choiceOnScreen = !titleShown && (frameTiles.any { (it.toInt() and 0xFF) == 0xED } || frameMenu.kind == MenuKind.YES_NO)
+                // Testo in attesa (▼ in basso a destra): il tocco manda avanti anche se dietro c'è un menu (D-071).
+                val textWaiting = (frameTiles[16 * 20 + 18].toInt() and 0xFF) == 0xEE
+                choiceOnScreen = !titleShown && !textWaiting && (frameTiles.any { (it.toInt() and 0xFF) == 0xED } || frameMenu.kind == MenuKind.YES_NO)
                 if (cardClosing > 0) {
                     cardCalm = if (mapNow && !cardRaw && closingFrames == 0) cardCalm + 1 else 0
                     cardClosing = if (cardCalm >= 8) 0 else cardClosing - 1
@@ -869,7 +884,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 }
                 cardOpeningActive = cardOpening > 0
                 menusClosing = closingFrames > 0 || cardClosing > 0 || pendingClose
-                holdImage = cardClosing > 0 || cardOpening > 0
+                if (itemHold) {
+                    itemHoldCalm = if (!itemExecutor.busy && !pendingClose && closingFrames == 0 && mapNow) itemHoldCalm + 1 else 0
+                    if (itemHoldCalm >= 8 || trainerCardShown) itemHold = false
+                }
+                holdImage = cardClosing > 0 || cardOpening > 0 || itemHold
                 // Scheda già vista: compare subito quella memorizzata mentre il gioco carica la vera (D-068).
                 instantCard = cardOpening > 0 && cardCache != null
                 trainerCardShown = (cardRaw && !holdImage) || instantCard
@@ -905,7 +924,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // Dopo la schermata dei nomi l'immagine "di prima" sarebbe la tastiera del gioco: si butta (D-067).
                 if (namingShown) frameMask.reset()
                 val yn = yesNo?.takeIf { !trainerCardShown }   // anche in lotta (riquadro del gioco sulla scena)
-                var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
+                // Mentre l'app guida i menu del gioco le sue domande ("Su quale POKéMON…?") non si mostrano (D-071).
+                var dialog = !itemExecutor.busy && !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
                 val onScreen = (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight)) || dialog || yn != null || nameList != null || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||

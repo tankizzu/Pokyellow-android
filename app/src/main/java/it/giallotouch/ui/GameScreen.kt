@@ -199,7 +199,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
             lastMainMenu = mm
             snapshot = session.latestSnapshot.get()
             battleLayout = session.battleSplit
-            mapVisible = session.freeRoamNow && ((session.extendedActive && session.extendedIsMap) || session.extendedHeight <= NativeCore.HEIGHT)
+            mapVisible = session.freeRoamNow && !session.itemBusy && !session.menusClosing &&
+                ((session.extendedActive && session.extendedIsMap) || session.extendedHeight <= NativeCore.HEIGHT)
             commandBusy = session.commandBusy
             inGame = session.inGame
             trainerCard = session.trainerCardShown

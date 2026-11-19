@@ -1371,15 +1371,35 @@ class ZzGlitchTest : AppScreensHarness() {
 
     /** Pozione su Pikachu fuori dalla lotta, fotogramma per fotogramma (-Pgiallo.state.bag=bagpotion.state). */
     @Test fun pozione() {
-        s = start(auto = "giallo.state.bag") ?: return assumeTrue(false)
+        s = start(auto = "giallo.state.shop") ?: return assumeTrue(false)
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         waitFor(10_000) { s.latestSnapshot.get().freeRoam }
         pump(1000)
+        if (s.latestSnapshot.get().bag.none { it.id == 0x14 }) {
+            // al Pokémon Market: COMPRA → POZIONE (seconda voce) → OK
+            val g = s.mapGridForTest()!!
+            val clerk = g.people.minByOrNull { it.first }!!
+            val here = s.positionForTest()
+            val spot = g.interactionSpots(clerk.first, clerk.second).entries.first { g.path(here.second, here.third, setOf(it.key)) != null }
+            s.walkPathForTest(spot.key.first, spot.key.second)
+            waitFor(30_000) { s.positionForTest().let { it.second == spot.key.first && it.third == spot.key.second } }
+            s.setKeys(spot.value.key); pump(150); s.setKeys(0); pump(400)
+            tapTile(10f, 20f)
+            var k = 0
+            while (!s.shopMenuShown && k++ < 10) tapTile(10f, 20f)
+            pump(1500); tapTile(4f, 35f); pump(1500)       // COMPRA
+            tapTile(4f, 17.5f); pump(1000)                  // POZIONE
+            tapTile(16f, 41f)                               // OK (quantità 1)
+            waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().bag.any { it.id == 0x14 } }
+            tapTile(9f, 40.5f); pump(800); tapTile(9f, 40f)  // INDIETRO, ESCI
+            waitFor(20_000) { s.latestSnapshot.get().freeRoam }
+            pump(1500)
+        }
         println("DBGGL squadra ${s.latestSnapshot.get().party.map { it.name + " " + it.hp + "/" + it.maxHp }} borsa ${s.latestSnapshot.get().bag}")
         s.stepDone = java.util.concurrent.Semaphore(0)
         s.stepPermits = java.util.concurrent.Semaphore(0)
-        sheetTags += listOf("p-start", "p-borsa", "p-pozione", "p-usa", "p-pikachu", "p-dopo", "p-dopo2", "p-fine")
+        sheetTags += listOf("p-start", "p-borsa", "p-pozione", "p-usa", "p-pikachu", "p-dopo", "p-dopo2", "p-tocco1", "p-tocco2", "p-fine")
         val r = rows().toFloat()
         frames(10, "fermo")
         tapTile(10f, r - 2f); frames(30, "p-start")
@@ -1388,7 +1408,7 @@ class ZzGlitchTest : AppScreensHarness() {
         tapTile(4f, 37f); frames(40, "p-usa")
         tapTile(4f, 9f); frames(48, "p-pikachu")
         frames(48, "p-dopo")
-        for (i in 0 until 6) { tapTile(10f, 20f); frames(40, if (i == 0) "p-dopo2" else "p-tocco$i") }
+        for (i in 0 until 6) { s.setKeys(NativeCore.KEY_A); frames(4, "p-tasto"); s.setKeys(0); frames(40, if (i == 0) "p-dopo2" else "p-tocco$i") }
         frames(48, "p-fine")
         s.stepPermits = null
         println("DBGGL fotogrammi $n lampeggi $blips libero=${s.latestSnapshot.get().freeRoam}")

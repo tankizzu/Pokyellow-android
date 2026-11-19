@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-19 – strumenti sui Pokémon, cattura, squadra nel menu START (D-070, D-071)
+- Pozione e altri strumenti fuori dalla lotta: schermo intero, solo il messaggio finale, niente menu vecchi.
+- Dopo la cattura spariscono i riquadri della lotta.
+- Squadra in alto nel menu START: nuovo riquadro, scorrimento per vedere tutti e 6, icone animate.
+
 ## 2026-11-19 – difetti dalle foto del committente, scheda immediata, vibrazione (D-067, D-068, D-069)
 - Lista dei nomi, tastiera, dissolvenze, cambio di luogo, Pikachu sul bordo: corretti.
 - Tendina prima della lotta e introduzione a tutto schermo; titolo con il logo che scende dall'alto e (C) in basso.
