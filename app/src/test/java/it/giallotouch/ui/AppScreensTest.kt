@@ -134,6 +134,8 @@ abstract class AppScreensHarness {
         val rom = System.getProperty("giallo.rom")?.let(::File)
         val dir = System.getProperty("giallo.shots")?.let(::File)
         if (rom == null || !rom.isFile || dir == null) return null
+        // partita richiesta ma non indicata (-Pgiallo.state.X): la prova si salta
+        if (auto != null && System.getProperty(auto)?.let(::File)?.isFile != true) return null
         shots = dir.apply { mkdirs() }
         val ctx = ApplicationProvider.getApplicationContext<Application>()
         val part = File(ctx.filesDir, "partita").apply { mkdirs() }
