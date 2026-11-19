@@ -76,6 +76,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var battleSplit = false
         private set
     private var splitHold = 0
+    private var extHold = 0
     private var tilesSaved = false
     private var mainHold = 0
     private var mainTail = 0
@@ -101,6 +102,35 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         return dark(0x79) && dark(0x7A) && dark(0x7C) && dark(0x80) && striped(0x7A, rows = true) && striped(0x7C, rows = false)
     }
 
+    /**
+     * Tendina prima della lotta a tutto schermo (D-067): le caselle che il gioco ha già coperto di nero nell'immagine
+     * originale si allargano in proporzione sopra e sotto (righe estese), senza deformare la mappa.
+     */
+    private val wiped = BooleanArray(20 * 18)
+    private fun extendWipe(frame: IntArray, ext: IntArray, height: Int, frameTop: Int) {
+        // colore più scuro dell'immagine = nero della tendina
+        var dark = frame[0]; var darkL = Int.MAX_VALUE
+        var i = 0
+        while (i < frame.size) { val c = frame[i]; val l = (c shr 16 and 255) + (c shr 8 and 255) + (c and 255); if (l < darkL) { darkL = l; dark = c }; i += 13 }
+        var any = false
+        for (ty in 0 until 18) for (tx in 0 until 20) {
+            var solid = true
+            loop@ for (y in 0 until 8) for (x in 0 until 8) if (frame[(ty * 8 + y) * NativeCore.WIDTH + tx * 8 + x] != dark) { solid = false; break@loop }
+            wiped[ty * 20 + tx] = solid; if (solid) any = true
+        }
+        if (!any) return
+        val below = height - frameTop - NativeCore.HEIGHT
+        for (r in 0 until height) {
+            val fr = when {
+                r < frameTop -> if (frameTop > 0) r * 72 / frameTop else continue
+                r >= frameTop + NativeCore.HEIGHT -> if (below > 0) 72 + (r - frameTop - NativeCore.HEIGHT) * 72 / below else continue
+                else -> continue
+            }.coerceIn(0, NativeCore.HEIGHT - 1)
+            val rowBase = r * NativeCore.WIDTH
+            for (tx in 0 until 20) if (wiped[(fr / 8) * 20 + tx]) java.util.Arrays.fill(ext, rowBase + tx * 8, rowBase + tx * 8 + 8, dark)
+        }
+    }
+
     /** Immagine quasi tutta bianca (dissolvenza del gioco in corso). */
     private fun mostlyWhite(px: IntArray): Boolean {
         val white = px[0]
@@ -110,8 +140,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         return other < px.size / 37 / 20
     }
     private var cardOpening = 0
+    /** Ultima scheda allenatore vista (immagine del gioco 160×144), anche sul telefono per la volta dopo (D-068). */
+    private var cardCache: IntArray? = null
+    private var cardCacheLoaded = false
+    private var instantCard = false
+    private var cardLiveFrames = 0
     private var cardOpenCalm = 0
     /** La scheda allenatore si sta aprendo (l'app mostra ancora la mappa e il riquadro START, D-065). */
+    /** Si cammina liberamente in questo fotogramma (l'istantanea della memoria è più lenta, ogni 15 fotogrammi). */
+    @Volatile var freeRoamNow = false
+        private set
     @Volatile var cardOpeningActive = false
         private set
     /** L'app sta chiudendo da sola i menu del gioco (niente SELECT né altri pulsanti per quei menu). */
@@ -338,6 +376,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 System.arraycopy(latestFrame.get(), 0, savedMap, 0, savedMap.size)
                 val e = latestExtended.get()
                 System.arraycopy(e.pixels, 0, savedExt.pixels, 0, e.pixels.size); savedExt.height = e.height; savedExt.active = e.active
+                if (!cardCacheLoaded) { cardCacheLoaded = true; cardCache = storage.loadCardImage() }
                 cardOpening = 60 * 6; cardOpenCalm = 0; cardOpeningActive = true
             })
         }
@@ -789,6 +828,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // Chiusura: si mostra subito la mappa salvata all'apertura della scheda, finché la mappa vera non è stabile.
                 val cardRaw = ItemMenus.trainerCard(frameTiles)
                 val mapNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles)
+                freeRoamNow = mapNow && !inBattleRaw
                 if (cardClosing > 0) {
                     cardCalm = if (mapNow && !cardRaw && closingFrames == 0) cardCalm + 1 else 0
                     cardClosing = if (cardCalm >= 8) 0 else cardClosing - 1
@@ -802,7 +842,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 cardOpeningActive = cardOpening > 0
                 menusClosing = closingFrames > 0 || cardClosing > 0 || pendingClose
                 holdImage = cardClosing > 0 || cardOpening > 0
-                trainerCardShown = cardRaw && !holdImage
+                // Scheda già vista: compare subito quella memorizzata mentre il gioco carica la vera (D-068).
+                instantCard = cardOpening > 0 && cardCache != null
+                trainerCardShown = (cardRaw && !holdImage) || instantCard
+                if (cardRaw && !holdImage) {
+                    if (++cardLiveFrames == 10) {
+                        val copy = back.copyOf()
+                        cardCache = copy
+                        Thread { storage.saveCardImage(copy) }.start()
+                    }
+                } else cardLiveFrames = 0
                 val itemKind = ItemMenus.read(frameVars, frameTiles, 0).kind
                 pcMenuShown = itemKind == ItemMenus.Kind.PC_MENU && closingFrames == 0
                 shopMenuShown = itemKind == ItemMenus.Kind.SHOP_MENU && closingFrames == 0
@@ -825,13 +874,19 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
                 nameList = if (frameMenu.kind == MenuKind.NAME_LIST) MenuReader.nameListEntries(frameTiles, frameMenu.items) else null
                 namingShown = NamingReader.looksLikeNaming(frameTiles)
+                // Dopo la schermata dei nomi l'immagine "di prima" sarebbe la tastiera del gioco: si butta (D-067).
+                if (namingShown) frameMask.reset()
                 val yn = yesNo?.takeIf { !trainerCardShown }   // anche in lotta (riquadro del gioco sulla scena)
                 var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
                 val onScreen = dialog || yn != null || nameList != null || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
                     ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
-                if (dialog && !frameMask.ready) dialog = false
+                // Senza immagine di prima: nelle scene senza mappa (introduzione, sfondo uniforme) il posto del dialogo si
+                // riempie col colore dello sfondo; sulla mappa il dialogo resta al suo posto.
+                val plainBackground = !frameMask.ready && !extendedActive && back[0] == back[NativeCore.WIDTH - 1] &&
+                    back[0] == back[11 * 8 * NativeCore.WIDTH] && back[0] == back[12 * 8 * NativeCore.WIDTH - 1]
+                if (dialog && !frameMask.ready && !plainBackground) dialog = false
                 if (dialog) {
                     System.arraycopy(back, 96 * NativeCore.WIDTH, stripA, 0, stripA.size)
                     dialogStrip = stripA
@@ -847,18 +902,23 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val partyScreen = (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71 && (inBattleNow || pendingClose)
                     if ((hide || partyScreen) && frameMask.ready) add(if (inBattleNow) BoxMask.Box(0, 0, 19, 11) else BoxMask.Box(0, 0, 19, 17))
                     if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
-                    if (nameList != null && frameMask.ready) add(BoxMask.Box(0, 0, 10, 11))
+                    // Nomi proposti: lo sfondo della scena è uniforme; con l'immagine di prima comparivano pezzi del
+                    // personaggio che entra scorrendo (D-067). Si riempie col colore dello sfondo, anche la colonna accanto.
+                    if (nameList != null) add(BoxMask.Box(0, 0, 11, 11, fill = back[NativeCore.WIDTH - 1]))
                     if (pcChoice.isNotEmpty() && frameMask.ready) add(BoxMask.Box(0, 0, 15, 9))
                     if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
-                    if (dialog) add(BoxMask.Box(0, 12, 19, 17))
+                    if (dialog) add(if (frameMask.ready) BoxMask.Box(0, 12, 19, 17) else BoxMask.Box(0, 12, 19, 17, fill = back[0]))
                 }
                 frameMask.apply(back, NativeCore.HEIGHT, 0, boxes, boxesOnScreen = onScreen || holdImage)
                 if (holdImage) {
-                    System.arraycopy(savedMap, 0, back, 0, back.size)
+                    System.arraycopy(if (instantCard) cardCache!! else savedMap, 0, back, 0, back.size)
                     back = latestFrame.getAndSet(back)
                 } else back = latestFrame.getAndSet(back)
                 val eh = extendedHeight
-                if (holdImage) {
+                if (instantCard) {
+                    extBack.active = false; extendedActive = false
+                    extBack = latestExtended.getAndSet(extBack)
+                } else if (holdImage) {
                     if (savedExt.height > 0) {
                         System.arraycopy(savedExt.pixels, 0, extBack.pixels, 0, savedExt.pixels.size)
                         extBack.height = savedExt.height; extBack.active = savedExt.active; extendedActive = savedExt.active
@@ -866,11 +926,19 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     }
                 } else if (eh > NativeCore.HEIGHT) {
                     val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop) == 1
-                    if (active) extMask.apply(extBack.pixels, eh, extendedFrameTop, boxes, frameMask.older, boxesOnScreen = onScreen)
-                    extBack.height = eh
-                    extBack.active = active
-                    extendedActive = active
-                    extBack = latestExtended.getAndSet(extBack)
+                    // Cambio di luogo: per qualche fotogramma la mappa nuova non si allinea ancora; si tiene l'ultima
+                    // immagine buona invece di mostrare il riempimento (rettangolo di colore, D-067).
+                    if (!active && extHold > 0 && !inBattleRaw && !trainerCardShown && mainMenuItems == 0) {
+                        extHold--
+                    } else {
+                        if (active) extMask.apply(extBack.pixels, eh, extendedFrameTop, boxes, frameMask.older, boxesOnScreen = onScreen)
+                        if (active && inBattleRaw) extendWipe(latestFrame.get(), extBack.pixels, eh, extendedFrameTop)
+                        extBack.height = eh
+                        extBack.active = active
+                        extendedActive = active
+                        extBack = latestExtended.getAndSet(extBack)
+                        extHold = if (active) 8 else 0
+                    }
                 } else extendedActive = false
                 onFrame?.invoke()
                 frames++

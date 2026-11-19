@@ -26,7 +26,7 @@ class BoxMask(private val width: Int = NativeCore.WIDTH) {
      * (durante i dialoghi la vista estesa può spegnersi): va messa all'altezza dell'inquadratura ([frameTop]).
      */
     /** Riquadro in caselle dell'inquadratura del gioco, angoli compresi. */
-    class Box(val x0: Int, val y0: Int, val x1: Int, val y1: Int)
+    class Box(val x0: Int, val y0: Int, val x1: Int, val y1: Int, val fill: Int? = null)   // fill: colore pieno invece dell'immagine di prima
 
     /** [boxesOnScreen]: ci sono riquadri da spostare (anche se non si possono coprire): l'immagine non si conserva. */
     private fun blank(pixels: IntArray, height: Int, frameTop: Int): Boolean {
@@ -58,6 +58,8 @@ class BoxMask(private val width: Int = NativeCore.WIDTH) {
         val x = yn.x0 * 8
         val w = ((yn.x1 + 1 - yn.x0) * 8).coerceAtMost(width - x)
         for (y in (frameTop + yn.y0 * 8) until minOf(height, frameTop + (yn.y1 + 1) * 8)) {
+            val f = yn.fill
+            if (f != null) { java.util.Arrays.fill(pixels, y * width + x, y * width + x + w, f); continue }
             when {
                 b != null -> System.arraycopy(b, y * width + x, pixels, y * width + x, w)
                 fallback != null -> System.arraycopy(fallback, (y - frameTop) * width + x, pixels, y * width + x, w)

@@ -1306,6 +1306,66 @@ class ZzGlitchTest : AppScreensHarness() {
         println("DBGGL fotogrammi $n lampeggi $blips")
     }
 
+    /** Colori ai confini e nelle dissolvenze delle porte (-Pgiallo.state.shop=route1.state). */
+    @Test fun colori() {
+        s = start(auto = "giallo.state.shop") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        assumeTrue(s.positionForTest().first == 12)
+        s.walkPathForTest(11, 34)
+        waitFor(40_000) { s.positionForTest().third == 34 }
+        pump(800)
+        s.stepDone = java.util.concurrent.Semaphore(0)
+        s.stepPermits = java.util.concurrent.Semaphore(0)
+        sheetTags += listOf("confine", "pallet", "porta")
+        s.setKeys(NativeCore.KEY_DOWN); frames(48, "confine"); s.setKeys(0); frames(20, "pallet")
+        // porta di casa più vicina
+        val w = s.warpsForTest().minByOrNull { kotlin.math.abs(it.second - s.positionForTest().second) + kotlin.math.abs(it.first - s.positionForTest().third) }
+        if (w != null) {
+            s.walkPathForTest(w.second, w.first + 1)
+            var k = 0
+            while (k++ < 900 && s.positionForTest().let { it.second != w.second || it.third != w.first + 1 }) frames(1, "cammina")
+            s.setKeys(NativeCore.KEY_UP); frames(48, "porta"); s.setKeys(0); frames(48, "porta")
+        }
+        s.stepPermits = null
+        println("DBGGL fotogrammi $n lampeggi $blips")
+    }
+
+    /** Ingresso in lotta, fotogramma per fotogramma (-Pgiallo.state.two=two.state). */
+    @Test fun prelotta() {
+        s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        s.stepDone = java.util.concurrent.Semaphore(0)
+        s.stepPermits = java.util.concurrent.Semaphore(0)
+        val rnd = java.util.Random(5)
+        var walks = 0
+        var shotsLeft = 0
+        val seq = ArrayList<Bitmap>()
+        while (walks++ < 40 && seq.size < 72) {
+            val g = s.mapGridForTest() ?: break
+            val free = (0 until g.width).flatMap { x -> (6 until g.height - 4).map { y -> x to y } }.filter { g.isFree(it.first, it.second) }
+            val t = free[rnd.nextInt(free.size)]
+            s.walkPathForTest(t.first, t.second)
+            var k = 0
+            while (k++ < 600 && seq.size < 72) {
+                frames(1, "cammina")
+                if (shotsLeft == 0 && (s.frameTilesForTest().let { false } || NativeCoreBattle(s))) shotsLeft = 140
+                if (shotsLeft > 0) { shotsLeft--; if (shotsLeft % 2 == 0) { val b = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888); root.draw(Canvas(b)); seq += Bitmap.createScaledBitmap(b, b.width / 4, b.height / 4, false) } }
+                if (s.positionForTest().let { it.second == t.first && it.third == t.second } && shotsLeft == 0) break
+            }
+        }
+        s.stepPermits = null
+        val cols = 12; val w = seq.firstOrNull()?.width ?: return; val h = seq[0].height
+        val out = Bitmap.createBitmap(w * cols, h * ((seq.size + cols - 1) / cols), Bitmap.Config.ARGB_8888)
+        val cv = Canvas(out)
+        seq.forEachIndexed { k, b -> cv.drawBitmap(b, ((k % cols) * w).toFloat(), ((k / cols) * h).toFloat(), null) }
+        FileOutputStream(File(shots, "fs-prelotta.png")).use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+    private fun NativeCoreBattle(s: GameSession) = s.memoryForTest(0xD05B, 1)[0].toInt() != 0
+
     @Test fun lampeggi() {
         s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
         pump(1500)

@@ -278,7 +278,18 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
     /* Sprite visibili tagliati dal bordo superiore o inferiore: parti mancanti (prima i meno prioritari). */
     for (int i = 39; i >= 0; i--) {
         const uint8_t *o = oam + i * 4;
-        if (o[0] < 9 || o[0] >= 160 || o[1] == 0 || o[1] >= 168) continue;
+        if (o[1] == 0 || o[1] >= 168) continue;
+        bool usable = o[0] >= 9 && o[0] < 160;
+        /* Metà di una persona appena fuori dal bordo (Pikachu che segue, D-067): il gioco la mette a una y che
+         * sembra "nascosta" (160–167 sotto, 1–8 sopra); vale se nell'OAM c'è l'altra metà attaccata e visibile. */
+        if (!usable && ((o[0] >= 160 && o[0] < 168) || (o[0] >= 1 && o[0] < 9))) {
+            int partner = o[0] >= 160 ? o[0] - 8 : o[0] + 8;
+            for (int j = 0; j < 40 && !usable; j++) {
+                const uint8_t *q = oam + j * 4;
+                if (j != i && q[1] == o[1] && q[0] == partner && q[0] >= 9 && q[0] < 160) usable = true;
+            }
+        }
+        if (!usable) continue;
         int y = o[0] - 16, x = o[1] - 8;
         if (y >= 0 && y + 8 <= FRAME_H) continue;
         draw_obj_tile(out, out_h, off_top, st, (o[3] & 0x08) ? bank1 : bank0, o[2], x, y, o[3], pal[o[3] & 7]);
@@ -365,6 +376,12 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     int cur_pal = map_palette(map_id);
     bool recolor = cur_pal >= 0 && mt.rom_size > CGB_PALETTES + 8 * 16;
     #define PLACE_COLORS(m) (((m) >= 0 && (m) < 64 && map_palette(m) >= 0) ? place_colors_for(gb, &mt, place_colors, place_known, (m)) : NULL)
+    /* Solo con i colori normali del luogo: durante una dissolvenza (tavolozza che cambia) non si ricolora niente,
+     * altrimenti tutto il bianco diventa il colore del luogo (riquadro viola, D-067). */
+    if (recolor) {
+        const uint32_t *cp = PLACE_COLORS(map_id);
+        recolor = cp && cp[1] == colors[fallback][1] && cp[2] == colors[fallback][2] && colors[fallback][0] != colors[fallback][1];
+    }
 
     /* 3. Disegno: righe sopra e sotto dalla mappa, al centro l'immagine originale. */
     for (int row = 0; row < out_h; row++) {

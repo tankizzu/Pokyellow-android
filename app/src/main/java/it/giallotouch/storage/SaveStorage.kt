@@ -31,6 +31,20 @@ class SaveStorage(context: Context) {
         runCatching { writeAtomic(tilesFile, buf.array()) }
     }
 
+    /** Ultima scheda allenatore vista (D-068): per mostrarla subito alla volta dopo. Solo in questo telefono. */
+    private val cardFile = File(dir, "scheda-allenatore.bin")
+
+    fun saveCardImage(frame: IntArray) {
+        val buf = java.nio.ByteBuffer.allocate(frame.size * 4); buf.asIntBuffer().put(frame)
+        runCatching { writeAtomic(cardFile, buf.array()) }
+    }
+
+    fun loadCardImage(): IntArray? = runCatching {
+        val b = cardFile.takeIf { it.isFile }?.readBytes() ?: return null
+        if (b.size != 160 * 144 * 4) return null
+        IntArray(160 * 144).also { java.nio.ByteBuffer.wrap(b).asIntBuffer().get(it) }
+    }.getOrNull()
+
     fun loadGameTiles(): IntArray? = runCatching {
         val b = tilesFile.takeIf { it.isFile }?.readBytes() ?: return null
         if (b.size != 128 * 128 * 4) return null

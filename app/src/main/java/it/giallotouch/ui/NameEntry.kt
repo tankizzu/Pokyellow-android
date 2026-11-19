@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
@@ -147,6 +148,7 @@ fun NameEntryOverlay(screen: NamingScreen, busy: Boolean, onConfirm: (String) ->
  * trattini del gioco e il riquadro FINE, tutto con i tile del gioco e appoggiato sopra la tastiera.
  */
 @Composable
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 fun GameNameEntry(sheet: IntArray, screen: NamingScreen, busy: Boolean, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf(NameCodec.decode(screen.name)) }
     val focus = remember { FocusRequester() }
@@ -156,7 +158,16 @@ fun GameNameEntry(sheet: IntArray, screen: NamingScreen, busy: Boolean, onConfir
         keyboard?.hide()
         onConfirm(text)
     }
-    LaunchedEffect(Unit) { focus.requestFocus(); keyboard?.show() }
+    // La tastiera a volte non si apre al secondo nome (rivale): si riprova finché non è davvero aperta (D-067).
+    val imeOpen = WindowInsets.isImeVisible
+    val imeOpenState = androidx.compose.runtime.rememberUpdatedState(imeOpen)
+    LaunchedEffect(Unit) {
+        repeat(12) {
+            if (imeOpenState.value) return@LaunchedEffect
+            runCatching { focus.requestFocus() }; keyboard?.show()
+            kotlinx.coroutines.delay(250)
+        }
+    }
     BackHandler { }
     val paper = Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8])
     BoxWithConstraints(

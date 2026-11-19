@@ -185,6 +185,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
         if (game == null) { slots = session.savedSlots(); loadOpen = true } else session.command(GameCommand.MainMenu(game))
     }
     var sheet by remember { mutableStateOf<IntArray?>(null) }   // tile del gioco per le aggiunte "come il gioco"
+    var mapVisible by remember { mutableStateOf(false) }   // mappa vera sullo schermo in questo momento (START, D-067)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
     var namingDismissed by remember { mutableStateOf(false) }
@@ -196,6 +197,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             if (mm > 0 && lastMainMenu == 0) startCursor = 0
             lastMainMenu = mm
             snapshot = session.latestSnapshot.get()
+            mapVisible = session.freeRoamNow && (session.extendedActive || session.extendedHeight <= NativeCore.HEIGHT)
             commandBusy = session.commandBusy
             inGame = session.inGame
             trainerCard = session.trainerCardShown
@@ -223,7 +225,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     message = "Nome non scritto: usa la tastiera del gioco"
                 }
             }
-            delay(100)
+            delay(16)   // ogni fotogramma: menu e riquadri dell'app senza ritardo (D-067)
         }
     }
     val namingOpen = snapshot.naming != null
@@ -493,7 +495,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         } else if (inGame && sheet != null && !trainerCard && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 &&
             // START solo quando sullo schermo c'è davvero la mappa (non nelle schermate bianche dell'introduzione, D-065)
-            (snapshot.freeRoam && (session.extendedActive || session.extendedHeight <= NativeCore.HEIGHT) || panelOpen)) {
+            (snapshot.freeRoam && mapVisible || panelOpen)) {
             // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
             GamePanel(
                 sheet = sheet!!,
