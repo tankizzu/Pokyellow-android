@@ -820,7 +820,7 @@ class ZzScenarioTest : AppScreensHarness() {
             val m = lead() ?: break
             log("lotta $battles finita: ${m.name} L${m.level} PS ${m.hp}/${m.maxHp}")
             if (m.level > level) { level = m.level; save("livello-$level.state") }
-            if (m.hp * 2 < m.maxHp) { heal(); toRoute() }
+            if (m.hp * 2 < m.maxHp || (m.moves.firstOrNull()?.pp ?: 1) == 0) { heal(); toRoute() }   // PS bassi o PP finiti
         }
         log("fine senza domanda dopo $battles lotte")
     }
