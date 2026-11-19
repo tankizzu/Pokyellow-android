@@ -1278,6 +1278,29 @@ class ZzGlitchTest : AppScreensHarness() {
             FileOutputStream(File(shots, "fs-$label.png")).use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
     }
+    /** Introduzione dall'accensione (D-072): nessuna riga scura che attraversa lo schermo (bande nere o righine). */
+    @Test fun video() {
+        s = start() ?: return assumeTrue(false)
+        s.stepDone = java.util.concurrent.Semaphore(0)
+        s.stepPermits = java.util.concurrent.Semaphore(0)
+        capture = false
+        var saved = 0; var bad = 0
+        for (q in 0 until 700) {
+            frames(4, "video")
+            val (px, bmp) = grab()
+            val h = px.size / 160
+            var dark = 0
+            for (y in 0 until h) {
+                var all = true
+                for (x in 0 until 160) { val c = px[y * 160 + x]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) > 150) { all = false; break } }
+                if (all) dark++
+            }
+            if (dark in 1 until h) { bad++; if (saved < 40 && q % 3 == 0) { saved++; FileOutputStream(File(shots, "vd-%03d-%d.png".format(q, dark))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) } } }
+            if (q % 25 == 0) FileOutputStream(File(shots, "vv-%03d.png".format(q))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+        println("DBGVD fotogrammi con righe scure: $bad")
+    }
+
     /** Inizio del gioco: titolo, menu iniziale, NUOVO GIOCO, discorso del Professore, nomi, fino alla cameretta. */
     @Test fun inizio() {
         s = start(auto = "giallo.state.title") ?: return assumeTrue(false)
