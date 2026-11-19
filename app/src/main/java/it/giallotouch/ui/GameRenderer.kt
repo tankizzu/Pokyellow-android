@@ -39,6 +39,26 @@ class GameRenderer(private val session: GameSession) {
         }
         return best
     }
+    /**
+     * Bande nere del gioco sopra e sotto (scene dell'introduzione): (prima riga della scena, prima riga della banda
+     * sotto, colore dello sfondo della scena) oppure null. Le bande devono essere di almeno 8 righe, nere e uniformi.
+     */
+    private fun letterbox(frame: IntArray): Triple<Int, Int, Int>? {
+        val black = frame[0]
+        fun uniform(row: Int, c: Int): Boolean {
+            for (x in 0 until NativeCore.WIDTH) if (frame[row * NativeCore.WIDTH + x] != c) return false
+            return true
+        }
+        if ((Color.red(black) + Color.green(black) + Color.blue(black)) > 120 || !uniform(0, black) || !uniform(NativeCore.HEIGHT - 1, black)) return null
+        var r0 = 0
+        while (r0 < NativeCore.HEIGHT && uniform(r0, black)) r0++
+        var r1 = NativeCore.HEIGHT
+        while (r1 > r0 && uniform(r1 - 1, black)) r1--
+        if (r0 < 8 || NativeCore.HEIGHT - r1 < 8 || r1 - r0 < 16) return null
+        val bg = edgeColor(frame, r0)
+        if (bg == black || edgeColor(frame, r1 - 1) != bg) return null
+        return Triple(r0, r1, bg)
+    }
     private val src = Rect()
     /** Spazio in basso occupato dai pulsanti di lotta (pixel dello schermo), impostato dall'interfaccia. */
     var battleReservedBottomPx = 0
@@ -119,12 +139,21 @@ class GameRenderer(private val session: GameSession) {
         val h = (w * NativeCore.HEIGHT) / NativeCore.WIDTH
         val top = (height - h) / 2
         // Spazio sopra e sotto: il colore del bordo dell'immagine (bianco su titolo e menu), così sembra a tutto schermo.
-        bandPaint.color = edgeColor(frame, 0)
+        // Scene "a striscia" dell'introduzione (bande nere del gioco sopra e sotto, D-067): le bande prendono il colore
+        // dello sfondo della scena, così anche queste sono a tutto schermo.
+        val lb = letterbox(frame)
+        bandPaint.color = if (lb != null) lb.third else edgeColor(frame, 0)
         canvas.drawRect(0f, 0f, w.toFloat(), top.toFloat(), bandPaint)
-        bandPaint.color = edgeColor(frame, NativeCore.HEIGHT - 1)
+        bandPaint.color = if (lb != null) lb.third else edgeColor(frame, NativeCore.HEIGHT - 1)
         canvas.drawRect(0f, (top + h).toFloat(), w.toFloat(), height.toFloat(), bandPaint)
         dst.set(0, top, w, top + h)
         canvas.drawBitmap(frameBitmap, null, dst, paint)
+        if (lb != null) {
+            bandPaint.color = lb.third
+            val unit = w.toFloat() / NativeCore.WIDTH
+            canvas.drawRect(0f, top.toFloat(), w.toFloat(), top + lb.first * unit, bandPaint)
+            canvas.drawRect(0f, top + lb.second * unit, w.toFloat(), (top + h).toFloat(), bandPaint)
+        }
         drawStartMenu(canvas, s, top, w)
         drawDialog(canvas, s, w)
     }

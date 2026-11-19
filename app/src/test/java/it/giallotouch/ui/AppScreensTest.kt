@@ -1230,6 +1230,7 @@ class ZzGlitchTest : AppScreensHarness() {
     }
     /** Tag per cui salvare un foglio con i primi fotogrammi (uno ogni [sheetStep]). */
     private val sheetTags = HashSet<String>()
+    private var capture = true
     private val sheetStep = 2
     private fun frames(count: Int, label: String) {
         tag = label
@@ -1243,6 +1244,7 @@ class ZzGlitchTest : AppScreensHarness() {
             s.stepPermits!!.release()
             s.stepDone!!.tryAcquire(3, java.util.concurrent.TimeUnit.SECONDS)
             shadowOf(Looper.getMainLooper()).idle()
+            if (!capture) return@repeat
             val (px, bmp) = grab()
             window.addLast(px); bitmaps.addLast(bmp); n++
             if (window.size > 4) { window.removeFirst(); bitmaps.removeFirst() }
@@ -1344,6 +1346,7 @@ class ZzGlitchTest : AppScreensHarness() {
         var walks = 0
         var shotsLeft = 0
         val seq = ArrayList<Bitmap>()
+        capture = false
         while (walks++ < 40 && seq.size < 72) {
             val g = s.mapGridForTest() ?: break
             val free = (0 until g.width).flatMap { x -> (6 until g.height - 4).map { y -> x to y } }.filter { g.isFree(it.first, it.second) }
@@ -1374,7 +1377,7 @@ class ZzGlitchTest : AppScreensHarness() {
         pump(1000)
         s.stepDone = java.util.concurrent.Semaphore(0)
         s.stepPermits = java.util.concurrent.Semaphore(0)
-        sheetTags += listOf("start", "pokemon", "pokemon-indietro", "borsa", "borsa-indietro", "scheda", "scheda-indietro", "opzioni", "opzioni-indietro", "salva", "dialogo0", "dialogo1", "dialogo2")
+        sheetTags += listOf("scheda2", "scheda2-indietro", "start", "pokemon", "pokemon-indietro", "borsa", "borsa-indietro", "scheda", "scheda-indietro", "opzioni", "opzioni-indietro", "salva", "dialogo0", "dialogo1", "dialogo2")
         frames(20, "fermo")
         val r = rows().toFloat()
         tapTile(10f, r - 2f); frames(40, "start")
@@ -1400,6 +1403,14 @@ class ZzGlitchTest : AppScreensHarness() {
         while (!(s.latestSnapshot.get().freeRoam && !s.itemBusy) && w < 400) { frames(1, "scheda-indietro"); w++ }
         println("DBGGL tempo scheda → mappa libera: $w fotogrammi")
         frames(60, "scheda-indietro")
+        // seconda apertura: la scheda memorizzata compare subito
+        tapTile(10f, r - 2f); frames(30, "start-bis")
+        tapTile(14f, 30f)
+        w = 0
+        while (!s.trainerCardShown && w < 400) { frames(1, "scheda2"); w++ }
+        println("DBGGL tempo START → scheda (seconda volta): $w fotogrammi")
+        frames(150, "scheda2")
+        tapTile(9f, 40.5f); frames(90, "scheda2-indietro")
         tapTile(10f, r - 2f); frames(30, "start4")
         tapTile(15f, 33f); frames(40, "opzioni")
         tapTile(9f, 40.5f); frames(40, "opzioni-indietro")
