@@ -789,8 +789,7 @@ class ZzScenarioTest : AppScreensHarness() {
         }
         var level = lead()?.level ?: 0
         var battles = 0
-        heal()
-        toRoute()
+        if (pos().first == 41) { heal(); toRoute() }
         while (battles < 120) {
             if (pos().first != 12) { heal(); toRoute(); continue }
             var walks = 0
@@ -803,6 +802,7 @@ class ZzScenarioTest : AppScreensHarness() {
             }
             if (!s.latestSnapshot.get().inBattle) continue
             battles++
+            pump(1500); shot("grind-%03d".format(battles))
             var g = 0
             while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && g++ < 500) {
                 if (s.yesNo != null) {
