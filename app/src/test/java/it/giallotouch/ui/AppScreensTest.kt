@@ -1520,6 +1520,38 @@ class ZzGlitchTest : AppScreensHarness() {
         fase("professore")
         textUntilFree(300)
         fase("laboratorio"); step(120)
+        s.stepPermits = null; pump(300)
+        s.saveStateForTest(File(shots, "laboratorio.state"))
+    }
+
+    /**
+     * Analisi della lotta col rivale (-Pgiallo.state.laboratorio=STATO, salvato da analisiCameretta): verso l'uscita del
+     * laboratorio il rivale sfida il giocatore; lotta con la prima mossa, testi col tasto A, fino a camminare di nuovo.
+     */
+    @Test fun analisiRivale() = registra("analisi4", auto = "giallo.state.laboratorio") { step, fase ->
+        fun pos() = s.positionForTest()
+        fase("laboratorio"); step(30)
+        // testi in sospeso, poi verso l'uscita (in basso)
+        var k = 0
+        while (!s.latestSnapshot.get().freeRoam && k++ < 60) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(26) }
+        val exit = s.warpsForTest().maxByOrNull { it.first }
+        if (exit != null) s.walkPathForTest(exit.second, exit.first - 2)
+        k = 0
+        while (!s.latestSnapshot.get().inBattle && k++ < 400) {
+            step(4)
+            if (!s.latestSnapshot.get().freeRoam && k % 6 == 0) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            if (s.latestSnapshot.get().freeRoam && k % 50 == 0 && exit != null) s.walkPathForTest(exit.second, exit.first - 1)
+        }
+        fase("lotta")
+        k = 0
+        while (s.latestSnapshot.get().inBattle && k++ < 600) {
+            if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(0)); step(30) }
+            else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+        }
+        fase("dopo")
+        k = 0
+        while (!s.latestSnapshot.get().freeRoam && k++ < 80) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(26) }
+        step(120)
     }
 
     /**
