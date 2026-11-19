@@ -108,4 +108,15 @@ object MemoryMapIt {
     const val PC_ITEMS = 0xD53F
     const val PC_CAPACITY = 50
     const val BLOCK_END = PC_ITEMS + 2 * PC_CAPACITY + 1
+    /**
+     * Box Pokémon attuale (D-058, verificato sul gioco vero: 4 byte dopo la versione inglese): numero, specie (0xFF in
+     * fondo), strutture da 33 byte (specie +0, livello +3), allenatori e soprannomi da 11 caratteri.
+     */
+    const val BOX_COUNT = 0xDA84
+    const val BOX_SPECIES = 0xDA85
+    const val BOX_MONS = 0xDA9A
+    const val BOX_STRUCT_LENGTH = 33
+    const val BOX_MON_NICKS = 0xDE0A
+    const val BOX_CAPACITY = 20
+    const val BOX_BLOCK_SIZE = BOX_MON_NICKS + BOX_CAPACITY * NAME_LENGTH - BOX_COUNT
 }

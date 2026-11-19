@@ -119,7 +119,9 @@ class BattleActionExecutor(private val timeoutFrames: Int = 60 * 20) {
                 a is BattleAction.UseItem && !itemChosen -> Keys.B
                 s.cursor < target -> Keys.DOWN
                 s.cursor > target -> Keys.UP
-                else -> { if (a is BattleAction.UseItem) finishing = true; Keys.A }
+                // Cambio: scelto il Pokémon il lavoro è fatto (dopo un KO il gioco lo manda subito in campo, senza
+                // sottomenu): se poi ricompare il menu di lotta non si ricomincia ("…è già in campo!").
+                else -> { if (a is BattleAction.UseItem) finishing = true else itemChosen = true; Keys.A }
             }
         }
         BattleMenus.Kind.PARTY_SUB -> when {

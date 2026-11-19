@@ -46,7 +46,8 @@
 - [ ] Usa con scelta del compagno nell'app (pozioni, cure); Squadra: "Sposta"
 - [ ] Copia di sicurezza dei salvataggi (esporta/importa) prima di eventuali reinstallazioni
 - [ ] Pokédex: scheda della specie (descrizione, altezza, peso) dalla ROM, solo per le specie prese
-- [ ] Negozio e PC sul posto (D-010)
+- [x] Negozio e PC sul posto (D-010): negozio D-056, PC D-055, box D-058
+- [ ] Box: LIBERA PKMN e CAMBIA BOX nell'app
 - [ ] Squadra: "Sposta" e strumenti tramite il menu originale (esecutore)
 
 ## Prova del motore su computer

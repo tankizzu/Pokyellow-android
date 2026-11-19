@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-11-19 – Box e PC dal mockup (D-062, D-063)
+- Box: cambio box scorrendo a lato, LIBERA (tenere premuto o AZIONI → LIBERA) con conferma, AZIONI → DEPOSITA.
+- PC di casa: AZIONI → DEPOSITA / BUTTA; BUTTA con quantità tra frecce, ANNULLA e OK.
+- START centrato, INDIETRO centrati, SÌ/NO simmetrici.
+
+## 2026-11-19 – colori dei luoghi, cura, niente lampeggi (D-060, D-061)
+- Ogni luogo all'aperto mantiene i suoi colori anche visto da quello accanto (Biancavilla viola, strade verdi).
+- Infermiera del Centro: CURA / ESCI con i riquadri dell'app come SÌ/NO.
+- Lotta: niente più disposizione che sparisce e ricompare per un attimo; riquadri di lotta stabili.
+- Nuove prove permanenti: AppSenzaLampeggiTest, AppCuraTest.
+
+## 2026-11-18 – PC del Centro Pokémon e BOX POKéMON (D-058)
+- Partita automatica, quarta tappa: Centro Pokémon di Smeraldopoli.
+- Scelta del PC con riquadri da toccare; BOX POKéMON dell'app: deposita e ritira con un tocco (verificato:
+  RATTATA depositato e ritirato, poi di nuovo a camminare).
+- Lotta: dopo un KO la scena resta visibile dietro la lista e il cambio non si ripete più ("…è già in campo!");
+  SÌ/NO in lotta nello stile del gioco.
+- Vista estesa: sopra e sotto si vede il luogo collegato (es. Smeraldopoli dalla Strada 1) invece di file ripetute
+  (D-059).
+- Lotta: nella lista del KO niente più INDIETRO (scelta obbligata come nel gioco).
+- Nuovo docs/GAMEPLAY.md: riepilogo di tutte le regole di gameplay e interfaccia.
+
 ## 2026-11-18 – spostare i Pokémon (D-057), partita con due Pokémon
 - Partita automatica, terza tappa: Poké Ball comprate, Rattata catturato (squadra di due).
 - SQUADRA: SELECT o trascinamento scambiano i Pokémon nel gioco (verificato).

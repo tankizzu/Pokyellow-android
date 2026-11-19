@@ -102,6 +102,21 @@ abstract class AppScreensHarness {
         pump(600)
     }
 
+    /** Trascinamento da una casella a un'altra (scorrere col dito). */
+    protected fun swipe(c0: Float, r0: Float, c1: Float, r1: Float) {
+        val tp = 8 * unit; val t = SystemClock.uptimeMillis()
+        root.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, c0 * tp, r0 * tp, 0)); pump(32)
+        for (k in 1..10) { val f = k / 10f; root.dispatchTouchEvent(MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_MOVE, (c0 + (c1 - c0) * f) * tp, (r0 + (r1 - r0) * f) * tp, 0)); pump(24) }
+        root.dispatchTouchEvent(MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, c1 * tp, r1 * tp, 0)); pump(600)
+    }
+
+    /** Tenere premuto in una casella. */
+    protected fun longPressTile(col: Float, row: Float) {
+        val tp = 8 * unit; val t = SystemClock.uptimeMillis()
+        root.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, col * tp, row * tp, 0)); pump(900)
+        root.dispatchTouchEvent(MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, col * tp, row * tp, 0)); pump(600)
+    }
+
     protected fun press(s: GameSession, key: Int) { s.setKeys(key); pump(120); s.setKeys(0); pump(300) }
 
     protected fun rows() = (root.height / (8 * unit)).toInt()
@@ -597,18 +612,31 @@ class AppPcTest : AppScreensHarness() {
         tapTile(10f, 20f)                                   // davanti al PC: tocco = A
         var k = 0
         while (!s.pcMenuShown && k++ < 10) tapTile(10f, 20f)   // "GIALLO accende il PC."
-        assertTrue("STRUMENTI PC dell'app", shotUntil("32-pc") { b -> boxAt(b, 0, 3, 20, 3) && boxAt(b, 0, 7, 20, 31) && boxAt(b, 10, 39, 10, 4) })
-        tapTile(15f, 41f)                                   // DEPOSITA
-        assertTrue("borsa da depositare", shotUntil("33-pc-deposita") { b -> !boxAt(b, 10, 39, 10, 4) })
+        assertTrue("STRUMENTI PC dell'app", shotUntil("32-pc") { b -> boxAt(b, 0, 3, 20, 3) && boxAt(b, 0, 7, 20, 31) && boxAt(b, 0, 39, 11, 4) && boxAt(b, 11, 39, 9, 4) })
+        tapTile(15f, 41f); pump(500)                         // AZIONI
+        assertTrue("riquadro AZIONI", shotUntil("32b-pc-azioni") { b -> boxAt(b, 7, 27, 13, 12) })
+        tapTile(13f, 30f)                                   // DEPOSITA
+        assertTrue("borsa da depositare", shotUntil("33-pc-deposita") { b -> !boxAt(b, 15, 39, 5, 4) && !boxAt(b, 7, 27, 13, 12) })
         tapTile(4f, 9.5f)                                   // POZIONE
         assertTrue("Pozione nel PC", waitFor(30_000) { !s.itemBusy && s.latestSnapshot.get().pcItems.any { it.id == 0x14 } })
         assertTrue("borsa vuota", waitFor(5_000) { s.latestSnapshot.get().bag.isEmpty() })
         shot("34-pc-dopo-deposito")
-        tapTile(4f, 40.5f)                                  // INDIETRO → strumenti del PC
+        tapTile(9f, 40.5f)                                  // INDIETRO (da solo, centrato) → strumenti del PC
         pump(800)
         tapTile(4f, 9.5f)                                   // POZIONE: PRELEVA
         assertTrue("Pozione di nuovo nella borsa", waitFor(30_000) { !s.itemBusy && s.latestSnapshot.get().bag.any { it.id == 0x14 } })
         shot("35-pc-dopo-prelievo")
+        // BUTTA: deposita di nuovo, poi AZIONI → BUTTA → POZIONE → quantità → OK
+        tapTile(15f, 41f); pump(500); tapTile(13f, 30f); pump(500); tapTile(4f, 9.5f)
+        assertTrue("Pozione nel PC", waitFor(30_000) { !s.itemBusy && s.latestSnapshot.get().pcItems.any { it.id == 0x14 } })
+        tapTile(9f, 40.5f); pump(800)
+        tapTile(15f, 41f); pump(500); tapTile(13f, 35f); pump(500)    // AZIONI → BUTTA
+        tapTile(4f, 9.5f); pump(500)                                    // POZIONE
+        assertTrue("quantità da buttare", shotUntil("35b-pc-butta") { b -> boxAt(b, 0, 29, 20, 9) && boxAt(b, 0, 39, 11, 4) })
+        tapTile(15f, 41f)                                               // OK
+        assertTrue("Pozione buttata", waitFor(30_000) { !s.itemBusy && s.latestSnapshot.get().pcItems.isEmpty() })
+        shot("35c-pc-dopo-butta")
+        tapTile(9f, 40.5f); pump(800)                                   // INDIETRO → strumenti del PC
         tapTile(4f, 40.5f)                                  // INDIETRO → si spegne il PC
         assertTrue("di nuovo in giro", waitFor(20_000) { s.latestSnapshot.get().freeRoam })
         shot("36-pc-chiuso")
@@ -966,7 +994,7 @@ class AppBattleSwitchTest : AppScreensHarness() {
         while (!s.battlePartyAsked && s.latestSnapshot.get().inBattle && turns++ < 200) {
             when {
                 s.battleMenuShown && !s.commandBusy -> tapTile(4f, rows0 + 4.5f)
-                s.yesNo != null || s.latestSnapshot.get().menu.kind == it.giallotouch.bridge.MenuKind.YES_NO -> { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); pump(1500) }
+                s.yesNo != null || s.latestSnapshot.get().menu.kind == it.giallotouch.bridge.MenuKind.YES_NO -> { pump(600); shot("50a-lotta-si-no"); s.command(it.giallotouch.bridge.GameCommand.Answer(true)); pump(1500) }
                 else -> tapTile(10f, 2f)
             }
         }
@@ -976,5 +1004,187 @@ class AppBattleSwitchTest : AppScreensHarness() {
         tapTile(6f, 25.5f + 4 * alive)
         assertTrue("in campo il Pokémon scelto", waitFor(40_000) { !s.battlePartyAsked && s.latestSnapshot.get().battleMon?.species == s.latestSnapshot.get().party[alive].species })
         shot("51-lotta-dopo-ko")
+    }
+}
+
+/**
+ * BOX POKéMON del Centro (D-058) sul gioco vero, con lo stato del Centro di Smeraldopoli (-Pgiallo.state.shop=STATO,
+ * squadra PIKACHU + RATTATA, box vuoto): deposita RATTATA e lo ritira dall'app.
+ */
+class AppBoxTest : AppScreensHarness() {
+    @Test fun boxPokemon() {
+        val s = start(auto = "giallo.state.shop") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue(waitFor(10_000) { s.latestSnapshot.get().freeRoam })
+        assumeTrue("stato del Centro Pokémon", s.positionForTest().first == 41 && s.latestSnapshot.get().party.size == 2)
+        s.walkPathForTest(13, 4)
+        assertTrue(waitFor(15_000) { s.positionForTest().let { it.second == 13 && it.third == 4 } })
+        s.setKeys(NativeCore.KEY_UP); pump(150); s.setKeys(0); pump(400)
+        fun cursor() = s.screenForTest().second.any { (it.toInt() and 0xFF) == 0xED }
+        tapTile(10f, 20f)
+        var k = 0
+        while (!cursor() && k++ < 10) tapTile(10f, 20f)                  // "accende il PC" → PC DI ???
+        assertTrue("scelta del PC dell'app", shotUntil("37-pc-centro-scelta") { b -> boxAt(b, 1, 24, 18, 4) && boxAt(b, 1, 36, 18, 4) })
+        assertEquals(4, s.pcChoice.size)
+        tapTile(9f, 26f)                                                 // PC DI ??? (il box)
+        assertTrue("BOX POKéMON dell'app", shotUntil("38-box") { b -> boxAt(b, 0, 2, 20, 5) && boxAt(b, 0, 7, 20, 31) && boxAt(b, 0, 39, 11, 4) && boxAt(b, 11, 39, 9, 4) })
+        assertEquals(0, s.boxMons.size)
+        tapTile(15f, 41f); pump(500)                                     // AZIONI
+        assertTrue("riquadro AZIONI", shotUntil("38b-box-azioni") { b -> boxAt(b, 7, 27, 13, 12) })
+        tapTile(13f, 35f)                                                // DEPOSITA → squadra
+        assertTrue("squadra da depositare", shotUntil("39-box-deposita") { b -> !boxAt(b, 15, 39, 5, 4) && !boxAt(b, 7, 27, 13, 12) })
+        tapTile(6f, 12.5f)                                               // RATTATA (seconda riga)
+        assertTrue("RATTATA nel box", waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().party.size == 1 && s.boxMons.size == 1 })
+        assertEquals("RATTATA", s.boxMons[0].name)
+        pump(600); shot("40-box-dopo-deposito")
+        tapTile(9f, 40.5f)                                               // INDIETRO → lista del box
+        pump(800)
+        tapTile(6f, 9.5f)                                                // RATTATA: RITIRA
+        assertTrue("RATTATA di nuovo in squadra", waitFor(40_000) { !s.itemBusy && s.latestSnapshot.get().party.size == 2 && s.boxMons.isEmpty() })
+        pump(600); shot("41-box-dopo-ritiro")
+        // scorrere a lato: BOX 2, poi di nuovo BOX 1 (il gioco salva la partita a ogni cambio)
+        swipe(16f, 20f, 3f, 20f)
+        assertTrue("BOX 2", waitFor(60_000) { !s.itemBusy && s.boxNumber == 2 })
+        pump(600); shot("41b-box-2")
+        swipe(3f, 20f, 16f, 20f)
+        assertTrue("BOX 1", waitFor(60_000) { !s.itemBusy && s.boxNumber == 1 })
+        // LIBERA: deposita RATTATA, poi tenere premuto → Liberare RATTATA? → SÌ
+        tapTile(15f, 41f); pump(500); tapTile(13f, 35f); pump(500); tapTile(6f, 12.5f)
+        assertTrue("RATTATA nel box", waitFor(40_000) { !s.itemBusy && s.boxMons.size == 1 })
+        tapTile(9f, 40.5f); pump(800)
+        longPressTile(6f, 9.5f)
+        assertTrue("domanda", shotUntil("41c-box-libera") { b -> boxAt(b, 0, 27, 20, 9) && boxAt(b, 1, 38, 8, 5) && boxAt(b, 11, 38, 8, 5) })
+        tapTile(4f, 40f)                                                 // SÌ
+        assertTrue("RATTATA liberato", waitFor(40_000) { !s.itemBusy && s.boxMons.isEmpty() && s.latestSnapshot.get().party.size == 1 })
+        pump(600); shot("41d-box-dopo-libera")
+        tapTile(4f, 40.5f)                                               // INDIETRO → si spegne il PC
+        assertTrue("di nuovo in giro", waitFor(30_000) { s.latestSnapshot.get().freeRoam && s.pcChoice.isEmpty() && !s.boxMenuShown })
+        pump(1500); shot("42-box-chiuso")
+    }
+}
+
+/**
+ * Niente lampeggi (D-061) sul gioco vero (-Pgiallo.state.two=two.state, Strada 1): lotta con un selvatico e dialoghi con
+ * cartelli e persone; nessuna disposizione (lotta divisa, riquadri di lotta, dialogo in alto, SÌ/NO…) cambia per meno di
+ * 9 fotogrammi e nessun dialogo resta in basso.
+ */
+class AppSenzaLampeggiTest : AppScreensHarness() {
+    @Test fun lampeggi() {
+        val s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        val names = listOf("lottaDivisa", "dialogoSu", "menuLotta", "menuGiocoLotta", "siNo", "vistaEstesa", "inLotta", "libero", "squadraChiesta", "dialogoInBasso")
+        val rec = java.util.Collections.synchronizedList(ArrayList<BooleanArray>())
+        val old = s.onFrame
+        s.onFrame = {
+            old?.invoke()
+            val t = s.frameTilesForTest()
+            val boxBottom = (t[12 * 20].toInt() and 0xFF) == 0x79 && (t[17 * 20 + 19].toInt() and 0xFF) == 0x7E
+            rec.add(booleanArrayOf(s.battleSplit, s.dialogStrip != null, s.battleMenuShown, s.battleGameMenu, s.yesNo != null,
+                s.extendedActive, s.latestSnapshot.get().inBattle, s.latestSnapshot.get().freeRoam, s.battlePartyAsked,
+                boxBottom && !s.latestSnapshot.get().inBattle && s.dialogStrip == null))
+        }
+        val rnd = java.util.Random(7)
+        var walks = 0
+        while (!s.latestSnapshot.get().inBattle && walks++ < 40) {
+            val g = s.mapGridForTest() ?: break
+            val free = (0 until g.width).flatMap { x -> (6 until g.height - 4).map { y -> x to y } }.filter { g.isFree(it.first, it.second) }
+            val t = free[rnd.nextInt(free.size)]
+            s.walkPathForTest(t.first, t.second)
+            waitFor(20_000) { s.latestSnapshot.get().inBattle || s.positionForTest().let { it.second == t.first && it.third == t.second } }
+        }
+        var g2 = 0
+        while (s.latestSnapshot.get().inBattle && g2++ < 300) {
+            if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f)
+            else if (s.yesNo != null) tapTile(14f, 39f) else tapTile(10f, 2f)
+            pump(300)
+        }
+        var k = 0
+        while (!s.latestSnapshot.get().freeRoam && k++ < 40) { tapTile(10f, 2f); pump(300) }
+        pump(2000)
+        // dialoghi: cartelli e persone raggiungibili
+        val g = s.mapGridForTest()!!
+        for (target in (g.signs + g.people).take(3)) {
+            val here = s.positionForTest()
+            val spot = g.interactionSpots(target.first, target.second).entries.firstOrNull { g.path(here.second, here.third, setOf(it.key)) != null } ?: continue
+            s.walkPathForTest(spot.key.first, spot.key.second)
+            waitFor(30_000) { s.positionForTest().let { it.second == spot.key.first && it.third == spot.key.second } || s.latestSnapshot.get().inBattle }
+            if (s.latestSnapshot.get().inBattle) break
+            s.setKeys(spot.value.key); pump(150); s.setKeys(0); pump(300)
+            tapTile(10f, 20f); pump(400)
+            k = 0
+            while (!s.latestSnapshot.get().freeRoam && k++ < 30) { if (s.yesNo != null) tapTile(14f, 39f) else tapTile(10f, 20f); pump(350) }
+            println("DBGBL dialogo con $target finito")
+        }
+        s.onFrame = old
+        val frames = ArrayList(rec)
+        var blips = 0
+        println("DBGBL fotogrammi ${frames.size} in lotta ${frames.count { it[6] }} con dialogo in alto ${frames.count { it[1] }} dialogo rimasto in basso ${frames.count { it[9] }}")
+        for (f in names.indices) {
+            var i = 1
+            while (i < frames.size) {
+                if (frames[i][f] != frames[i - 1][f]) {
+                    var j = i
+                    while (j < frames.size && frames[j][f] == frames[i][f]) j++
+                    if (j < frames.size && j - i <= 8 && f != 5) blips++
+                    if (j < frames.size && j - i <= 8) println("DBGBL ${names[f]}=${frames[i][f]} per ${j - i} fotogrammi al $i  stato: " + names.indices.joinToString(" ") { n -> if (frames[i][n]) names[n] else "" })
+                    i = j
+                } else i++
+            }
+        }
+        assertTrue("una lotta", frames.count { it[6] } > 0)
+        assertEquals("lampeggi", 0, blips)
+        assertEquals("dialoghi rimasti in basso", 0, frames.count { it[9] })
+    }
+}
+
+/** Cura al Centro Pokémon (D-060) sul gioco vero (-Pgiallo.state.shop=center.state): CURA / ESCI come SÌ/NO dell'app. */
+class AppCuraTest : AppScreensHarness() {
+    @Test fun cura() {
+        val s = start(auto = "giallo.state.shop") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        assumeTrue("stato del Centro Pokémon", s.positionForTest().first == 41)
+        s.walkPathForTest(3, 3)
+        assertTrue(waitFor(20_000) { s.positionForTest().let { it.second == 3 && it.third == 3 } })
+        s.setKeys(NativeCore.KEY_UP); pump(150); s.setKeys(0); pump(400)
+        tapTile(10f, 20f)
+        var k = 0
+        while (s.yesNo == null && k++ < 20) { tapTile(10f, 20f); pump(300) }
+        assertTrue("CURA / ESCI dell'app", shotUntil("43-cura") { b -> boxAt(b, 2, 37, 8, 5) && boxAt(b, 12, 37, 8, 5) })
+        tapTile(5f, 39f)                                                 // CURA
+        k = 0
+        while (!s.latestSnapshot.get().freeRoam && k++ < 30) { tapTile(10f, 20f); pump(400) }
+        assertTrue("di nuovo in giro", s.latestSnapshot.get().freeRoam)
+        shot("44-dopo-cura")
+    }
+}
+
+/** Segnala (D-064): tre dita sullo schermo → file zip con foto, stato della partita e note (nella cache dell'app). */
+class AppSegnalaTest : AppScreensHarness() {
+    @Test fun segnala() {
+        val s = start(auto = "giallo.state.bag") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue(waitFor(10_000) { s.latestSnapshot.get().freeRoam })
+        val dir = java.io.File(root.context.cacheDir, "segnalazioni")
+        dir.deleteRecursively()
+        val tp = 8 * unit; val t = SystemClock.uptimeMillis()
+        val ids = intArrayOf(0, 1, 2)
+        fun props(n: Int) = Array(n) { MotionEvent.PointerProperties().apply { id = ids[it]; toolType = MotionEvent.TOOL_TYPE_FINGER } }
+        fun coords(n: Int) = Array(n) { MotionEvent.PointerCoords().apply { x = (4f + 5 * it) * tp; y = 20 * tp; pressure = 1f; size = 1f } }
+        root.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 1, props(1), coords(1), 0, 0, 1f, 1f, 0, 0, 0, 0)); pump(30)
+        root.dispatchTouchEvent(MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_POINTER_DOWN or (1 shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), 2, props(2), coords(2), 0, 0, 1f, 1f, 0, 0, 0, 0)); pump(30)
+        root.dispatchTouchEvent(MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_POINTER_DOWN or (2 shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), 3, props(3), coords(3), 0, 0, 1f, 1f, 0, 0, 0, 0)); pump(30)
+        root.dispatchTouchEvent(MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, 3, props(3), coords(3), 0, 0, 1f, 1f, 0, 0, 0, 0)); pump(300)
+        assertTrue("file della segnalazione", waitFor(10_000) { dir.listFiles()?.isNotEmpty() == true })
+        val zip = java.util.zip.ZipFile(dir.listFiles()!!.first())
+        val names = zip.entries().toList().map { it.name }
+        println("DBGSG $names " + String(zip.getInputStream(zip.getEntry("info.txt")).readBytes()))
+        assertTrue(names.containsAll(listOf("partita.state", "info.txt")))
+        assertTrue(zip.getEntry("partita.state").size > 10_000)
     }
 }

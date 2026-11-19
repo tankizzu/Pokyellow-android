@@ -103,13 +103,13 @@ fun GamePanel(
             }
         }
         TileImage(
-            sheet, 7, 4, unit, key = "menu",
+            sheet, 8, 4, unit, key = "menu",
             modifier = Modifier
-                .offset { g.at(7f, (bottom - 3).toFloat()) }
+                .offset { g.at(6f, (bottom - 3).toFloat()) }
                 .pointerInput(Unit) { detectTapGestures { onToggle() } }
         ) {
-            box(0, 0, 6, 3)
-            textAt("START", 8, 12)
+            box(0, 0, 7, 3)
+            textAt("START", 12, 12)   // centrato sullo schermo (D-062)
         }
     }
 }
@@ -175,7 +175,7 @@ fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: 
                 .offset { g.at(5f, 39f) }
                 .pointerInput(Unit) { detectTapGestures { onBack() } }
         ) {
-            box(0, 0, 10, 3); textAt("INDIETRO", 13, 12)
+            box(0, 0, 10, 3); textAt("INDIETRO", 12, 12)
         }
     }
 }
@@ -239,7 +239,7 @@ fun GameLoadScreen(sheet: IntArray, entries: List<SlotEntry>, onLoad: (SlotEntry
                 val t = if (e.info.playMinutes >= 0) "%d:%02d".format(e.info.playMinutes / 60, e.info.playMinutes % 60) else "-"
                 text("TEMPO", 2, y0 + 8); text(t, 19 - t.length, y0 + 8)
             }
-            box(0, backRow, 19, backRow + 3); text("INDIETRO", 2, backRow + 2)
+            box(0, backRow, 19, backRow + 3); text("INDIETRO", 6, backRow + 2)
             val cursorRow = if (cursor < entries.size) 9 + 11 * cursor else backRow + 2
             tile(TileCanvas.CURSOR, 1, cursorRow)
         }
@@ -337,7 +337,7 @@ fun GameBagScreen(
                 if (dragTo == i && dragFrom != i) tile(TileCanvas.CURSOR, 1, r)
             }
             if (sel == null) {
-                box(0, backRow, 9, backRow + 3); textAt("INDIETRO", 7, backRow * 8 + 12)
+                box(0, backRow, 9, backRow + 3); textAt("INDIETRO", 8, backRow * 8 + 12)
                 box(10, backRow, 19, backRow + 3); textAt("SELECT", 97, backRow * 8 + 12)
                 if (swapMode) tileAt(TileCanvas.CURSOR, 89, backRow * 8 + 12)
             }
@@ -458,7 +458,7 @@ fun GameTrainerExtras(sheet: IntArray, seen: Int, owned: Int, party: Int, onBack
 
 /** Riquadro INDIETRO 10×4 nello stile del gioco, in (col, riga) dello schermo. */
 @Composable
-private fun BackBox(sheet: IntArray, unit: Float, col: Int, row: Int, textX: Int = 9, onBack: () -> Unit) {
+private fun BackBox(sheet: IntArray, unit: Float, col: Int, row: Int, textX: Int = 8, onBack: () -> Unit) {
     val tilePx = 8 * unit
     TileImage(
         sheet, 10, 4, unit, key = "indietro-$textX",
@@ -703,9 +703,10 @@ fun GameBattleListPanel(
     romData: RomData,
     busy: Boolean,
     onPick: (Int) -> Unit,
-    onBack: () -> Unit,
+    /** null = scelta obbligata (Pokémon KO): niente INDIETRO, il gioco non permette di annullare. */
+    onBack: (() -> Unit)?,
 ) {
-    BackHandler { if (!busy) onBack() }
+    BackHandler { if (!busy) onBack?.invoke() }
     val count = party?.size ?: bag?.size ?: 0
     val step = when {
         party != null -> if (count <= 3) 4 else 2
@@ -767,7 +768,7 @@ fun GameBattleListPanel(
                 }
             }
         }
-        TileImage(
+        if (onBack != null) TileImage(
             sheet, 10, 4, unit, key = "lotta-indietro",
             modifier = Modifier
                 .offset { IntOffset((5 * tilePx).toInt(), (39 * tilePx).toInt()) }
@@ -776,9 +777,60 @@ fun GameBattleListPanel(
     }
 }
 
+/** Testo centrato in un riquadro largo [w] caselle (posizione in pixel). */
+private fun TileCanvas.centered(s: String, x0: Int, w: Int, py: Int) = textAt(s, x0 * 8 + (w * 8 - s.length * 8) / 2, py)
+
 /**
- * STRUMENTI PC (D-055, mockup del committente): lista degli strumenti nel PC, tocco = PRELEVA un pezzo; DEPOSITA
- * mostra la borsa, tocco = deposita un pezzo. INDIETRO in basso a sinistra, DEPOSITA a destra.
+ * Riquadri in basso di box e PC (D-062, mockup del committente): a sinistra 11×4 ([left], INDIETRO o ANNULLA), a destra
+ * 9×4 ([right], AZIONI o OK), testi centrati. Con [right] = null resta solo [left], centrato (10×4 in (5,39)).
+ */
+@Composable
+private fun BottomButtons(sheet: IntArray, unit: Float, left: String, right: String?, enabled: Boolean, onLeft: () -> Unit, onRight: () -> Unit = {}) {
+    val tilePx = 8 * unit
+    if (right == null) {
+        TileImage(sheet, 10, 4, unit, key = "basso-$left",
+            modifier = Modifier.offset { IntOffset((5 * tilePx).toInt(), (39 * tilePx).toInt()) }
+                .pointerInput(enabled, left) { detectTapGestures { if (enabled) onLeft() } }) { box(0, 0, 9, 3); centered(left, 0, 10, 12) }
+        return
+    }
+    TileImage(sheet, 11, 4, unit, key = "basso-sx-$left",
+        modifier = Modifier.offset { IntOffset(0, (39 * tilePx).toInt()) }
+            .pointerInput(enabled, left) { detectTapGestures { if (enabled) onLeft() } }) { box(0, 0, 10, 3); centered(left, 0, 11, 12) }
+    TileImage(sheet, 9, 4, unit, key = "basso-dx-$right",
+        modifier = Modifier.offset { IntOffset((11 * tilePx).toInt(), (39 * tilePx).toInt()) }
+            .pointerInput(enabled, right) { detectTapGestures { if (enabled) onRight() } }) { box(0, 0, 8, 3); centered(right, 0, 9, 12) }
+}
+
+/** Riquadro AZIONI (D-062): 13×12 in (7,27), due voci (righe 30 e 35); un tocco fuori lo chiude. */
+@Composable
+private fun ActionsBox(sheet: IntArray, unit: Float, first: String, second: String, onFirst: () -> Unit, onSecond: () -> Unit, onClose: () -> Unit) {
+    val tilePx = 8 * unit
+    Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { onClose() } })
+    TileImage(sheet, 13, 12, unit, key = "azioni-$first-$second",
+        modifier = Modifier.offset { IntOffset((7 * tilePx).toInt(), (27 * tilePx).toInt()) }
+            .pointerInput(first, second) { detectTapGestures { pos -> if (pos.y / tilePx < 6f) onFirst() else onSecond() } }
+    ) { box(0, 0, 12, 11); centered(first, 0, 13, 3 * 8); centered(second, 0, 13, 8 * 8) }
+}
+
+/**
+ * Domanda di conferma (D-062, mockup "Box: liberare"): riquadro 20×9 in (0,27) con due righe centrate, SÌ 8×5 in (1,38)
+ * e NO 8×5 in (11,38).
+ */
+@Composable
+private fun ConfirmBox(sheet: IntArray, unit: Float, line1: String, line2: String, onYes: () -> Unit, onNo: () -> Unit) {
+    val tilePx = 8 * unit
+    Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { } })
+    TileImage(sheet, 20, 9, unit, key = "domanda-$line1-$line2",
+        modifier = Modifier.offset { IntOffset(0, (27 * tilePx).toInt()) }) { box(0, 0, 19, 8); centered(line1, 0, 20, 2 * 8); centered(line2, 0, 20, 5 * 8) }
+    for ((col, word, act) in listOf(Triple(1, "SÌ", onYes), Triple(11, "NO", onNo))) TileImage(sheet, 8, 5, unit, key = "domanda-$word",
+        modifier = Modifier.offset { IntOffset((col * tilePx).toInt(), (38 * tilePx).toInt()) }
+            .pointerInput(word) { detectTapGestures { act() } }) { box(0, 0, 7, 4); centered(word, 0, 8, 2 * 8) }
+}
+
+/**
+ * STRUMENTI PC (D-055, D-062, mockup del committente): lista degli strumenti nel PC, tocco = PRELEVA un pezzo. In basso
+ * INDIETRO e AZIONI (DEPOSITA: la borsa, tocco = deposita un pezzo; BUTTA: tocco su uno strumento = quantità con le
+ * frecce, poi OK). Tenere premuto uno strumento = BUTTA.
  */
 @Composable
 fun GamePcScreen(
@@ -789,28 +841,35 @@ fun GamePcScreen(
     busy: Boolean,
     onWithdraw: (Int) -> Unit,
     onDeposit: (Int) -> Unit,
+    onToss: (Int, Int) -> Unit,
     onClose: () -> Unit,
 ) {
     var depositing by remember { mutableStateOf(false) }
-    BackHandler { if (busy) Unit else if (depositing) depositing = false else onClose() }
+    var tossing by remember { mutableStateOf(false) }
+    var actions by remember { mutableStateOf(false) }
+    var tossItem by remember { mutableStateOf<Int?>(null) }
+    var qty by remember(tossItem) { mutableStateOf(1) }
+    BackHandler { if (busy) Unit else if (tossItem != null) tossItem = null else if (actions) actions = false else if (depositing || tossing) { depositing = false; tossing = false } else onClose() }
     val list = if (depositing) bag else pcItems
     val step = when { list.size <= 9 -> 3; list.size <= 14 -> 2; else -> 1 }
     BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
         val density = LocalDensity.current
         val unit = with(density) { maxWidth.toPx() } / 160f
         val tilePx = 8 * unit
+        fun rowItem(y: Float): Int? { val row = (y / tilePx).toInt(); val i = (row - 9 + step / 2).floorDiv(step); return if (row in 8..37 && i in list.indices) i else null }
         TileImage(
-            sheet, 20, 39, unit, key = listOf(list, depositing, busy),
-            modifier = Modifier.pointerInput(list, depositing, busy) {
-                detectTapGestures { pos ->
-                    if (busy) return@detectTapGestures
-                    val row = (pos.y / tilePx).toInt()
-                    val i = (row - 9 + step / 2).floorDiv(step)
-                    if (row in 8..37 && i in list.indices) { if (depositing) onDeposit(i) else onWithdraw(i) }
-                }
+            sheet, 20, 39, unit, key = listOf(list, depositing, tossing, busy),
+            modifier = Modifier.pointerInput(list, depositing, tossing, busy) {
+                detectTapGestures(
+                    onLongPress = { pos -> if (!busy && !depositing) rowItem(pos.y)?.let { tossItem = it } },
+                    onTap = { pos ->
+                        if (busy) return@detectTapGestures
+                        val i = rowItem(pos.y) ?: return@detectTapGestures
+                        when { depositing -> onDeposit(i); tossing -> tossItem = i; else -> onWithdraw(i) }
+                    })
             }
         ) {
-            box(0, 3, 19, 5); val title = if (depositing) "DEPOSITA" else "STRUMENTI PC"; text(title, (20 - title.length) / 2, 4)
+            box(0, 3, 19, 5); val title = when { depositing -> "DEPOSITA"; tossing -> "BUTTA"; else -> "STRUMENTI PC" }; centered(title, 0, 20, 4 * 8)
             box(0, 7, 19, 37)
             if (list.isEmpty()) text("VUOTO", 2, 9)
             list.take(28 / step + 1).forEachIndexed { i, item ->
@@ -821,13 +880,135 @@ fun GamePcScreen(
             }
             if (busy) text("...", 16, 4)
         }
-        BackBox(sheet, unit, 0, 39, textX = 8) { if (!busy) { if (depositing) depositing = false else onClose() } }
-        if (!depositing) TileImage(
-            sheet, 10, 4, unit, key = "deposita",
+        val sel = tossItem
+        if (sel != null && sel in pcItems.indices) {
+            // quantità da buttare: riquadro 20×9 in (0,29), frecce a sinistra e a destra del numero
+            val item = pcItems[sel]
+            val max = item.quantity.coerceIn(1, 99)
+            TileImage(sheet, 20, 9, unit, key = Triple("butta", sel, qty),
+                modifier = Modifier.offset { IntOffset(0, (29 * tilePx).toInt()) }.pointerInput(sel, max) {
+                    detectTapGestures { pos -> val col = (pos.x / tilePx).toInt(); if (col <= 7) qty = if (qty <= 1) max else qty - 1 else if (col >= 12) qty = if (qty >= max) 1 else qty + 1 }
+                }
+            ) {
+                box(0, 0, 19, 8); centered("BUTTA " + romData.itemName(item.id).take(12), 0, 20, 2 * 8)
+                tileMirroredAt(0xED, 5 * 8, 5 * 8); centered("×%02d".format(qty), 0, 20, 5 * 8); tileAt(0xED, 14 * 8, 5 * 8)
+            }
+            BottomButtons(sheet, unit, "ANNULLA", "OK", !busy, onLeft = { tossItem = null }, onRight = { onToss(sel, qty); tossItem = null })
+        } else {
+            BottomButtons(sheet, unit, "INDIETRO", if (depositing || tossing) null else "AZIONI", !busy,
+                onLeft = { if (depositing || tossing) { depositing = false; tossing = false } else onClose() }, onRight = { actions = true })
+        }
+        if (actions) ActionsBox(sheet, unit, "DEPOSITA", "BUTTA",
+            onFirst = { actions = false; depositing = true }, onSecond = { actions = false; tossing = true }, onClose = { actions = false })
+    }
+}
+
+/**
+ * Scelta del PC del Centro (D-058): le voci del gioco in riquadri da toccare in basso (come la scelta del negozio);
+ * il menu del gioco sulla mappa resta nascosto.
+ */
+@Composable
+fun GamePcChoice(sheet: IntArray, entries: List<String>, busy: Boolean, onChoose: (Int) -> Unit) {
+    BackHandler { if (!busy) onChoose(entries.lastIndex) }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        val first = 40 - 4 * entries.size
+        entries.forEachIndexed { i, label ->
+            TileImage(
+                sheet, 18, 4, unit, key = "pc-$i-$label",
+                modifier = Modifier.offset { IntOffset((1 * tilePx).toInt(), ((first + 4 * i) * tilePx).toInt()) }
+                    .pointerInput(busy, i) { detectTapGestures { if (!busy) onChoose(i) } }
+            ) { box(0, 0, 17, 3); text(label.take(16), (18 - label.length.coerceAtMost(16)) / 2, 2) }
+        }
+    }
+}
+
+/**
+ * BOX POKéMON del Centro (D-058, D-062, mockup del committente): riquadro posti 20×5 in alto, lista dei Pokémon del box
+ * (tocco = RITIRA; tenere premuto = LIBERA). Scorrere a lato = box precedente / successivo. In basso INDIETRO e AZIONI
+ * (LIBERA: tocco su un Pokémon e conferma; DEPOSITA: la squadra, tocco = deposita). L'ultimo Pokémon della squadra non
+ * si deposita e con 6 in squadra non si ritira, come nel gioco.
+ */
+@Composable
+fun GameBoxScreen(
+    sheet: IntArray,
+    boxNumber: Int,
+    boxMons: List<it.giallotouch.bridge.BoxMon>,
+    party: List<it.giallotouch.bridge.PartyMember>,
+    romData: RomData,
+    busy: Boolean,
+    onWithdraw: (Int) -> Unit,
+    onDeposit: (Int) -> Unit,
+    onRelease: (Int) -> Unit,
+    onChangeBox: (Int) -> Unit,
+    onClose: () -> Unit,
+) {
+    var depositing by remember { mutableStateOf(false) }
+    var releasing by remember { mutableStateOf(false) }
+    var actions by remember { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf<Int?>(null) }
+    BackHandler { if (busy) Unit else if (confirm != null) confirm = null else if (actions) actions = false else if (depositing || releasing) { depositing = false; releasing = false } else onClose() }
+    val entries: List<Triple<Int, String, Int>> =
+        if (depositing) party.map { Triple(it.species, it.name, it.level) } else boxMons.map { Triple(it.species, it.name, it.level) }
+    val full = !depositing && party.size >= 6
+    val step = 3
+    BoxWithConstraints(Modifier.fillMaxSize().background(paperOf(sheet))) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        fun rowEntry(y: Float): Int? { val row = (y / tilePx).toInt(); val i = (row - 10 + step / 2).floorDiv(step); return if (row in 8..37 && i in entries.indices) i else null }
+        TileImage(
+            sheet, 20, 39, unit, key = listOf(entries, depositing, releasing, busy, boxNumber),
             modifier = Modifier
-                .offset { IntOffset((10 * tilePx).toInt(), (39 * tilePx).toInt()) }
-                .pointerInput(busy) { detectTapGestures { if (!busy) depositing = true } }
-        ) { box(0, 0, 9, 3); textAt("DEPOSITA", 8, 12) }
+                .pointerInput(entries, depositing, releasing, busy) {
+                    detectTapGestures(
+                        onLongPress = { pos -> if (!busy && !depositing) rowEntry(pos.y)?.let { confirm = it } },
+                        onTap = { pos ->
+                            if (busy) return@detectTapGestures
+                            val i = rowEntry(pos.y) ?: return@detectTapGestures
+                            when {
+                                depositing -> if (party.size > 1) onDeposit(i)
+                                releasing -> confirm = i
+                                !full -> onWithdraw(i)
+                            }
+                        })
+                }
+                .pointerInput(boxNumber, busy, depositing) {
+                    // scorrere a lato: box precedente o successivo (1–12, in giro)
+                    var dx = 0f
+                    detectHorizontalDragGestures(onDragStart = { dx = 0f }, onDragEnd = {
+                        if (!busy && !depositing && kotlin.math.abs(dx) > 6 * tilePx) {
+                            val next = if (dx < 0) boxNumber % 12 + 1 else (boxNumber + 10) % 12 + 1
+                            onChangeBox(next - 1)
+                        }
+                    }) { _, d -> dx += d }
+                }
+        ) {
+            box(0, 2, 19, 6)
+            val title = when { depositing -> "DEPOSITA"; releasing -> "LIBERA"; else -> "BOX $boxNumber" }
+            text(title, 1, 3); if (busy) text("...", 16, 3)
+            text(if (depositing) "SQUADRA ${party.size}/6" else "POSTI ${boxMons.size}/20", 1, 5)
+            box(0, 7, 19, 37)
+            if (entries.isEmpty()) text("VUOTO", 2, 9)
+            entries.take(9).forEachIndexed { i, (species, name, level) ->
+                val r = 9 + step * i
+                romData.partyIcon(species)?.let { icon(it, 8, r * 8) }
+                text(name.take(10), 4, r); text("L$level", 16, r)
+            }
+            if (depositing && party.size <= 1) text("ULTIMO POKéMON", 2, 36)
+            else if (full) text("SQUADRA PIENA", 2, 36)
+        }
+        val c = confirm
+        if (c != null && c in boxMons.indices) {
+            ConfirmBox(sheet, unit, "Liberare", boxMons[c].name + "?", onYes = { confirm = null; releasing = false; onRelease(c) }, onNo = { confirm = null })
+        } else {
+            BottomButtons(sheet, unit, "INDIETRO", if (depositing || releasing) null else "AZIONI", !busy,
+                onLeft = { if (depositing || releasing) { depositing = false; releasing = false } else onClose() }, onRight = { actions = true })
+        }
+        if (actions) ActionsBox(sheet, unit, "LIBERA", "DEPOSITA",
+            onFirst = { actions = false; releasing = true }, onSecond = { actions = false; depositing = true }, onClose = { actions = false })
     }
 }
 

@@ -51,9 +51,27 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 - Negozio dell'app (D-056) fatto e verificato: comprare e vendere con cursore a scorrimento.
 - Terza tappa: 7 Poké Ball, Rattata catturato (partita two: Pikachu + Rattata). Spostare i Pokémon (D-057) verificato.
 - Cambio Pokémon in lotta dalla lista SQUADRA (D-050) verificato con due Pokémon.
-- Pokémon KO: la lista dell'app chiede chi mandare in campo, verificato (Rattata KO → Pikachu). Da rifinire: scena
-  bianca nella schermata del KO; dopo la scelta il gioco ha mostrato "PIKACHU è già in campo!" (da capire).
-- Pokémon KO in lotta: lista SQUADRA dell'app quando il gioco chiede chi mandare in campo (da verificare con 2 Pokémon).
+- Pokémon KO: la lista dell'app chiede chi mandare in campo, verificato (Rattata KO → Pikachu). Corretti e
+  verificati: scena della lotta visibile dietro la lista (prima bianca) e niente più "PIKACHU è già in campo!"
+  (l'app ripeteva il cambio).
+- Quarta tappa della partita automatica: Centro Pokémon di Smeraldopoli (partita center).
+- PC del Centro (D-058): scelta del PC a riquadri e BOX POKéMON dell'app (deposita/ritira) fatti e verificati.
+- SÌ/NO in lotta ("Usarne un altro?") ora nello stile del gioco come fuori dalla lotta (riquadri SÌ e NO in basso,
+  riquadro del gioco nascosto), verificato col banco di prova.
+- Richiesta del committente: cercare difetti, comparse sbagliate e luoghi che non si collegano. Corretto: vista
+  estesa ai bordi tra luoghi collegati (D-059). Prove di tocchi lontano dalle persone: nessun dialogo indesiderato.
+- 19/11 mattina: risposte del committente (D-062) e mockup mosse e box (D-063): Box (scorrere a lato, LIBERA,
+  AZIONI) e PC (AZIONI, BUTTA) fatti e verificati sul gioco vero; START e INDIETRO centrati, SÌ/NO simmetrici.
+- 19/11 notte, richieste del committente: colori coerenti tra Biancavilla e le strade (D-060), cura CURA/ESCI nello
+  stile dell'app (D-060), lampeggi in lotta trovati con un controllo fotogramma per fotogramma e corretti (D-061).
+  Prova completa riuscita, APK 0.9.0-prototipo consegnato (01:08 UTC). Confine nord di Smeraldopoli (Strada 2):
+  vista estesa e colori corretti (il passaggio è ancora chiuso dalla storia: "Non puoi passare da qui!").
+- Controllo delle schermate del banco di prova in cerca di elementi inutili: tolto INDIETRO dalla lista del KO (il
+  gioco obbliga a scegliere). Riepilogo del gameplay per un nuovo progetto: docs/GAMEPLAY.md. APK 0.8.1 consegnato.
+- APK 0.8.0-prototipo consegnato (23:18 UTC). Domande al committente: cambio box, LIBERA PKMN, mossa da
+  dimenticare.
+- Prova completa del banco di prova: tutto riuscito (23:10 UTC). Commit bloccato dal controllo automatico dei
+  permessi: le modifiche sono nella cartella del progetto, in attesa del permesso del committente.
 
 ## Ambiente di lavoro (cloud)
 - Ambiente "Pokyellow-android" con accesso a dl.google.com e script che reinstalla l'SDK in `/opt/android-sdk`.

@@ -38,6 +38,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.drawToBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -95,6 +97,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var joyOrigin by remember { mutableStateOf<Offset?>(null) }
     var joyKnob by remember { mutableStateOf(Offset.Zero) }
     var message by remember { mutableStateOf<String?>(null) }
+    var reportRequested by remember { mutableStateOf(false) }   // Segnala (D-064): tre dita sullo schermo
+    val view = LocalView.current
     val density = LocalDensity.current
     val radius = with(density) { 58.dp.toPx() }
 
@@ -148,6 +152,10 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
     var nameList by remember { mutableStateOf<List<IntArray>?>(null) }   // nomi proposti dal Professore (D-052)
     var pcOpen by remember { mutableStateOf(false) }       // STRUMENTI PC dell'app (D-055)
+    var boxOpen by remember { mutableStateOf(false) }      // BOX POKéMON dell'app (D-058)
+    var boxMons by remember { mutableStateOf<List<it.giallotouch.bridge.BoxMon>>(emptyList()) }
+    var boxNumber by remember { mutableStateOf(1) }
+    var pcChoice by remember { mutableStateOf<List<String>>(emptyList()) }
     var shopMode by remember { mutableStateOf(-1) }        // negozio dell'app (D-056): -1 chiuso, 0 scelta, 1 compra, 2 vendi
     var battleMenu by remember { mutableStateOf(false) }   // menu di lotta del gioco sullo schermo (si può scegliere)
     var battleGameMenu by remember { mutableStateOf(false) }   // in lotta: squadra/borsa del gioco aperte
@@ -192,6 +200,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
             yesNo = session.yesNo
             nameList = session.nameList
             if (session.pcMenuShown && !pcOpen) pcOpen = true
+            if (session.boxMenuShown && !boxOpen) boxOpen = true
+            pcChoice = session.pcChoice
+            if (boxOpen) { boxMons = session.boxMons; boxNumber = session.boxNumber }
             if (session.shopMenuShown && shopMode < 0) shopMode = 0
             battleMenu = session.battleMenuShown
             battleGameMenu = session.battleGameMenu
@@ -239,6 +250,21 @@ fun GameScreen(session: GameSession, settings: Settings) {
             drawIntoCanvas { renderer.draw(it.nativeCanvas) }
         }
 
+        LaunchedEffect(reportRequested) {
+            if (!reportRequested) return@LaunchedEffect
+            val shot = runCatching { view.drawToBitmap() }.getOrNull()
+            val ctx = view.context
+            val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val data = session.reportData() ?: return@withContext null
+                val version = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
+                runCatching { it.giallotouch.storage.BugReport.write(ctx, shot, data.first, data.second, version) }.getOrNull()
+            }
+            reportRequested = false
+            if (file == null) { message = "Segnalazione non riuscita"; return@LaunchedEffect }
+            message = "Segnalazione pronta"
+            runCatching { it.giallotouch.storage.BugReport.share(ctx, file) }
+        }
+
         // Livello dei tocchi: levetta e tasto A.
         Box(
             Modifier
@@ -255,6 +281,12 @@ fun GameScreen(session: GameSession, settings: Settings) {
                         joyKnob = Offset.Zero
                         while (true) {
                             val event = awaitPointerEvent()
+                            // Segnala (D-064): tre dita sullo schermo insieme.
+                            if (event.changes.count { it.pressed } >= 3) {
+                                reportRequested = true
+                                event.changes.forEach { it.consume() }
+                                break
+                            }
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
                                 // Tocco già usato da un riquadro dell'app (mossa, pulsante…): niente tasto A in più.
@@ -351,7 +383,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             }
         }
         val yn = yesNo
-        if (yn != null && sheet != null && !snapshot.inBattle) {
+        if (yn != null && sheet != null) {
             // Domanda Sì/No (D-046): due riquadri del gioco sotto il dialogo, con le parole e il cursore del gioco.
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
@@ -361,7 +393,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     TileImage(
                         sheet!!, w, 5, unit, key = Triple(word.toList(), yn.item, k),
                         modifier = Modifier
-                            .offset { IntOffset(((if (k == 0) 2 else 12) * tilePx).toInt(), (37 * tilePx).toInt()) }
+                            .offset { IntOffset(((if (k == 0) 2 else 11) * tilePx).toInt(), (37 * tilePx).toInt()) }
                             .pointerInput(answer, commandBusy) { detectTapGestures { if (!commandBusy) session.command(GameCommand.Answer(answer)) } }
                     ) {
                         box(0, 0, w - 1, 4)
@@ -396,7 +428,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             GameBattleListPanel(
                 sheet = sheet!!, party = party, bag = null, romData = session.romData, busy = battleBusy,
                 onPick = { i -> if (party.getOrNull(i)?.hp ?: 0 > 0) session.battleAction(BattleAction.Switch(i)) },
-                onBack = { },
+                onBack = null,
             )
         } else if (snapshot.inBattle && battleList != 0 && sheet != null && !battleGameMenu) {
             val party = snapshot.party
@@ -456,7 +488,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     .navigationBarsPadding()
                     .padding(horizontal = 12.dp, vertical = 14.dp)
             )
-        } else if (inGame && sheet != null && !trainerCard && !pcOpen && shopMode < 0 && (snapshot.freeRoam || panelOpen)) {
+        } else if (inGame && sheet != null && !trainerCard && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && (snapshot.freeRoam || panelOpen)) {
             // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
             GamePanel(
                 sheet = sheet!!,
@@ -486,7 +518,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && yesNo == null && nameList == null && !pcOpen && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && snapshot.cursorOnScreen && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()
@@ -560,7 +592,21 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 sheet = sheet!!, pcItems = snapshot.pcItems, bag = snapshot.bag, romData = session.romData, busy = itemRequested,
                 onWithdraw = { i -> itemRequested = true; session.itemAction(ItemAction.PcWithdraw(i, session.romData.itemName(snapshot.pcItems[i].id))) },
                 onDeposit = { i -> itemRequested = true; session.itemAction(ItemAction.PcDeposit(i, session.romData.itemName(snapshot.bag[i].id))) },
+                onToss = { i, q -> itemRequested = true; session.itemAction(ItemAction.PcToss(i, session.romData.itemName(snapshot.pcItems[i].id), q)) },
                 onClose = { pcOpen = false; session.closeMenus() },
+            )
+        }
+        if (pcChoice.isNotEmpty() && !boxOpen && !pcOpen && sheet != null) {
+            GamePcChoice(sheet!!, pcChoice, busy = itemRequested) { i -> itemRequested = true; session.itemAction(ItemAction.PcChoose(i)) }
+        }
+        if (boxOpen && sheet != null) {
+            GameBoxScreen(
+                sheet = sheet!!, boxNumber = boxNumber, boxMons = boxMons, party = snapshot.party, romData = session.romData, busy = itemRequested,
+                onWithdraw = { i -> itemRequested = true; session.itemAction(ItemAction.BoxWithdraw(i, boxMons[i].name)) },
+                onDeposit = { i -> itemRequested = true; session.itemAction(ItemAction.BoxDeposit(i, snapshot.party[i].name)) },
+                onRelease = { i -> itemRequested = true; session.itemAction(ItemAction.BoxRelease(i, boxMons[i].name)) },
+                onChangeBox = { b -> itemRequested = true; session.itemAction(ItemAction.BoxChange(b)) },
+                onClose = { boxOpen = false; session.closeMenus() },
             )
         }
         val pick = usePick

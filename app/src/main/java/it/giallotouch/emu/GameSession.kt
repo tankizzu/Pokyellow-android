@@ -75,6 +75,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Lotta a tutto schermo: true quando la schermata di lotta va mostrata divisa (scena + riquadro del testo). */
     @Volatile var battleSplit = false
         private set
+    private var splitHold = 0
+    private var menuHold = 0
+    private val HOLD_FRAMES = 12
     /** In lotta il gioco chiede quale Pokémon mandare in campo (dopo un KO). */
     @Volatile var battlePartyAsked = false
         private set
@@ -150,11 +153,12 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private fun yesNoInfo(vars: ByteArray, tiles: ByteArray, item: Int): YesNo? {
         fun t(x: Int, y: Int) = if (x in 0 until 20 && y in 0 until 18) tiles[y * 20 + x].toInt() and 0xFF else -1
         val topY = vars[0].toInt() and 0xFF; val topX = vars[1].toInt() and 0xFF
-        val x0 = topX - 1; val y0 = topY - 1
-        if (t(x0, y0) != 0x79) return null
+        val x0 = topX - 1
+        // angolo in alto a sinistra: subito sopra la prima voce (SÌ/NO) o una riga più su (CURA/ESCI)
+        val y0 = listOf(topY - 1, topY - 2).firstOrNull { t(x0, it) == 0x79 } ?: return null
         val x1 = (x0 + 1 until 20).firstOrNull { t(it, y0) == 0x7B } ?: return null
         val y1 = (y0 + 1 until 18).firstOrNull { t(x0, it) == 0x7D } ?: return null
-        fun word(y: Int) = IntArray(x1 - topX - 1) { t(topX + 1 + it, y) }
+        fun word(y: Int) = IntArray(x1 - topX - 1) { t(topX + 1 + it, y) }.dropLastWhile { it == 0x7F }.toIntArray()
         return YesNo(x0, y0, x1, y1, item, word(topY), word(topY + 2))
     }
 
@@ -169,6 +173,17 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Menu del PC del giocatore sullo schermo (D-055): l'app mostra la sua schermata STRUMENTI PC. */
     @Volatile var pcMenuShown = false
         private set
+    /** Scelta del PC del Centro sullo schermo (D-058): voci del gioco (vuota se non c'è). */
+    @Volatile var pcChoice: List<String> = emptyList()
+        private set
+    /** Menu del Box Pokémon del Centro sullo schermo (D-058), Pokémon nel box attuale e numero del box. */
+    @Volatile var boxMenuShown = false
+        private set
+    @Volatile var boxMons: List<it.giallotouch.bridge.BoxMon> = emptyList()
+        private set
+    @Volatile var boxNumber = 1
+        private set
+    private val boxBlock = ByteArray(MemoryMapIt.BOX_BLOCK_SIZE)
     /** La scheda allenatore del gioco è sullo schermo: l'app la mostra ridisposta (D-045). */
     @Volatile var trainerCardShown = false
         private set
@@ -586,6 +601,25 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
 
     /** Solo per il banco di prova: salva lo stato del gioco in un file (partite di prova). */
+    /**
+     * Segnalazione (D-064): stato della partita in questo momento e una riga di informazioni (luogo, posizione,
+     * schermate riconosciute) per riprodurre un difetto nel banco di prova. Null se il gioco non è avviato.
+     */
+    fun reportData(): Pair<ByteArray, String>? {
+        var state: ByteArray? = null
+        var info = ""
+        runOnGameThread {
+            state = NativeCore.nativeSaveState(handle)
+            info = "luogo=${NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP)} x=${NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD)} " +
+                "y=${NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD)} lotta=${NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE)}"
+        }
+        val st = state ?: return null
+        val flags = "lottaDivisa=$battleSplit menuLotta=$battleMenuShown menuGiocoLotta=$battleGameMenu siNo=${yesNo != null} " +
+            "dialogoSu=${dialogStrip != null} vistaEstesa=$extendedActive negozio=$shopMenuShown pc=$pcMenuShown box=$boxMenuShown " +
+            "esecutore=${itemExecutor.busy}/${battleExecutor.busy}"
+        return st to "$info\n$flags"
+    }
+
     fun saveStateForTest(file: java.io.File): Boolean {
         var ok = false
         runOnGameThread { NativeCore.nativeSaveState(handle)?.let { file.writeBytes(it); ok = true } }
@@ -600,6 +634,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
 
     /** Solo per il banco di prova: variabili dei menu e mappa dello schermo. */
+    /** Solo per il banco di prova, dal thread del gioco (onFrame): caselle dello schermo dell'ultimo fotogramma. */
+    fun frameTilesForTest(): ByteArray = frameTiles.copyOf()
+
     fun screenForTest(): Pair<ByteArray, ByteArray> {
         val v = ByteArray(MenuReader.MENU_VARS_SIZE); val t = ByteArray(MenuReader.SCREEN_SIZE)
         runOnGameThread { NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, v); NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, t) }
@@ -652,24 +689,44 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // Ogni fotogramma: schermata di lotta divisa e menu iniziale ridisegnato (in sincronia con l'immagine).
                 NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles)
                 NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, frameVars)
-                battleSplit = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && BattleLayout.textBoxAtBottom(frameTiles)
+                val inBattleRaw = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0
+                var split = inBattleRaw && BattleLayout.textBoxAtBottom(frameTiles)
                 val frameMenu = MenuReader.read(frameVars, frameTiles)
                 mainMenuItems = if (frameMenu.kind == MenuKind.MAIN_MENU) frameMenu.items else 0
-                battleMenuShown = frameMenu.kind == MenuKind.BATTLE_MAIN || frameMenu.kind == MenuKind.BATTLE_MOVES
+                val menuRaw = frameMenu.kind == MenuKind.BATTLE_MAIN || frameMenu.kind == MenuKind.BATTLE_MOVES
                 // In lotta, un altro menu del gioco con il cursore (squadra, borsa, cambio): si mostra il gioco intero e
                 // i riquadri di lotta dell'app spariscono (D-049).
-                battleGameMenu = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 && !battleMenuShown &&
-                    frameTiles.any { (it.toInt() and 0xFF) == 0xED }
+                var gameMenu = inBattleRaw && !menuRaw && frameTiles.any { (it.toInt() and 0xFF) == 0xED }
                 // Il gioco chiede un Pokémon (dopo un KO): l'app mostra la sua lista SQUADRA sopra la lotta (D-054).
-                battlePartyAsked = battleGameMenu && !battleExecutor.busy &&
+                battlePartyAsked = gameMenu && !battleExecutor.busy &&
                     BattleMenus.read(frameVars, frameTiles, 0).kind == BattleMenus.Kind.PARTY
                 // Mentre l'app guida i menu di lotta del gioco si continua a mostrare la lotta (immagine di prima).
-                if (battleExecutor.busy || battlePartyAsked) { battleGameMenu = false; battleSplit = true }
-                if (battleGameMenu) battleSplit = false
+                if (battleExecutor.busy || battlePartyAsked) { gameMenu = false; split = true }
+                if (gameMenu) split = false
+                // Niente lampeggi (D-061): quando il gioco ridisegna il riquadro del testo o il menu di lotta, per qualche
+                // fotogramma non si riconoscono; la disposizione della lotta e i riquadri dell'app restano finché il
+                // cambio non dura davvero (12 fotogrammi, 0,2 s). Un menu del gioco aperto vale subito.
+                if (split) splitHold = HOLD_FRAMES else if (inBattleRaw && !gameMenu && splitHold > 0) { splitHold--; split = true } else splitHold = 0
+                var menuShown = menuRaw
+                if (menuRaw) menuHold = HOLD_FRAMES else if (inBattleRaw && !gameMenu && menuHold > 0) { menuHold--; menuShown = true } else menuHold = 0
+                battleSplit = split
+                battleMenuShown = menuShown
+                battleGameMenu = gameMenu
                 trainerCardShown = ItemMenus.trainerCard(frameTiles)
                 val itemKind = ItemMenus.read(frameVars, frameTiles, 0).kind
                 pcMenuShown = itemKind == ItemMenus.Kind.PC_MENU && closingFrames == 0
                 shopMenuShown = itemKind == ItemMenus.Kind.SHOP_MENU && closingFrames == 0
+                boxMenuShown = itemKind == ItemMenus.Kind.BOX_MENU && closingFrames == 0
+                pcChoice = if (itemKind == ItemMenus.Kind.PC_CHOICE && closingFrames == 0)
+                    (0 until 4).map { i -> it.giallotouch.bridge.TextCodec.decode(ByteArray(13) { frameTiles[(2 + 2 * i) * 20 + 2 + it] }).trim() }
+                        .filter { it.isNotEmpty() } else emptyList()
+                if (boxMenuShown || itemExecutor.busy && (itemKind == ItemMenus.Kind.ITEM_LIST || itemKind == ItemMenus.Kind.BOX_SUB)) {
+                    NativeCore.nativeReadRange(handle, MemoryMapIt.BOX_COUNT, boxBlock)
+                    boxMons = it.giallotouch.bridge.BoxReader.read(boxBlock)
+                    // "BOX N° n" nel riquadro in basso a destra (riga 16, colonne 17–18).
+                    val d1 = frameTiles[16 * 20 + 17].toInt() and 0xFF; val d2 = frameTiles[16 * 20 + 18].toInt() and 0xFF
+                    if (boxMenuShown && d2 in 0xF6..0xFF) boxNumber = (if (d1 in 0xF6..0xFF) (d1 - 0xF6) * 10 else 0) + d2 - 0xF6
+                }
                 if (shopMenuShown) {
                     val b = ByteArray(12); NativeCore.nativeReadRange(handle, MemoryMapIt.SHOP_LIST, b)
                     val n = (b[0].toInt() and 0xFF).coerceAtMost(10)
@@ -678,11 +735,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
                 nameList = if (frameMenu.kind == MenuKind.NAME_LIST) MenuReader.nameListEntries(frameTiles, frameMenu.items) else null
                 namingShown = NamingReader.looksLikeNaming(frameTiles)
-                val yn = yesNo?.takeIf { !battleSplit && !trainerCardShown }
+                val yn = yesNo?.takeIf { !trainerCardShown }   // anche in lotta (riquadro del gioco sulla scena)
                 var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = dialog || yn != null || nameList != null || shopMenuShown || hidingOldMenus() ||
+                val onScreen = dialog || yn != null || nameList != null || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
                     ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 if (dialog && !frameMask.ready) dialog = false
                 if (dialog) {
@@ -701,6 +758,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     if ((hide || partyScreen) && frameMask.ready) add(if (inBattleNow) BoxMask.Box(0, 0, 19, 11) else BoxMask.Box(0, 0, 19, 17))
                     if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
                     if (nameList != null && frameMask.ready) add(BoxMask.Box(0, 0, 10, 11))
+                    if (pcChoice.isNotEmpty() && frameMask.ready) add(BoxMask.Box(0, 0, 15, 9))
                     if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
                     if (dialog) add(BoxMask.Box(0, 12, 19, 17))
                 }

@@ -19,7 +19,7 @@ object ItemMenus {
     private const val MORE = 0xEE
     private val STRUM = intArrayOf(0x92, 0x93, 0x91, 0x94, 0x8C)   // "STRUM" nel menu START
 
-    enum class Kind { START_MENU, ITEM_LIST, USE_TOSS, QUANTITY, YES_NO, TEXT_WAIT, PARTY, PARTY_SUB, PC_MENU, SHOP_MENU, SHOP_QTY, OTHER }
+    enum class Kind { START_MENU, ITEM_LIST, USE_TOSS, QUANTITY, YES_NO, TEXT_WAIT, PARTY, PARTY_SUB, PC_MENU, SHOP_MENU, SHOP_QTY, BOX_MENU, BOX_SUB, BOX_LIST, PC_CHOICE, TEXT_BOX, OTHER }
 
     data class Screen(
         val kind: Kind,
@@ -80,6 +80,25 @@ object ItemMenus {
         if (topY == 2 && topX == 1 && maxItem == 3 && watched == 0x03 && t(0, 0) == 0x79 && t(17, 0) == 0x7B && t(17, 9) == 0x7E) {
             (0..3).firstOrNull { t(1, 2 + 2 * it) == CURSOR }?.let { return Screen(Kind.PC_MENU, cursor = it) }
         }
+        // Scelta del PC del Centro (D-058): PC DI ??? / PC DI <giocatore> / PC PROF. OAK / DISCONNETTI nel riquadro
+        // (0,0)–(15,9); Y = 2, X = 1, massimo 2–3, tasti 0x03, cursore ▶ in (1, 2 + 2i); value = numero di voci.
+        if (topY == 2 && topX == 1 && maxItem in 2..3 && watched == 0x03 && t(0, 0) == 0x79 && t(15, 0) == 0x7B && t(2, 2) == 0x8F && t(3, 2) == 0x82 && t(0, 12) != 0x79) {   // senza testo sotto
+            (0..maxItem).firstOrNull { t(1, 2 + 2 * it) == CURSOR }?.let { return Screen(Kind.PC_CHOICE, cursor = it, value = maxItem + 1) }
+        }
+        // Box Pokémon del Centro (D-058): RITIRA PKMN / DEPOSITA PKMN / LIBERA PKMN / CAMBIA BOX / STAMPA / CIAO!
+        // nel riquadro (0,0)–(13,13); Y = 2, X = 1, massimo 5, tasti 0x03, cursore ▶ in (1, 2 + 2i).
+        if (topY == 2 && topX == 1 && maxItem == 5 && watched == 0x03 && t(0, 0) == 0x79 && t(13, 0) == 0x7B) {
+            (0..5).firstOrNull { t(1, 2 + 2 * it) == CURSOR }?.let { return Screen(Kind.BOX_MENU, cursor = it) }
+        }
+        // Box, lista dei 12 box (CAMBIA BOX): riquadro (11,0)–(19,13), Y = 1, X = 0x0C, massimo 11, cursore ▶ in (12, 1 + i).
+        if (topY == 1 && topX == 0x0C && maxItem == 0x0B && watched == 0x03) {
+            (0..11).firstOrNull { t(12, 1 + it) == CURSOR }?.let { return Screen(Kind.BOX_LIST, cursor = it) }
+        }
+        // Box, sottomenu del Pokémon scelto: DEPOSITA (o RITIRA) / STAT. / ESCI nel riquadro (9,10)–(19,17);
+        // Y = 0x0C, X = 0x0A, massimo 2, tasti 0x03, cursore ▶ in (10, 12 + 2i).
+        if (topY == 0x0C && topX == 0x0A && maxItem == 2 && watched == 0x03 && t(9, 10) == 0x79) {
+            (0..2).firstOrNull { t(10, 12 + 2 * it) == CURSOR }?.let { return Screen(Kind.BOX_SUB, cursor = it) }
+        }
         // Sottomenu del Pokémon fuori dalla lotta (D-057): [mosse da usare fuori], STAT., ORDINA, ESCI; X = 0x0C,
         // tasti 0x03, cursore ▶ in (12, Y + 2c). value = numero dell'ultima voce (ORDINA = value − 1).
         if (topX == 0x0C && watched == 0x03 && maxItem in 2..6 && t(11, topY - 1) == 0x79) {
@@ -90,6 +109,8 @@ object ItemMenus {
             (0..5).firstOrNull { t(0, 1 + 2 * it) == CURSOR }?.let { return Screen(Kind.PARTY, cursor = it) }
         }
         if (t(18, 16) == MORE && t(0, 12) == 0x79) return Screen(Kind.TEXT_WAIT)
+        // Riquadro del testo in basso senza ▼ (testo che scorre o messaggio che aspetta comunque A).
+        if (t(0, 12) == 0x79 && t(19, 12) == 0x7B && t(0, 17) == 0x7D && t(19, 17) == 0x7E) return Screen(Kind.TEXT_BOX)
         return Screen(Kind.OTHER)
     }
 }
@@ -116,6 +137,24 @@ sealed interface ItemAction {
 
     /** PC del giocatore (D-055): deposita un pezzo dello strumento [slot] della borsa. */
     data class PcDeposit(override val slot: Int, override val name: String) : ItemAction
+
+    /** Box Pokémon del Centro (D-058): ritira il Pokémon [slot] del box attuale ([name] = soprannome atteso). */
+    data class BoxWithdraw(override val slot: Int, override val name: String) : ItemAction
+
+    /** Box Pokémon del Centro (D-058): deposita il Pokémon [slot] della squadra ([name] = soprannome atteso). */
+    data class BoxDeposit(override val slot: Int, override val name: String) : ItemAction
+
+    /** Box (D-062): libera il Pokémon [slot] del box attuale ([name] = soprannome atteso), con "Sì" alla domanda. */
+    data class BoxRelease(override val slot: Int, override val name: String) : ItemAction
+
+    /** Box (D-062): passa al box numero [slot] + 1 (0–11); il gioco salva la partita, si risponde "Sì". */
+    data class BoxChange(override val slot: Int) : ItemAction { override val name = "" }
+
+    /** PC del giocatore (D-062): butta [quantity] pezzi dello strumento [slot] del PC, con "Sì" alla domanda. */
+    data class PcToss(override val slot: Int, override val name: String, val quantity: Int) : ItemAction
+
+    /** Scelta del PC del Centro (D-058): voce [slot] (PC DI ???, PC DI <giocatore>, PC PROF. OAK, DISCONNETTI). */
+    data class PcChoose(override val slot: Int) : ItemAction { override val name = "" }
 
     /** Negozio (D-056): compra [quantity] pezzi dell'articolo [slot] della lista del negozio. */
     data class ShopBuy(override val slot: Int, override val name: String, val quantity: Int) : ItemAction
@@ -216,7 +255,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
     /** PC: menu → PRELEVA/DEPOSITA → strumento → quantità 1 → messaggio → di nuovo al menu del PC. */
     private fun decidePc(a: ItemAction, s: ItemMenus.Screen): Int = when (s.kind) {
         ItemMenus.Kind.PC_MENU -> {
-            val target = if (a is ItemAction.PcWithdraw) 0 else 1
+            val target = when (a) { is ItemAction.PcWithdraw -> 0; is ItemAction.PcToss -> 2; else -> 1 }
             when {
                 tossed -> DONE
                 s.cursor < target -> Keys.DOWN
@@ -231,13 +270,72 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
             a.name.isNotEmpty() && !a.name.startsWith("MT") && !a.name.startsWith("MN") && s.name != a.name -> { action = null; result = Result.FAILED; 0 }
             else -> Keys.A
         }
-        ItemMenus.Kind.QUANTITY -> when {
-            s.value > 1 -> Keys.DOWN
-            s.value < 1 -> Keys.UP
+        ItemMenus.Kind.QUANTITY -> {
+            val q = (a as? ItemAction.PcToss)?.quantity ?: 1
+            when {
+                s.value > q -> Keys.DOWN
+                s.value < q -> Keys.UP
+                else -> { if (a !is ItemAction.PcToss) tossed = true; Keys.A }
+            }
+        }
+        ItemMenus.Kind.YES_NO -> when {
+            a !is ItemAction.PcToss || tossed -> 0
+            s.cursor > 0 -> Keys.UP
             else -> { tossed = true; Keys.A }
         }
-        ItemMenus.Kind.TEXT_WAIT -> Keys.A
+        ItemMenus.Kind.TEXT_WAIT, ItemMenus.Kind.TEXT_BOX -> Keys.A
         else -> 0
+    }
+
+    /** Box: menu → RITIRA/DEPOSITA → Pokémon → sottomenu (prima voce) → messaggi → di nuovo al menu del box. */
+    private fun decideBox(a: ItemAction, s: ItemMenus.Screen): Int = when (s.kind) {
+        ItemMenus.Kind.BOX_MENU -> {
+            val target = when (a) { is ItemAction.BoxWithdraw -> 0; is ItemAction.BoxDeposit -> 1; is ItemAction.BoxRelease -> 2; else -> 3 }
+            when {
+                tossed -> DONE
+                s.cursor < target -> Keys.DOWN
+                s.cursor > target -> Keys.UP
+                else -> Keys.A
+            }
+        }
+        ItemMenus.Kind.ITEM_LIST -> when {
+            tossed -> Keys.B
+            s.cursor < a.slot -> Keys.DOWN
+            s.cursor > a.slot -> Keys.UP
+            a.name.isNotEmpty() && s.name != a.name -> { action = null; result = Result.FAILED; 0 }
+            else -> Keys.A
+        }
+        ItemMenus.Kind.BOX_SUB -> when {
+            tossed -> Keys.B
+            s.cursor > 0 -> Keys.UP
+            else -> { tossed = true; Keys.A }
+        }
+        ItemMenus.Kind.YES_NO -> when {
+            a !is ItemAction.BoxRelease && a !is ItemAction.BoxChange -> 0
+            s.cursor > 0 -> Keys.UP
+            else -> { if (a is ItemAction.BoxRelease) tossed = true; Keys.A }
+        }
+        ItemMenus.Kind.BOX_LIST -> when {
+            a !is ItemAction.BoxChange || tossed -> Keys.B
+            s.cursor < a.slot -> Keys.DOWN
+            s.cursor > a.slot -> Keys.UP
+            else -> { tossed = true; Keys.A }
+        }
+        ItemMenus.Kind.TEXT_WAIT, ItemMenus.Kind.TEXT_BOX -> if (tossed || a is ItemAction.BoxRelease || a is ItemAction.BoxChange) Keys.A else 0
+        else -> 0
+    }
+
+    /** Scelta del PC: voce → messaggi ("Accesso al PC…") → menu del box o del PC, oppure di nuovo in giro. */
+    private fun decidePcChoice(a: ItemAction, s: ItemMenus.Screen, freeRoam: Boolean): Int = when (s.kind) {
+        ItemMenus.Kind.PC_CHOICE -> when {
+            tossed -> 0
+            s.cursor < a.slot -> Keys.DOWN
+            s.cursor > a.slot -> Keys.UP
+            else -> { tossed = true; Keys.A }
+        }
+        ItemMenus.Kind.BOX_MENU, ItemMenus.Kind.PC_MENU -> if (tossed) DONE else 0
+        ItemMenus.Kind.TEXT_WAIT, ItemMenus.Kind.TEXT_BOX -> if (tossed) Keys.A else 0
+        else -> if (tossed && freeRoam) DONE else 0
     }
 
     /** Negozio: menu → COMPRA/VENDI → articolo → quantità → Sì → messaggio → di nuovo al menu del negozio. */
@@ -275,7 +373,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
         }
     }
 
-    private fun decide(a: ItemAction, s: ItemMenus.Screen, freeRoam: Boolean): Int = if (a is ItemAction.ShopBuy || a is ItemAction.ShopSell) decideShop(a, s) else if (a is ItemAction.PcWithdraw || a is ItemAction.PcDeposit) decidePc(a, s) else when (s.kind) {
+    private fun decide(a: ItemAction, s: ItemMenus.Screen, freeRoam: Boolean): Int = if (a is ItemAction.ShopBuy || a is ItemAction.ShopSell) decideShop(a, s) else if (a is ItemAction.PcWithdraw || a is ItemAction.PcDeposit || a is ItemAction.PcToss) decidePc(a, s) else if (a is ItemAction.BoxWithdraw || a is ItemAction.BoxDeposit || a is ItemAction.BoxRelease || a is ItemAction.BoxChange) decideBox(a, s) else if (a is ItemAction.PcChoose) decidePcChoice(a, s, freeRoam) else when (s.kind) {
         ItemMenus.Kind.START_MENU -> if (a is ItemAction.PartySwap) when {
             tossed -> Keys.B
             s.value < 1 -> 0
@@ -316,7 +414,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
             s.cursor > s.value - 1 -> Keys.UP
             else -> { firstSelected = true; Keys.A }    // ORDINA
         } else Keys.B
-        ItemMenus.Kind.PC_MENU, ItemMenus.Kind.SHOP_MENU, ItemMenus.Kind.SHOP_QTY -> 0
+        ItemMenus.Kind.PC_MENU, ItemMenus.Kind.SHOP_MENU, ItemMenus.Kind.SHOP_QTY, ItemMenus.Kind.BOX_MENU, ItemMenus.Kind.BOX_SUB, ItemMenus.Kind.BOX_LIST, ItemMenus.Kind.PC_CHOICE -> 0
         ItemMenus.Kind.PARTY -> if (a is ItemAction.PartySwap) when {
             tossed -> Keys.B
             !firstSelected && s.cursor < a.slot -> Keys.DOWN
@@ -348,7 +446,7 @@ class ItemActionExecutor(private val timeoutFrames: Int = 60 * 30) {
             else -> { tossed = true; Keys.A }
         }
         ItemMenus.Kind.TEXT_WAIT -> if (a is ItemAction.Toss) Keys.A else 0
-        ItemMenus.Kind.OTHER -> when {
+        ItemMenus.Kind.OTHER, ItemMenus.Kind.TEXT_BOX -> when {
             freeRoam && tossed -> DONE
             freeRoam -> NativeKeys.START
             else -> 0

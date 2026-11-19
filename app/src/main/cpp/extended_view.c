@@ -36,6 +36,14 @@
 #define TOGGLE_FLAGS  0xD5AA   /* bit = oggetto nascosto (indice globale) */
 #define TOGGLE_LIST   0xD5D2   /* coppie (sprite, indice globale) della mappa corrente, fine 0xFF */
 
+#define MAP_CONNECTIONS 0xD374  /* bit 3 = nord, bit 2 = sud; intestazioni da 11 byte a 0xD375 (nord) e 0xD380 (sud) */
+#define NORTH_HEADER    0xD375
+#define SOUTH_HEADER    0xD380
+#define WEST_HEADER     0xD38B
+#define EAST_HEADER     0xD396
+/* Tavolozze a colori del gioco nella ROM italiana (4 colori RGB555 per voce): città = numero del luogo + 1, strade = 0. */
+#define CGB_PALETTES    0x72B39
+
 #define FRAME_W 160
 #define FRAME_H 144
 
@@ -45,6 +53,10 @@ typedef struct {
     uint8_t map[1300];
     int w, h;               /* in blocchi, senza bordo */
     size_t blockset;        /* offset nella ROM */
+    /* Luoghi collegati a nord e a sud (D-059): oltre il bordo di 3 blocchi si leggono i loro blocchi dalla ROM. */
+    struct { bool ok; size_t src; int width, len, row0, col0; } conn[2];   /* 0 = nord, 1 = sud */
+    /* Luogo collegato in ogni direzione (0 nord, 1 sud, 2 ovest, 3 est; −1 se nessuno) e dove sta la sua striscia. */
+    int nb_map[4], nb_from[4], nb_len[4];
 } MapTiles;
 
 static uint8_t rd(GB_gameboy_t *gb, uint16_t a) { return GB_safe_read_memory(gb, a); }
@@ -63,14 +75,108 @@ static bool load_map(GB_gameboy_t *gb, MapTiles *mt) {
     mt->blockset = (size_t)bank * 0x4000 + (size_t)(ptr - 0x4000);
     int n = (mt->w + 6) * (mt->h + 6);
     for (int i = 0; i < n; i++) mt->map[i] = rd(gb, (uint16_t)(OVERWORLD_MAP + i));
-    return mt->blockset + 256 * 16 <= mt->rom_size;
+    if (mt->blockset + 256 * 16 > mt->rom_size) return false;
+    /* Collegamenti: la striscia del vicino (3 file di blocchi) è già nel bordo in memoria; il banco della ROM dove
+     * stanno i blocchi del vicino si trova cercando quella stessa striscia (l'intestazione non lo dice). */
+    uint8_t conns = rd(gb, MAP_CONNECTIONS);
+    int bw = mt->w + 6, bh = mt->h + 6;
+    static const uint16_t HEADERS[4] = { NORTH_HEADER, SOUTH_HEADER, WEST_HEADER, EAST_HEADER };
+    for (int d = 0; d < 4; d++) {
+        mt->nb_map[d] = -1;
+        if (!(conns & (0x08 >> d))) continue;
+        int dest = (rd(gb, HEADERS[d] + 3) | (rd(gb, HEADERS[d] + 4) << 8)) - OVERWORLD_MAP;
+        if (dest < 0 || dest >= bw * bh) continue;
+        mt->nb_map[d] = rd(gb, HEADERS[d]);
+        mt->nb_from[d] = d < 2 ? dest % bw : dest / bw;      /* colonna (nord/sud) o riga (ovest/est) d'inizio */
+        mt->nb_len[d] = rd(gb, HEADERS[d] + 5);
+    }
+    for (int d = 0; d < 2; d++) {
+        mt->conn[d].ok = false;
+        if (!(conns & (d == 0 ? 0x08 : 0x04))) continue;
+        uint16_t h = d == 0 ? NORTH_HEADER : SOUTH_HEADER;
+        int src = rd(gb, h + 1) | (rd(gb, h + 2) << 8);
+        int dest = (rd(gb, h + 3) | (rd(gb, h + 4) << 8)) - OVERWORLD_MAP;
+        int len = rd(gb, h + 5), width = rd(gb, h + 6);
+        if (src < 0x4000 || src > 0x7FFF || dest < 0 || len <= 0 || width <= 0 || width > 64) continue;
+        int row0 = dest / bw, col0 = dest % bw;
+        if (col0 + len > bw || (d == 0 && row0 != 0) || (d == 1 && row0 != bh - 3)) continue;
+        for (size_t bank = 1; bank * 0x4000 < mt->rom_size; bank++) {
+            size_t base = bank * 0x4000 + (size_t)(src - 0x4000);
+            if (base + 3 * (size_t)width + (size_t)len > mt->rom_size) break;
+            bool same = true;
+            for (int r = 0; r < 3 && same; r++)
+                for (int c = 0; c < len && same; c++)
+                    same = mt->rom[base + (size_t)r * width + c] == mt->map[(row0 + r) * bw + col0 + c];
+            if (same) {
+                mt->conn[d].ok = true; mt->conn[d].src = base; mt->conn[d].width = width; mt->conn[d].len = len;
+                mt->conn[d].row0 = row0; mt->conn[d].col0 = col0;
+                break;
+            }
+        }
+    }
+    return true;
+}
+
+/* Tavolozza a colori di un luogo all'aperto (come fa il gioco): città 0–10 → numero + 1, strade 12–36 → 0. */
+static int map_palette(int map) {
+    if (map >= 0 && map <= 0x0A) return map + 1;
+    if (map >= 0x0C && map <= 0x24) return 0;
+    return -1;
+}
+
+/* Luogo a cui appartiene il tile (tx, ty): quello attuale o uno collegato (strisce del bordo e oltre). */
+static int map_of_tile(const MapTiles *mt, int cur, int tx, int ty) {
+    int bw = mt->w + 6, bh = mt->h + 6;
+    int bx = floordiv(tx, 4), by = floordiv(ty, 4);
+    if (by < 3 && mt->nb_map[0] >= 0 && bx >= mt->nb_from[0] && bx < mt->nb_from[0] + mt->nb_len[0]) return mt->nb_map[0];
+    if (by >= bh - 3 && mt->nb_map[1] >= 0 && bx >= mt->nb_from[1] && bx < mt->nb_from[1] + mt->nb_len[1]) return mt->nb_map[1];
+    if (bx < 3 && mt->nb_map[2] >= 0 && by >= mt->nb_from[2] && by < mt->nb_from[2] + mt->nb_len[2]) return mt->nb_map[2];
+    if (bx >= bw - 3 && mt->nb_map[3] >= 0 && by >= mt->nb_from[3] && by < mt->nb_from[3] + mt->nb_len[3]) return mt->nb_map[3];
+    return cur;
+}
+
+static const uint32_t *place_colors_for(GB_gameboy_t *gb, const MapTiles *mt, uint32_t pc[64][4], bool known[64], int m) {
+    if (!known[m]) {
+        size_t o = CGB_PALETTES + 8 * (size_t)map_palette(m);
+        for (int c = 0; c < 4; c++) {
+            uint16_t rgb = mt->rom[o + 2 * c] | (mt->rom[o + 2 * c + 1] << 8);
+            pc[m][c] = GB_convert_rgb15(gb, rgb & 0x7FFF, false);
+        }
+        known[m] = true;
+    }
+    return pc[m];
+}
+
+/* Blocco del luogo collegato sopra (by < 0) o sotto (by >= bh) il bordo; −1 se non c'è. */
+static int connected_block(const MapTiles *mt, int bx, int by) {
+    int bh = mt->h + 6;
+    int d = by < 0 ? 0 : 1;
+    if (!mt->conn[d].ok) return -1;
+    int k = by - mt->conn[d].row0;            /* file rispetto alla prima della striscia */
+    if (k < -5 || k > 7) return -1;           /* oltre qualche blocco si resta sul bordo */
+    if (d == 1 && by < bh) return -1;
+    int c = bx - mt->conn[d].col0;
+    if (c < 0 || c >= mt->conn[d].len) return -1;
+    long a = (long)mt->conn[d].src + (long)k * mt->conn[d].width + c;
+    size_t bank_start = mt->conn[d].src & ~(size_t)0x3FFF;
+    if (a < (long)bank_start || a >= (long)(bank_start + 0x4000) || (size_t)a >= mt->rom_size) return -1;
+    return mt->rom[a];
 }
 
 /* Tile della mappa alla posizione (tx, ty) in tile, contando anche il bordo di 3 blocchi (12 tile). */
 static uint8_t map_tile(const MapTiles *mt, int tx, int ty) {
     int bw = mt->w + 6, bh = mt->h + 6;
     int bx = floordiv(tx, 4), by = floordiv(ty, 4);
-    uint8_t block = (bx >= 0 && by >= 0 && bx < bw && by < bh) ? mt->map[by * bw + bx] : mt->map[0];
+    int block;
+    if (bx >= 0 && by >= 0 && bx < bw && by < bh) block = mt->map[by * bw + bx];
+    else {
+        block = (by < 0 || by >= bh) && bx >= 0 && bx < bw ? connected_block(mt, bx, by) : -1;
+        /* senza luogo collegato: il blocco del bordo della stessa colonna (riga più vicina), come fa il gioco */
+        if (block < 0) {
+            int cx = bx < 0 ? 0 : (bx >= bw ? bw - 1 : bx), cy = by < 0 ? 0 : (by >= bh ? bh - 1 : by);
+            block = mt->map[cy * bw + cx];
+        }
+    }
     return mt->rom[mt->blockset + block * 16 + posmod(ty, 4) * 4 + posmod(tx, 4)];
 }
 
@@ -251,13 +357,35 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     }
     bool signed_tiles = !(lcdc & 0x10);
 
+    /* Colori per luogo (D-060): ogni luogo all'aperto si disegna sempre con la sua tavolozza, anche quando si vede da
+     * quello accanto; così passando il confine i colori non cambiano di colpo. Valgono i colori 1 e 2 (0 e 3, bianco e
+     * nero, sono uguali per tutti). */
+    uint32_t place_colors[64][4];
+    bool place_known[64] = {false};
+    int cur_pal = map_palette(map_id);
+    bool recolor = cur_pal >= 0 && mt.rom_size > CGB_PALETTES + 8 * 16;
+    #define PLACE_COLORS(m) (((m) >= 0 && (m) < 64 && map_palette(m) >= 0) ? place_colors_for(gb, &mt, place_colors, place_known, (m)) : NULL)
+
     /* 3. Disegno: righe sopra e sotto dalla mappa, al centro l'immagine originale. */
     for (int row = 0; row < out_h; row++) {
         int f = row - off_top;
         uint32_t *dst = out + (size_t)row * FRAME_W;
-        if (f >= 0 && f < FRAME_H) { memcpy(dst, frame + (size_t)f * FRAME_W, FRAME_W * sizeof(uint32_t)); continue; }
         int my = st->base_y + f;
         int ty = floordiv(my, 8), py = posmod(my, 8);
+        if (f >= 0 && f < FRAME_H) {
+            memcpy(dst, frame + (size_t)f * FRAME_W, FRAME_W * sizeof(uint32_t));
+            if (!recolor) continue;
+            /* immagine del gioco: i colori 1 e 2 della mappa si riportano a quelli del luogo a cui appartiene il tile */
+            const uint32_t *src_pal = colors[fallback];
+            for (int col = 0; col < FRAME_W; col++) {
+                if (dst[col] != src_pal[1] && dst[col] != src_pal[2]) continue;
+                int tx = floordiv(st->base_x + col, 8);
+                const uint32_t *pc = PLACE_COLORS(map_of_tile(&mt, map_id, tx, ty));
+                if (!pc) continue;
+                dst[col] = dst[col] == src_pal[1] ? pc[1] : pc[2];
+            }
+            continue;
+        }
         for (int col = 0; col < FRAME_W; col++) {
             int mx = st->base_x + col;
             int tx = floordiv(mx, 8), px = posmod(mx, 8);
@@ -269,7 +397,8 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
             int base = signed_tiles ? 0x1000 + (int8_t)tile * 16 : tile * 16;
             uint8_t lo = data[base + yy * 2], hi = data[base + yy * 2 + 1];
             int c = (((hi >> xx) & 1) << 1) | ((lo >> xx) & 1);
-            dst[col] = colors[attr & 7][c];
+            const uint32_t *pc = recolor && (c == 1 || c == 2) && (attr & 7) == fallback ? PLACE_COLORS(map_of_tile(&mt, map_id, tx, ty)) : NULL;
+            dst[col] = pc ? pc[c] : colors[attr & 7][c];
             st->bgidx[(size_t)row * FRAME_W + col] = (uint8_t)(c | (attr & 0x80));
         }
     }

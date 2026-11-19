@@ -29,9 +29,22 @@ class BoxMask(private val width: Int = NativeCore.WIDTH) {
     class Box(val x0: Int, val y0: Int, val x1: Int, val y1: Int)
 
     /** [boxesOnScreen]: ci sono riquadri da spostare (anche se non si possono coprire): l'immagine non si conserva. */
+    private fun blank(pixels: IntArray, height: Int, frameTop: Int): Boolean {
+        val end = minOf(pixels.size, (frameTop + 144).coerceAtMost(height) * width)
+        val start = frameTop * width
+        if (start >= end) return false
+        val first = pixels[start]
+        var i = start
+        while (i < end) { if (pixels[i] != first) return false; i += 7 }
+        return true
+    }
+
     fun apply(pixels: IntArray, height: Int, frameTop: Int, boxes: List<Box>, fallback: IntArray? = null, boxesOnScreen: Boolean = boxes.isNotEmpty()) {
         if (boxes.isEmpty()) {
             if (boxesOnScreen) return
+            // Le schermate tutte di un colore (passaggi tra scene, es. prima della lista dopo un KO) non si tengono:
+            // sotto i riquadri resterebbe un'immagine bianca.
+            if (blank(pixels, height, frameTop)) return
             if (frames++ % 8 == 0) {
                 val old = before
                 before = recent; beforeTop = recentTop

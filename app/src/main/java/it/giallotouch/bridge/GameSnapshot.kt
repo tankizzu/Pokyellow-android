@@ -81,3 +81,20 @@ enum class Status(val label: String) {
         }
     }
 }
+
+/** Pokémon nel box del PC (D-058): specie (indice del gioco), livello, soprannome. */
+data class BoxMon(val species: Int, val level: Int, val name: String)
+
+object BoxReader {
+    /** [block] copiato da [MemoryMapIt.BOX_COUNT] per [MemoryMapIt.BOX_BLOCK_SIZE] byte; lista vuota se non plausibile. */
+    fun read(block: ByteArray): List<BoxMon> {
+        val m = MemoryMapIt
+        fun u8(a: Int) = block[a - m.BOX_COUNT].toInt() and 0xFF
+        val n = u8(m.BOX_COUNT)
+        if (n > m.BOX_CAPACITY || u8(m.BOX_SPECIES + n) != 0xFF) return emptyList()
+        return (0 until n).map { i ->
+            val base = m.BOX_MONS + i * m.BOX_STRUCT_LENGTH
+            BoxMon(u8(base), u8(base + 3), TextCodec.decode(block, m.BOX_MON_NICKS + i * m.NAME_LENGTH - m.BOX_COUNT, m.NAME_LENGTH))
+        }.takeIf { l -> l.all { it.species != 0 && it.level in 1..100 } } ?: emptyList()
+    }
+}

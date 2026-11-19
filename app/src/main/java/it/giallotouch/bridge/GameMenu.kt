@@ -53,7 +53,9 @@ object MenuReader {
             return MenuState(MenuKind.BATTLE_MOVES, item = current - 1)
         }
         if (watchedKeys == 0x03 && maxItem == 1 && current <= 1 && tile(topX, topY + 2 * current) == CURSOR &&
-            tile(topX + 1, topY) == LETTER_S && tile(topX + 1, topY + 2) == LETTER_N) {
+            (tile(topX + 1, topY) == LETTER_S && tile(topX + 1, topY + 2) == LETTER_N ||
+                // CURA / ESCI dell'infermiera del Centro Pokémon: stessa scelta a due voci, mostrata come SÌ/NO (D-060)
+                tile(topX + 1, topY) == 0x82 && tile(topX + 2, topY) == 0x94 && tile(topX + 1, topY + 2) == 0x84 && tile(topX + 2, topY + 2) == 0x92)) {
             return MenuState(MenuKind.YES_NO, item = current)
         }
         if (watchedKeys == 0x0B && topY == 2 && topX == 1 && maxItem in 1..2 && current <= maxItem &&
