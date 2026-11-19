@@ -1285,7 +1285,7 @@ class ZzGlitchTest : AppScreensHarness() {
         s.stepPermits = java.util.concurrent.Semaphore(0)
         capture = false
         var saved = 0; var bad = 0
-        for (q in 0 until 700) {
+        for (q in 0 until 2200) {
             frames(4, "video")
             val (px, bmp) = grab()
             val h = px.size / 160
@@ -1295,8 +1295,14 @@ class ZzGlitchTest : AppScreensHarness() {
                 for (x in 0 until 160) { val c = px[y * 160 + x]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) > 150) { all = false; break } }
                 if (all) dark++
             }
+            // righine: una riga uniforme diversa dalle righe uniformi sopra e sotto
+            for (y in 1 until h - 1) {
+                fun uni(r: Int): Int? { val c = px[r * 160]; for (x in 1 until 160) if (px[r * 160 + x] != c) return null; return c }
+                val c = uni(y) ?: continue; val a = uni(y - 1) ?: continue; val b = uni(y + 1) ?: continue
+                if (a == b && c != a) dark++
+            }
             if (dark in 1 until h) { bad++; if (saved < 40 && q % 3 == 0) { saved++; FileOutputStream(File(shots, "vd-%03d-%d.png".format(q, dark))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) } } }
-            if (q % 25 == 0) FileOutputStream(File(shots, "vv-%03d.png".format(q))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            if (q % 25 == 0 || (q < 140 && q % 4 == 0) || (q > 700 && q % 5 == 0)) FileOutputStream(File(shots, "vv-%03d.png".format(q))).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
         println("DBGVD fotogrammi con righe scure: $bad")
     }

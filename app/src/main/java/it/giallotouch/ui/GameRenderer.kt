@@ -45,20 +45,24 @@ class GameRenderer(private val session: GameSession) {
      */
     private fun letterbox(frame: IntArray): Triple<Int, Int, Int>? {
         val black = frame[0]
-        fun uniform(row: Int, c: Int): Boolean {
-            for (x in 0 until NativeCore.WIDTH) if (frame[row * NativeCore.WIDTH + x] != c) return false
-            return true
+        // riga della banda: quasi tutta nera (la stella cadente di GAME FREAK può attraversarla)
+        fun band(row: Int): Boolean {
+            var n = 0
+            for (x in 0 until NativeCore.WIDTH) if (frame[row * NativeCore.WIDTH + x] == black) n++
+            return n * 4 >= NativeCore.WIDTH * 3
         }
-        if ((Color.red(black) + Color.green(black) + Color.blue(black)) > 120 || !uniform(0, black) || !uniform(NativeCore.HEIGHT - 1, black)) return null
+        if ((Color.red(black) + Color.green(black) + Color.blue(black)) > 120 || !band(0) || !band(NativeCore.HEIGHT - 1)) return null
         var r0 = 0
-        while (r0 < NativeCore.HEIGHT && uniform(r0, black)) r0++
+        while (r0 < NativeCore.HEIGHT && band(r0)) r0++
         var r1 = NativeCore.HEIGHT
-        while (r1 > r0 && uniform(r1 - 1, black)) r1--
+        while (r1 > r0 && band(r1 - 1)) r1--
         if (r0 < 8 || NativeCore.HEIGHT - r1 < 8 || r1 - r0 < 16) return null
         val bg = edgeColor(frame, r0)
         if (bg == black || edgeColor(frame, r1 - 1) != bg) return null
         return Triple(r0, r1, bg)
     }
+    private var bandBuf = IntArray(NativeCore.WIDTH * NativeCore.HEIGHT)
+
     private val src = Rect()
     /** Spazio in basso occupato dai pulsanti di lotta (pixel dello schermo), impostato dall'interfaccia. */
     var battleReservedBottomPx = 0
@@ -142,18 +146,20 @@ class GameRenderer(private val session: GameSession) {
         // Scene "a striscia" dell'introduzione (bande nere del gioco sopra e sotto, D-067): le bande prendono il colore
         // dello sfondo della scena, così anche queste sono a tutto schermo.
         val lb = letterbox(frame)
+        if (lb != null) {
+            // bande nere della scena col colore dello sfondo; quello che le attraversa (la stella) resta
+            System.arraycopy(frame, 0, bandBuf, 0, bandBuf.size)
+            val black = frame[0]
+            for (y in 0 until NativeCore.HEIGHT) if (y < lb.first || y >= lb.second)
+                for (x in 0 until NativeCore.WIDTH) { val i = y * NativeCore.WIDTH + x; if (bandBuf[i] == black) bandBuf[i] = lb.third }
+            frameBitmap.setPixels(gray(s, bandBuf, bandBuf.size), 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, NativeCore.HEIGHT)
+        }
         bandPaint.color = if (lb != null) lb.third else edgeColor(frame, 0)
         canvas.drawRect(0f, 0f, w.toFloat(), top.toFloat(), bandPaint)
         bandPaint.color = if (lb != null) lb.third else edgeColor(frame, NativeCore.HEIGHT - 1)
         canvas.drawRect(0f, (top + h).toFloat(), w.toFloat(), height.toFloat(), bandPaint)
         dst.set(0, top, w, top + h)
         canvas.drawBitmap(frameBitmap, null, dst, paint)
-        if (lb != null) {
-            bandPaint.color = lb.third
-            val unit = w.toFloat() / NativeCore.WIDTH
-            canvas.drawRect(0f, top.toFloat(), w.toFloat(), top + lb.first * unit, bandPaint)
-            canvas.drawRect(0f, top + lb.second * unit, w.toFloat(), (top + h).toFloat(), bandPaint)
-        }
         drawStartMenu(canvas, s, top, w)
         drawDialog(canvas, s, w)
     }
