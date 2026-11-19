@@ -71,6 +71,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var onHit: (() -> Unit)? = null
     private var lastEnemyHp = -1
     private var lastYellow = 0
+    private var titleWasShown = false
+    /** Fotogrammi fatti andare veloci nel bianco dopo START (per il banco di prova). */
+    @Volatile var fastFrames = 0
     /** Sprite dell'introduzione anche fuori dalle 144 righe (D-076), riga 0 del gioco alla riga [SPRITE_LAYER_TOP]. */
     val introSprites = AtomicReference<IntArray?>(null)
     /** Gli sprite dell'introduzione vanno disegnati anche sopra l'immagine del gioco (stelline di GAME FREAK). */
@@ -1045,7 +1048,15 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     // una volta per partita: grafica salvata per le schermate di scelta del file (D-066)
                     if (!tilesSaved && latestSnapshot.get().freeRoam && hasBoxTiles(sheetBuf)) { tilesSaved = true; storage.saveGameTiles(sheetBuf.copyOf()) }
                 }
-                if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                // Dopo START sul titolo il gioco resta bianco ~1,7 s mentre carica il salvataggio: quel tratto va veloce
+                // (D-079), così il menu iniziale compare prima.
+                if (titleShown) titleWasShown = true
+                if (inGame || mainMenuItems > 0) titleWasShown = false
+                val loadingWhite = titleWasShown && !titleShown && mainMenuItems == 0 && !inGame && back.all { it == back[0] }
+                if (loadingWhite && stepPermits == null) {
+                    fastFrames++
+                    nextFrameAt = SystemClock.elapsedRealtimeNanos()
+                } else if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
                     // La scrittura si blocca quando il buffer è pieno: tiene il gioco alla velocità giusta.
                     // Scelta di una mossa dall'app: il "bip" di LOTTA non si sente, solo quello della mossa (D-069).
                     if (executor.navigatingFight) java.util.Arrays.fill(audio, 0, count, 0.toShort())

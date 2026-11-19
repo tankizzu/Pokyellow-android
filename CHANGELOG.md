@@ -3,6 +3,7 @@
 ## 2026-11-19 – OPZIONI uniche, stelline fino in fondo (D-075, D-078)
 - OPZIONI: la stessa schermata dal menu iniziale e da START; le opzioni del gioco si cambiano col tocco; VIBRAZIONE sì/no.
 - Introduzione: le stelline colorate di GAME FREAK cadono fino in fondo allo schermo.
+- Menu iniziale più rapido dopo START (il bianco del caricamento va veloce, D-079).
 
 ## 2026-11-19 – introduzione senza stelle e Pikachu tagliati (D-076), bozza OPZIONI (D-075)
 - Stella di GAME FREAK intera quando entra; stelline colorate visibili fino in fondo; Pikachu interi (anche i piedi di Pikachu coi palloncini, fotogramma 1388).

@@ -1438,6 +1438,10 @@ class ZzGlitchTest : AppScreensHarness() {
         var k = 0
         while (!s.titleShown && k++ < 120) pump(500)
         pump(1500)
+        val t0 = System.nanoTime()
+        press(s, NativeCore.KEY_START)
+        waitFor(10_000) { s.mainMenuItems > 0 }
+        println("DBGOP menu iniziale dopo START in ${(System.nanoTime() - t0) / 1_000_000} ms, veloci ${s.fastFrames}, titolo ${s.titleShown} inGame ${s.inGame}")
         k = 0
         while (s.mainMenuItems == 0 && k++ < 10) { press(s, NativeCore.KEY_START); pump(1500) }
         pump(800)
@@ -1450,9 +1454,10 @@ class ZzGlitchTest : AppScreensHarness() {
         val before = s.gameOptions and 0x0F
         tapTile(4f, 8.5f)
         assertTrue("velocità cambiata", waitFor(3_000) { (s.gameOptions and 0x0F) != before })
-        pump(500)
-        val hf = GameSession::class.java.getDeclaredField("handle").apply { isAccessible = true }
-        assertEquals("scritta nel gioco", s.gameOptions, NativeCore.nativeReadMemory(hf.getLong(s), 0xD359))
+        val after = s.gameOptions
+        pump(800)
+        // gameOptions si rilegge dalla memoria del gioco a ogni fotogramma: se è rimasta uguale, la scrittura è nel gioco
+        assertEquals("scritta nel gioco", after, s.gameOptions)
         shot("op-opzioni-dopo")
     }
 
