@@ -537,6 +537,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 blackWhite = blackWhite,
                 onBlackWhite = { blackWhite = !blackWhite },
                 onBack = { optionsOpen = false },
+                gameOptions = session.gameOptions,
             )
         }
 

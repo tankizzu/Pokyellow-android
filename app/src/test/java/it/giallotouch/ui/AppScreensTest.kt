@@ -1331,6 +1331,22 @@ class ZzGlitchTest : AppScreensHarness() {
         println("DBGAN fotogrammi $n, immagini ${out.list()!!.size - 1}")
     }
 
+    /** OPZIONI dal menu iniziale: foto di com'è oggi (richiesta del committente, mockup). */
+    @Test fun opzioniIniziali() {
+        s = start(battery = "giallo.battery") ?: return assumeTrue(false)
+        var k = 0
+        while (!s.titleShown && k++ < 120) pump(500)
+        pump(1500)
+        k = 0
+        while (s.mainMenuItems == 0 && k++ < 10) { press(s, NativeCore.KEY_START); pump(1500) }
+        pump(800)
+        shot("op-menu")
+        val entries = it.giallotouch.bridge.StartMenuLayout.entries(s.mainMenuItems)
+        val frameTop = (root.height - 144 * unit) / 2 / (8 * unit)
+        tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(entries.indexOf(it.giallotouch.bridge.StartMenuLayout.Entry.OPZIONI)) + 0.5f)
+        for (i in 0 until 6) { pump(500); shot("op-opzioni-$i") }
+    }
+
     /** Introduzione dall'accensione (D-072): nessuna riga scura che attraversa lo schermo (bande nere o righine). */
     @Test fun video() {
         s = start() ?: return assumeTrue(false)

@@ -71,6 +71,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var onHit: (() -> Unit)? = null
     private var lastEnemyHp = -1
     private var lastYellow = 0
+    /** Opzioni del gioco (byte a 0xD359: velocità del testo, animazione, stile lotta, suono). */
+    @Volatile var gameOptions = 0x03
     private var lastPlayerHp = -1
 
     /** Tile del gioco (carattere, riquadri) per disegnare le aggiunte dell'app come il gioco (D-039); null all'inizio. */
@@ -871,6 +873,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     if ((lastEnemyHp in 1..999 && eh < lastEnemyHp) || (lastPlayerHp in 1..999 && ph < lastPlayerHp)) onHit?.invoke()
                     lastEnemyHp = eh; lastPlayerHp = ph
                 } else { lastEnemyHp = -1; lastPlayerHp = -1 }
+                gameOptions = NativeCore.nativeReadMemory(handle, MemoryMapIt.OPTIONS)
                 // Introduzione (D-073): a ogni lampo del Tuonoshock il Pikachu grande perde il giallo (bianco o nero):
                 // una vibrazione per lampo, a ritmo.
                 if (!inGame) {

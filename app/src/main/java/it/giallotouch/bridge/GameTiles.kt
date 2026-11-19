@@ -140,6 +140,7 @@ object GameText {
         ' ' to 0x7F, ':' to 0x9C, '/' to 0xF3, '.' to 0xE8, '?' to 0xE6, '!' to 0xE7, '▶' to 0xED, '▼' to 0xEE,
         'é' to 0xBC, '-' to 0xE3, '×' to 0xF1, ',' to 0xF4, '(' to 0x9A, ')' to 0x9B, '═' to 0x7A,
         'Ì' to 0xC8,   // "SÌ" del gioco italiano (0x92 0xC8 nella ROM)
+        'À' to 0xBE,   // "VELOCITÀ"
     )
 
     fun encode(s: String): IntArray = IntArray(s.length) { i ->
