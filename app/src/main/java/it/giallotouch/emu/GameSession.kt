@@ -769,6 +769,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     /** Solo per il banco di prova: con [stepPermits] il gioco avanza di un fotogramma per ogni permesso. */
     @Volatile var stepPermits: java.util.concurrent.Semaphore? = null
     @Volatile var stepDone: java.util.concurrent.Semaphore? = null
+    init {
+        // banco di prova: fotogramma per fotogramma fin dall'accensione (analisi dell'inizio)
+        if (testStepFromStart) { stepPermits = java.util.concurrent.Semaphore(0); stepDone = java.util.concurrent.Semaphore(0) }
+    }
 
     fun screenForTest(): Pair<ByteArray, ByteArray> {
         val v = ByteArray(MenuReader.MENU_VARS_SIZE); val t = ByteArray(MenuReader.SCREEN_SIZE)
@@ -1079,6 +1083,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }.onFailure { Log.e(TAG, "Audio non disponibile", it) }.getOrNull()
 
     companion object {
+        /** Solo per il banco di prova: la sessione nasce già in modalità fotogramma per fotogramma. */
+        @Volatile @JvmStatic var testStepFromStart = false
         private const val TAG = "GameSession"
         const val SAMPLE_RATE = 48000
         /** Il Game Boy disegna circa 59,73 fotogrammi al secondo. */

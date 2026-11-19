@@ -51,7 +51,9 @@ class GameRenderer(private val session: GameSession) {
             for (x in 0 until NativeCore.WIDTH) if (frame[row * NativeCore.WIDTH + x] == black) n++
             return n * 4 >= NativeCore.WIDTH * 3
         }
-        if ((Color.red(black) + Color.green(black) + Color.blue(black)) > 120 || !band(0) || !band(NativeCore.HEIGHT - 1)) return null
+        // bande nere; prima della partita anche di un altro colore (lampi del Tuonoshock: bande rosse o gialle)
+        val dark = (Color.red(black) + Color.green(black) + Color.blue(black)) <= 120
+        if ((!dark && session.inGame) || !band(0) || !band(NativeCore.HEIGHT - 1)) return null
         var r0 = 0
         while (r0 < NativeCore.HEIGHT && band(r0)) r0++
         var r1 = NativeCore.HEIGHT
@@ -62,6 +64,8 @@ class GameRenderer(private val session: GameSession) {
         return Triple(r0, r1, bg)
     }
     private var bandBuf = IntArray(NativeCore.WIDTH * NativeCore.HEIGHT)
+    /** Accensione finita: il gioco ha mostrato la prima immagine vera. */
+    private var bootDone = false
 
     private val src = Rect()
     /** Spazio in basso occupato dai pulsanti di lotta (pixel dello schermo), impostato dall'interfaccia. */
@@ -103,6 +107,19 @@ class GameRenderer(private val session: GameSession) {
             return
         }
         val frame = s.latestFrame.get()
+        if (!bootDone) {
+            // Accensione: finché il gioco non ha messo i suoi colori lo schermo è di un colore solo (viola) o in parte
+            // bianco; si mostra bianco come sul Game Boy, fino alla prima immagine vera (la scritta del copyright).
+            var other = 0
+            var only = true
+            for (c in frame) {
+                val white = Color.red(c) >= 240 && Color.green(c) >= 240 && Color.blue(c) >= 240
+                if (white) continue
+                if (other == 0) other = c
+                if (c != other || (Color.red(c) + Color.green(c) + Color.blue(c)) <= 120) { only = false; break }
+            }
+            if (only) { canvas.drawColor(Color.WHITE); return } else bootDone = true
+        }
         frameBitmap.setPixels(gray(s, frame, NativeCore.WIDTH * NativeCore.HEIGHT), 0, NativeCore.WIDTH, 0, 0, NativeCore.WIDTH, NativeCore.HEIGHT)
         if (s.namingShown) {
             // Schermata dei nomi del gioco: mai visibile, nemmeno per un attimo prima della schermata dell'app (D-046).

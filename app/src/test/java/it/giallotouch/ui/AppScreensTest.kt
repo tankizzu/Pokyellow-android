@@ -1278,6 +1278,59 @@ class ZzGlitchTest : AppScreensHarness() {
             FileOutputStream(File(shots, "fs-$label.png")).use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
     }
+    /**
+     * Analisi dell'inizio fotogramma per fotogramma (richiesta del committente): dall'accensione al menu iniziale.
+     * Salva in analisi/ un'immagine per ogni fotogramma diverso dal precedente (320 di larghezza) e indice.txt con
+     * "fotogramma file lampeggio fase"; il visore HTML si costruisce poi fuori dal repository.
+     */
+    @Test fun analisi() {
+        GameSession.testStepFromStart = true
+        try {
+            s = start(battery = "giallo.battery") ?: return assumeTrue(false)
+        } finally { GameSession.testStepFromStart = false }
+        val out = File(shots, "analisi").apply { deleteRecursively(); mkdirs() }
+        val index = StringBuilder()
+        var last: IntArray? = null; var file = ""; var n = 0
+        val win = ArrayDeque<IntArray>()
+        var fase = "accensione"
+        fun step(count: Int) {
+            repeat(count) {
+                s.stepPermits!!.release()
+                s.stepDone!!.tryAcquire(3, java.util.concurrent.TimeUnit.SECONDS)
+                shadowOf(Looper.getMainLooper()).idle()
+                n++
+                val b = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888); root.draw(Canvas(b))
+                val sm = Bitmap.createScaledBitmap(b, 320, root.height * 320 / root.width, false)
+                val px = IntArray(sm.width * sm.height); sm.getPixels(px, 0, sm.width, 0, 0, sm.width, sm.height)
+                if (last == null || !px.contentEquals(last)) {
+                    file = "f%05d.png".format(n)
+                    FileOutputStream(File(out, file)).use { sm.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    last = px
+                }
+                // lampeggio: un fotogramma diverso sia dal precedente sia dal successivo, che invece sono uguali
+                win.addLast(px); if (win.size > 3) win.removeFirst()
+                var blip = 0
+                if (win.size == 3) { val a = win[0]; val m = win[1]; val c = win[2]
+                    for (i in a.indices) if (m[i] != a[i] && m[i] != c[i] && a[i] == c[i]) blip++ }
+                val raw = s.latestFrame.get(); val rawWhite = raw.all { it == raw[0] }
+                index.append("$n $file $blip $fase ${if (rawWhite) "uniforme" else "immagine"} ${s.mainMenuItems} ${s.titleShown}\n")
+            }
+        }
+        step(60)
+        fase = "introduzione"
+        var k = 0
+        while (!s.titleShown && k++ < 120) step(30)
+        fase = "titolo"
+        step(240)
+        s.setKeys(NativeCore.KEY_START); step(6); s.setKeys(0)
+        fase = "menu"
+        k = 0
+        while (s.mainMenuItems == 0 && k++ < 20) { step(20); if (s.mainMenuItems == 0 && s.titleShown) { s.setKeys(NativeCore.KEY_START); step(6); s.setKeys(0) } }
+        step(90)
+        File(out, "indice.txt").writeText(index.toString())
+        println("DBGAN fotogrammi $n, immagini ${out.list()!!.size - 1}")
+    }
+
     /** Introduzione dall'accensione (D-072): nessuna riga scura che attraversa lo schermo (bande nere o righine). */
     @Test fun video() {
         s = start() ?: return assumeTrue(false)

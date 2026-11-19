@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-19 – analisi dell'inizio fotogramma per fotogramma (D-074)
+- All'accensione niente schermo viola: bianco fino al copyright.
+- Lampi finali del Tuonoshock senza bande rosse o gialle.
+
 ## 2026-11-19 – vibrazione nel Tuonoshock dell'introduzione (D-073)
 - Il telefono vibra a ritmo con i lampi del Tuonoshock di Pikachu.
 
