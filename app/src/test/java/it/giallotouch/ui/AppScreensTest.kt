@@ -1369,6 +1369,31 @@ class ZzGlitchTest : AppScreensHarness() {
     }
     private fun NativeCoreBattle(s: GameSession) = s.memoryForTest(0xD05B, 1)[0].toInt() != 0
 
+    /** Pozione su Pikachu fuori dalla lotta, fotogramma per fotogramma (-Pgiallo.state.bag=bagpotion.state). */
+    @Test fun pozione() {
+        s = start(auto = "giallo.state.bag") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        pump(1000)
+        println("DBGGL squadra ${s.latestSnapshot.get().party.map { it.name + " " + it.hp + "/" + it.maxHp }} borsa ${s.latestSnapshot.get().bag}")
+        s.stepDone = java.util.concurrent.Semaphore(0)
+        s.stepPermits = java.util.concurrent.Semaphore(0)
+        sheetTags += listOf("p-start", "p-borsa", "p-pozione", "p-usa", "p-pikachu", "p-dopo", "p-dopo2", "p-fine")
+        val r = rows().toFloat()
+        frames(10, "fermo")
+        tapTile(10f, r - 2f); frames(30, "p-start")
+        tapTile(4f, 36f); frames(30, "p-borsa")
+        tapTile(4f, 10f); frames(30, "p-pozione")
+        tapTile(4f, 37f); frames(40, "p-usa")
+        tapTile(4f, 9f); frames(48, "p-pikachu")
+        frames(48, "p-dopo")
+        for (i in 0 until 6) { tapTile(10f, 20f); frames(40, if (i == 0) "p-dopo2" else "p-tocco$i") }
+        frames(48, "p-fine")
+        s.stepPermits = null
+        println("DBGGL fotogrammi $n lampeggi $blips libero=${s.latestSnapshot.get().freeRoam}")
+    }
+
     @Test fun lampeggi() {
         s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
         pump(1500)

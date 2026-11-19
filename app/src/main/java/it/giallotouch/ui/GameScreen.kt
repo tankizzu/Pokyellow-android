@@ -185,7 +185,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
         if (game == null) { slots = session.savedSlots(); loadOpen = true } else session.command(GameCommand.MainMenu(game))
     }
     var sheet by remember { mutableStateOf<IntArray?>(null) }   // tile del gioco per le aggiunte "come il gioco"
-    var mapVisible by remember { mutableStateOf(false) }   // mappa vera sullo schermo in questo momento (START, D-067)
+    var mapVisible by remember { mutableStateOf(false) }
+    var battleLayout by remember { mutableStateOf(false) }   // scena di lotta divisa sullo schermo (D-070)
     // Tastiera del telefono per i nomi (D-029): in attesa di risposta dal gioco, o nascosta dopo un errore.
     var nameRequested by remember { mutableStateOf(false) }
     var namingDismissed by remember { mutableStateOf(false) }
@@ -197,6 +198,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             if (mm > 0 && lastMainMenu == 0) startCursor = 0
             lastMainMenu = mm
             snapshot = session.latestSnapshot.get()
+            battleLayout = session.battleSplit
             mapVisible = session.freeRoamNow && ((session.extendedActive && session.extendedIsMap) || session.extendedHeight <= NativeCore.HEIGHT)
             commandBusy = session.commandBusy
             inGame = session.inGame
@@ -469,7 +471,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         } else if (snapshot.inBattle && battleGameMenu) {
             // Squadra o borsa del gioco aperte in lotta: si usa il menu del gioco, senza i riquadri dell'app.
-        } else if (snapshot.inBattle && battleMon != null && sheet != null) {
+        } else if (snapshot.inBattle && battleMon != null && sheet != null && battleLayout) {
+            // Solo con la scena di lotta: dopo una cattura (scheda del Pokédex, soprannome) i riquadri spariscono (D-070).
             GameBattlePanel(
                 sheet = sheet!!,
                 moves = battleMon.moves.map { slot ->
