@@ -1534,8 +1534,26 @@ class ZzGlitchTest : AppScreensHarness() {
         // testi in sospeso, poi verso l'uscita (in basso)
         var k = 0
         while (!s.latestSnapshot.get().freeRoam && k++ < 60) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(26) }
+        // prima si parla col Professore (la persona più in alto), poi verso l'uscita
+        val g = s.mapGridForTest()
+        val oak = g?.people?.minByOrNull { it.second }
+        if (g != null && oak != null) {
+            val spot = g.interactionSpots(oak.first, oak.second).entries.firstOrNull { g.path(pos().second, pos().third, setOf(it.key)) != null }
+            if (spot != null) {
+                s.walkPathForTest(spot.key.first, spot.key.second)
+                k = 0
+                while (k++ < 300 && pos().let { it.second != spot.key.first || it.third != spot.key.second }) step(2)
+                s.setKeys(spot.value.key); step(6); s.setKeys(0); step(6)
+                s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(30)
+                k = 0
+                while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < 120) {
+                    if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); step(30) }
+                    else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(26) }
+                }
+            }
+        }
         val exit = s.warpsForTest().maxByOrNull { it.first }
-        if (exit != null) s.walkPathForTest(exit.second, exit.first - 2)
+        if (exit != null && !s.latestSnapshot.get().inBattle) s.walkPathForTest(exit.second, exit.first - 2)
         k = 0
         while (!s.latestSnapshot.get().inBattle && k++ < 400) {
             step(4)
