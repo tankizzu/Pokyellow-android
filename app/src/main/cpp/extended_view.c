@@ -314,6 +314,7 @@ static int title_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, 
     const uint8_t *bank0 = vram, *bank1 = vram + 0x2000;
     int bg_map = (lcdc & 0x08) ? 0x1C00 : 0x1800;
     if (bank0[bg_map + 17 * 32 + 2] != 0xE0 || bank0[bg_map + 17 * 32 + 3] != 0xE1 || bank0[bg_map + 17 * 32 + 4] != 0xE2) return 0;
+    if (rd(gb, 0xC3A0) == 0x79) return 0;   /* un riquadro (menu iniziale) sopra: non è più il titolo */
     int scy = rd(gb, 0xFF42), scx = rd(gb, 0xFF43);
     bool signed_tiles = !(lcdc & 0x10);
     uint32_t colors[8][4];
@@ -362,7 +363,7 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     int off_top = (frame_top < 0 || frame_top > out_h - FRAME_H) ? (out_h - FRAME_H) / 2 : frame_top;
     uint8_t lcdc = rd(gb, 0xFF40);
     if (!(lcdc & 0x80)) { st->valid = false; return 0; }
-    if (title_render(gb, frame, out, out_h, lcdc)) { st->valid = false; return 1; }
+    if (title_render(gb, frame, out, out_h, lcdc)) { st->valid = false; return 2; }   /* 2 = titolo */
 
     MapTiles mt;
     if (!load_map(gb, &mt)) { st->valid = false; return 0; }

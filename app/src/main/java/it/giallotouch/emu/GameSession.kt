@@ -81,6 +81,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         private set
     private var splitHold = 0
     private var extHold = 0
+    /** La vista estesa mostra la mappa (non la schermata del titolo a tutto schermo). */
+    @Volatile var extendedIsMap = false
+        private set
     private var tilesSaved = false
     private var mainHold = 0
     private var mainTail = 0
@@ -952,7 +955,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         extBack = latestExtended.getAndSet(extBack)
                     }
                 } else if (eh > NativeCore.HEIGHT) {
-                    val active = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop) == 1
+                    val rendered = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop)
+                    val active = rendered != 0
+                    extendedIsMap = rendered == 1
                     // Cambio di luogo: per qualche fotogramma la mappa nuova non si allinea ancora; si tiene l'ultima
                     // immagine buona invece di mostrare il riempimento (rettangolo di colore, D-067).
                     if (!active && extHold > 0 && !inBattleRaw && !trainerCardShown && mainMenuItems == 0) {
@@ -1010,7 +1015,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             val freeRoam = joyIgnore == 0 && !base.inBattle && FreeRoam.screenIsMap(tileMap)
             // In gioco solo con la mappa vera riconosciuta (vista estesa attiva): durante l'animazione iniziale
             // e il titolo lo schermo può sembrare "libero" ma non è una partita.
-            if (freeRoam && extendedActive) inGame = true
+            if (freeRoam && extendedActive && extendedIsMap) inGame = true
             val snapshot = base.copy(
                 menu = MenuReader.read(menuVars, tileMap), freeRoam = freeRoam, naming = naming,
                 cursorOnScreen = tileMap.any { (it.toInt() and 0xFF) == 0xED },

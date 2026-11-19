@@ -160,9 +160,10 @@ Java_it_giallotouch_emu_NativeCore_nativeRenderExtended(JNIEnv *env, jclass cls,
     (void)cls;
     Core *core = as_core(handle);
     if (height < HEIGHT || height > EXT_MAX_HEIGHT || (*env)->GetArrayLength(env, out) < WIDTH * height) return 0;
-    if (!ev_render(core->gb, core->pixels, core->ext, height, frameTop, &core->ev)) return 0;
+    int r = ev_render(core->gb, core->pixels, core->ext, height, frameTop, &core->ev);
+    if (!r) return 0;
     (*env)->SetIntArrayRegion(env, out, 0, WIDTH * height, (const jint *)core->ext);
-    return 1;
+    return r;   /* 1 = mappa, 2 = schermata del titolo */
 }
 
 /* Tile del gioco (carattere e riquadri) in un foglio 128×128 ARGB, con i colori dei riquadri di testo (D-039). */

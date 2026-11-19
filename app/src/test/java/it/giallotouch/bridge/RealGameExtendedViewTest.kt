@@ -36,7 +36,11 @@ class RealGameExtendedViewTest {
                 repeat(if (step == 1) 5 else 20) { NativeCore.nativeRunFrame(h, frame, audio) }
                 assertEquals("vista estesa attiva", 1, NativeCore.nativeRenderExtended(h, out, height, -1))
                 val top = (height - 144) / 2
-                assertArrayEquals(frame, out.copyOfRange(top * 160, (top + 144) * 160))
+                // al centro l'immagine del gioco; i luoghi all'aperto possono avere i colori delle strade (D-069):
+                // ogni colore del gioco corrisponde sempre allo stesso colore mostrato (stessa immagine)
+                val center = out.copyOfRange(top * 160, (top + 144) * 160)
+                val map = HashMap<Int, Int>()
+                for (i in frame.indices) assertEquals("stessa immagine", map.getOrPut(frame[i]) { center[i] }, center[i])
             }
         } finally { NativeCore.nativeDestroy(h) }
     }
