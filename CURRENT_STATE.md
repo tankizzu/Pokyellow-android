@@ -60,6 +60,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
   riquadro del gioco nascosto), verificato col banco di prova.
 - Richiesta del committente: cercare difetti, comparse sbagliate e luoghi che non si collegano. Corretto: vista
   estesa ai bordi tra luoghi collegati (D-059). Prove di tocchi lontano dalle persone: nessun dialogo indesiderato.
+- 19/11: Segnala (D-064) fatto e verificato; prova completa riuscita; APK 0.10.0-prototipo consegnato.
 - 19/11 mattina: risposte del committente (D-062) e mockup mosse e box (D-063): Box (scorrere a lato, LIBERA,
   AZIONI) e PC (AZIONI, BUTTA) fatti e verificati sul gioco vero; START e INDIETRO centrati, SÌ/NO simmetrici.
 - 19/11 notte, richieste del committente: colori coerenti tra Biancavilla e le strade (D-060), cura CURA/ESCI nello
