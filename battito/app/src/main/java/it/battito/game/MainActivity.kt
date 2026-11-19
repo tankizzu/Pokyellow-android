@@ -1,6 +1,7 @@
 package it.battito.game
 
 import android.app.Activity
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -11,6 +12,7 @@ import android.window.OnBackInvokedDispatcher
 
 class MainActivity : Activity() {
     private lateinit var game: GameView
+    private val audio = AudioEngine()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,7 +21,9 @@ class MainActivity : Activity() {
             window.attributes.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
-        game = GameView(this)
+        // i tasti volume del telefono regolano l'audio del gioco
+        volumeControlStream = AudioManager.STREAM_MUSIC
+        game = GameView(this, audio)
         setContentView(game)
         game.requestFocus()
 
@@ -38,11 +42,13 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         hideSystemBars()
+        audio.start()
         game.resume()
     }
 
     override fun onPause() {
         game.pause()
+        audio.stop()
         super.onPause()
     }
 

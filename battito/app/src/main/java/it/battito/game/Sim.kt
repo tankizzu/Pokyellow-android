@@ -12,6 +12,8 @@ import kotlin.math.floor
  *  C  blocco CIANO   (solido solo quando sei ciano)
  *  M  blocco MAGENTA (solido solo quando sei magenta)
  *  ^  spuntone a terra      v  spuntone appeso
+ *  c  spuntone CIANO   (punge solo se sei ciano)
+ *  m  spuntone MAGENTA (punge solo se sei magenta)
  *  p  pedana di lancio      o  anello di salto (tocca mentre lo attraversi)
  */
 class Level(val name: String, rowsTopToBottom: List<String>) {
@@ -49,9 +51,11 @@ class Level(val name: String, rowsTopToBottom: List<String>) {
  */
 class Sim(val level: Level) {
     companion object {
-        const val SPEED = 9f        // tile al secondo
+        const val BPM = 128f
+        /** 4 tile per battito: una battuta (4/4) = 16 colonne del livello. */
+        const val SPEED = 4f * BPM / 60f
         const val GRAVITY = 90f     // tile/s²
-        const val JUMP_V = 20.3f    // salto ≈ 2,3 tile di altezza, ≈ 4 tile di lunghezza
+        const val JUMP_V = 20.3f    // salto ≈ 2,3 tile di altezza, ≈ 3,9 tile di lunghezza
         const val PAD_V = 26f       // pedana ≈ 3,7 tile
         const val ORB_V = 19f
         const val MAX_FALL = 28f
@@ -87,6 +91,9 @@ class Sim(val level: Level) {
         x = o.x; y = o.y; vy = o.vy; grounded = o.grounded; phase = o.phase
         alive = o.alive; won = o.won; held = o.held; fresh = o.fresh; lastEvent = o.lastEvent
     }
+
+    /** Solo per le foto di prova: mette il cubo in un punto del livello. */
+    internal fun debugPlace(px: Float, py: Float, ph: Int) { x = px; y = py; phase = ph; grounded = py == 0f }
 
     fun setHold(h: Boolean) {
         if (h && !held) fresh = true
@@ -143,6 +150,8 @@ class Sim(val level: Level) {
         for (tx in x0..x1) for (ty in y0..y1) {
             when (level.at(tx, ty)) {
                 '^' -> if (hits(tx + 0.3f, ty + 0f, tx + 0.7f, ty + 0.55f)) { alive = false; return }
+                'c' -> if (phase == 0 && hits(tx + 0.3f, ty + 0f, tx + 0.7f, ty + 0.55f)) { alive = false; return }
+                'm' -> if (phase == 1 && hits(tx + 0.3f, ty + 0f, tx + 0.7f, ty + 0.55f)) { alive = false; return }
                 'v' -> if (hits(tx + 0.3f, ty + 0.45f, tx + 0.7f, ty + 1f)) { alive = false; return }
                 'p' -> if (hits(tx + 0f, ty + 0f, tx + 1f, ty + 0.3f) && vy < PAD_V) {
                     vy = PAD_V; grounded = false; lastEvent = Event.PAD

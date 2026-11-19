@@ -13,9 +13,9 @@ class LevelSolvableTest {
 
     private var furthest = 0f
 
-    private fun solve(level: Level): IntArray? {
+    private fun solve(level: Level, framesPerDecision: Int = 1): IntArray? {
         furthest = 0f
-        val frames = ((level.width / Sim.SPEED) * 60).toInt() + 120
+        val frames = ((level.width / Sim.SPEED) * 60).toInt() / framesPerDecision + 120
         val path = IntArray(frames)
         val visited = HashSet<Long>()
         var found = false
@@ -36,7 +36,7 @@ class LevelSolvableTest {
                 val n = Sim(level).also { it.copyFrom(s) }
                 n.setHold(c and 1 != 0)
                 if (c and 2 != 0) n.togglePhase()
-                repeat(4) { n.step() }
+                repeat(4 * framesPerDecision) { n.step() }
                 path[f] = c
                 if (dfs(n, f + 1)) return true
             }
@@ -53,6 +53,15 @@ class LevelSolvableTest {
         for (level in Levels.all) {
             val path = solve(level)
             assertNotNull("Il livello '${level.name}' non è completabile: il bot arriva al massimo alla colonna ${furthest.toInt()} di ${level.width}", path)
+        }
+    }
+
+    /** Decisioni solo ogni 4 fotogrammi (≈67 ms): niente passaggi "al fotogramma esatto". */
+    @Test
+    fun ogniLivelloECompletabileConRiflessiUmani() {
+        for (level in Levels.all) {
+            val path = solve(level, framesPerDecision = 4)
+            assertNotNull("Il livello '${level.name}' richiede precisione al fotogramma: il bot (15 decisioni/s) arriva alla colonna ${furthest.toInt()} di ${level.width}", path)
         }
     }
 
