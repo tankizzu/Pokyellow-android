@@ -578,6 +578,28 @@ class AppForgetMoveTest : AppScreensHarness() {
     }
 }
 
+/** NON IMPARARE (D-085): B nel gioco, poi SÌ alla conferma → le mosse restano quelle di prima. */
+class AppKeepMovesTest : AppScreensHarness() {
+    @Test fun nonImparare() {
+        val s = start(auto = "giallo.state.mossa") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        pump(1500)
+        tapTile(5f, 39f)          // SÌ (dimenticare una mossa)
+        assertTrue(waitFor(5_000) { s.forgetMoves != null })
+        pump(600)
+        tapTile(10f, 10.5f)       // NON IMPARARE
+        assertTrue("domanda di conferma", waitFor(8_000) { s.yesNo != null })
+        shot("63-non-imparare-conferma")
+        tapTile(5f, 39f)          // SÌ: non impara
+        var k = 0
+        while (k++ < 20 && !s.battleMenuShown) { pump(400); if (s.yesNo == null && s.forgetMoves == null) press(s, NativeCore.KEY_A) }
+        shot("64-non-imparare-dopo")
+        val ids = s.latestSnapshot.get().party.first().moves.map { it.id }
+        assertEquals("mosse di prima", listOf(84, 45, 39, 86), ids)
+    }
+}
+
 class AppTrainerScreenTest : AppScreensHarness() {
     @Test fun scheda() = schedaAllenatore()
 }
