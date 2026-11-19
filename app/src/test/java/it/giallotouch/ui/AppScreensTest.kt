@@ -1500,7 +1500,8 @@ class ZzGlitchTest : AppScreensHarness() {
                 if (win.size == 3) { val a = win[0]; val m = win[1]; val c = win[2]
                     for (i in a.indices) if (m[i] != a[i] && m[i] != c[i] && a[i] == c[i]) blip++ }
                 val raw = s.latestFrame.get(); val rawWhite = raw.all { it == raw[0] }
-                index.append("$n $file $blip $fase ${if (rawWhite) "uniforme" else "immagine"} ${s.mainMenuItems} ${s.titleShown}\n")
+                index.append("$n $file $blip $fase ${if (rawWhite) "uniforme" else "immagine"} ${s.mainMenuItems} ${s.titleShown} " +
+                    "lotta=${s.latestSnapshot.get().inBattle} divisa=${s.battleSplit} dialogo=${s.dialogStrip != null} estesa=${s.latestExtended.get().active} libero=${s.freeRoamNow}\n")
             }
         }
         body(step) { fase = it }
