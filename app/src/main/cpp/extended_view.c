@@ -137,7 +137,9 @@ static int map_of_tile(const MapTiles *mt, int cur, int tx, int ty) {
 
 static const uint32_t *place_colors_for(GB_gameboy_t *gb, const MapTiles *mt, uint32_t pc[64][4], bool known[64], int m) {
     if (!known[m]) {
-        size_t o = CGB_PALETTES + 8 * (size_t)map_palette(m);
+        /* D-069: tutti i luoghi all'aperto con i colori delle strade (Biancavilla e le città come la strada):
+         * nessun cambio di colore ai confini. */
+        size_t o = CGB_PALETTES;   /* voce 0 = strade */
         for (int c = 0; c < 4; c++) {
             uint16_t rgb = mt->rom[o + 2 * c] | (mt->rom[o + 2 * c + 1] << 8);
             pc[m][c] = GB_convert_rgb15(gb, rgb & 0x7FFF, false);
@@ -379,8 +381,12 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     /* Solo con i colori normali del luogo: durante una dissolvenza (tavolozza che cambia) non si ricolora niente,
      * altrimenti tutto il bianco diventa il colore del luogo (riquadro viola, D-067). */
     if (recolor) {
-        const uint32_t *cp = PLACE_COLORS(map_id);
-        recolor = cp && cp[1] == colors[fallback][1] && cp[2] == colors[fallback][2] && colors[fallback][0] != colors[fallback][1];
+        /* tavolozza che il gioco usa adesso per questo luogo (città = numero + 1): se in memoria video c'è altro, è una
+         * dissolvenza */
+        size_t o = CGB_PALETTES + 8 * (size_t)cur_pal;
+        uint32_t game1 = GB_convert_rgb15(gb, (mt.rom[o + 2] | (mt.rom[o + 3] << 8)) & 0x7FFF, false);
+        uint32_t game2 = GB_convert_rgb15(gb, (mt.rom[o + 4] | (mt.rom[o + 5] << 8)) & 0x7FFF, false);
+        recolor = game1 == colors[fallback][1] && game2 == colors[fallback][2] && colors[fallback][0] != colors[fallback][1];
     }
 
     /* 3. Disegno: righe sopra e sotto dalla mappa, al centro l'immagine originale. */

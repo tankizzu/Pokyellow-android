@@ -324,7 +324,10 @@ fun GameScreen(session: GameSession, settings: Settings) {
                                     // Con la vista estesa si possono toccare anche persone e cartelli sopra e sotto l'inquadratura originale.
                                     // Il personaggio si muove solo con la levetta (D-049): un tocco ovunque, vicino a una
                                     // persona o a un cartello, fa partire il dialogo; altrimenti è il tasto A.
-                                    if (s.freeRoam) session.talkNearby() else tapped = NativeCore.KEY_A
+                                    // Con una scelta sullo schermo (SÌ/NO, menu col cursore, mosse) un tocco nel vuoto non fa
+                                    // niente: non si risponde mai "sì" per sbaglio (D-069). Si sceglie solo toccando la voce.
+                                    if (session.choiceOnScreen) Unit
+                                    else if (s.freeRoam) session.talkNearby() else tapped = NativeCore.KEY_A
                                 }
                                 break
                             }

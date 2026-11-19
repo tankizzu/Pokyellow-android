@@ -147,6 +147,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var cardLiveFrames = 0
     private var cardOpenCalm = 0
     /** La scheda allenatore si sta aprendo (l'app mostra ancora la mappa e il riquadro START, D-065). */
+    /** Sullo schermo c'è una scelta (cursore ▶ di un menu del gioco, SÌ/NO, nomi, PC, mosse): niente tasto A nel vuoto. */
+    @Volatile var choiceOnScreen = false
+        private set
     /** Si cammina liberamente in questo fotogramma (l'istantanea della memoria è più lenta, ogni 15 fotogrammi). */
     @Volatile var freeRoamNow = false
         private set
@@ -484,7 +487,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, tileMap)
         val free = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 &&
             NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && FreeRoam.screenIsMap(tileMap)
-        if (!free) { pendingA = 8; return }
+        if (!free) {
+            // tocco durante un dialogo = A; con un menu o una domanda sullo schermo, niente (D-069)
+            if (tileMap.none { (it.toInt() and 0xFF) == 0xED }) pendingA = 8
+            return
+        }
         val grid = MapGrid.build(::readBytes, rom) ?: run { pendingA = 8; return }
         val px = NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD)
         val py = NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD)
@@ -829,6 +836,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val cardRaw = ItemMenus.trainerCard(frameTiles)
                 val mapNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles)
                 freeRoamNow = mapNow && !inBattleRaw
+                choiceOnScreen = frameTiles.any { (it.toInt() and 0xFF) == 0xED } || frameMenu.kind == MenuKind.YES_NO
                 if (cardClosing > 0) {
                     cardCalm = if (mapNow && !cardRaw && closingFrames == 0) cardCalm + 1 else 0
                     cardClosing = if (cardCalm >= 8) 0 else cardClosing - 1
@@ -880,7 +888,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 var dialog = !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = dialog || yn != null || nameList != null || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
+                val onScreen = (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight)) || dialog || yn != null || nameList != null || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
                     ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 // Senza immagine di prima: nelle scene senza mappa (introduzione, sfondo uniforme) il posto del dialogo si
                 // riempie col colore dello sfondo; sulla mappa il dialogo resta al suo posto.
@@ -905,6 +913,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     // Nomi proposti: lo sfondo della scena è uniforme; con l'immagine di prima comparivano pezzi del
                     // personaggio che entra scorrendo (D-067). Si riempie col colore dello sfondo, anche la colonna accanto.
                     if (nameList != null) add(BoxMask.Box(0, 0, 11, 11, fill = back[NativeCore.WIDTH - 1]))
+                    // Mosse del gioco: il riquadro TIPO / PP compare sulla scena; l'app mostra già le mosse (D-069).
+                    if (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight) && frameMask.ready) add(BoxMask.Box(0, 8, 10, 11))
                     if (pcChoice.isNotEmpty() && frameMask.ready) add(BoxMask.Box(0, 0, 15, 9))
                     if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
                     if (dialog) add(if (frameMask.ready) BoxMask.Box(0, 12, 19, 17) else BoxMask.Box(0, 12, 19, 17, fill = back[0]))
@@ -956,6 +966,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 }
                 if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
                     // La scrittura si blocca quando il buffer è pieno: tiene il gioco alla velocità giusta.
+                    // Scelta di una mossa dall'app: il "bip" di LOTTA non si sente, solo quello della mossa (D-069).
+                    if (executor.navigatingFight) java.util.Arrays.fill(audio, 0, count, 0.toShort())
                     track.write(audio, 0, count)
                 } else {
                     nextFrameAt += FRAME_NANOS

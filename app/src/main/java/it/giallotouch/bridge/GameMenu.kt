@@ -119,6 +119,8 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
     private var stable = 0
 
     val busy: Boolean get() = command != null
+    /** Sta ancora attraversando i menu prima del tasto finale di una mossa (LOTTA → mossa): suoni da tacere (D-069). */
+    val navigatingFight: Boolean get() = command is GameCommand.Fight && !finishing
 
     fun start(cmd: GameCommand) {
         command = cmd
