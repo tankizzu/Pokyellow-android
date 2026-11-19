@@ -652,6 +652,7 @@ class AppNameListTest : AppScreensHarness() {
             var k = 0
             while (s.nameList == null && k++ < 80) tapTile(15f, 30f)
             val names = s.nameList
+            if (names == null) shot("30-lista-nomi-manca-$round")
             assertTrue("lista dei nomi ${round + 1}", names != null)
             assertTrue("riquadri dell'app", shotUntil("30-lista-nomi-$round") { b -> boxAt(b, 0, 15, 11, 11) && boxAt(b, 3, 28, 14, 5) })
             tapTile(4f, 17.5f)                   // primo nome pronto

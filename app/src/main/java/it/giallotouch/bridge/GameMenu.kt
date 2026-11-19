@@ -147,7 +147,13 @@ class CommandExecutor(private val timeoutFrames: Int = 360) {
         if (cooldown > 0) { cooldown--; return 0 }
         if (finishing) { cancel(); return 0 }
         // Un menu appena comparso (o cambiato) non ascolta subito i tasti: si aspetta che resti uguale per un po'.
-        if (direct && lastMenu == null) { lastMenu = menu; stable = 0; settleNeeded = 0 }
+        if (direct) {
+            // scelta diretta: il cursore è già nella memoria del gioco (la freccia sullo schermo non è ancora ridisegnata
+            // e il menu potrebbe non essere riconosciuto): si preme subito A
+            direct = false
+            heldKey = Keys.A; holdFrames = HOLD - 1; cooldown = RELEASE; finishing = true
+            return heldKey
+        }
         if (menu != lastMenu) { settleNeeded = if (lastMenu?.kind == menu.kind) SETTLE_MOVE else SETTLE; lastMenu = menu; stable = 0; return 0 }
         if (++stable < settleNeeded) return 0
         val decision = decide(cmd, menu) ?: return 0

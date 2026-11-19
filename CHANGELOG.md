@@ -2,6 +2,7 @@
 
 ## 2026-11-19 – mossa da dimenticare (D-085)
 - Quando un Pokémon vuole imparare una quinta mossa: riquadro dell'app con le 4 mosse (tocco = dimentica) e NON IMPARARE.
+- Dialoghi: niente pezzi di mappa nel riquadro prima che compaia; scelta dei nomi sempre immediata (D-086).
 
 ## 2026-11-19 – tendina prima della lotta coi colori giusti (D-083)
 - Prima della lotta la tendina nera copre la mappa coi colori della strada (niente più colori viola di Biancavilla).
