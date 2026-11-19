@@ -1283,17 +1283,59 @@ class ZzGlitchTest : AppScreensHarness() {
      * Salva in analisi/ un'immagine per ogni fotogramma diverso dal precedente (320 di larghezza) e indice.txt con
      * "fotogramma file lampeggio fase"; il visore HTML si costruisce poi fuori dal repository.
      */
-    @Test fun analisi() {
+    @Test fun analisi() = registra("analisi") { step, fase ->
+        step(60)
+        fase("introduzione")
+        var k = 0
+        while (!s.titleShown && k++ < 120) step(30)
+        fase("titolo")
+        step(240)
+        s.setKeys(NativeCore.KEY_START); step(6); s.setKeys(0)
+        fase("menu")
+        k = 0
+        while (s.mainMenuItems == 0 && k++ < 20) { step(20); if (s.mainMenuItems == 0 && s.titleShown) { s.setKeys(NativeCore.KEY_START); step(6); s.setKeys(0) } }
+        step(90)
+    }
+
+    /**
+     * Analisi di NUOVO GIOCO fotogramma per fotogramma: dal menu iniziale (introduzione saltata con START) al
+     * discorso del Professore, ai nomi e alla cameretta, finché si cammina.
+     */
+    @Test fun analisiNuovoGioco() = registra("analisi2") { step, fase ->
+        var k = 0
+        while (s.mainMenuItems == 0 && k++ < 200) { s.setKeys(NativeCore.KEY_START); step(4); s.setKeys(0); step(26) }
+        fase("menu")
+        step(40)
+        val frameTop = (root.height - 144 * unit) / 2 / (8 * unit)
+        tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(it.giallotouch.bridge.StartMenuLayout.entries(s.mainMenuItems).size - 1) + 0.5f)
+        fase("professore")
+        step(120)
+        var named = 0
+        for (i in 0 until 260) {
+            if (s.inGame) break
+            if (s.nameList != null) { fase("nomi"); tapTile(4f, 17.5f); named++; step(90) }
+            else if (s.yesNo != null) { tapTile(14f, 39f); step(60) }
+            else { fase(if (named >= 2) "partenza" else "professore"); s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(41) }
+        }
+        fase("cameretta")
+        step(120)
+    }
+
+    /**
+     * Registra ogni fotogramma (sessione in passo a passo dall'accensione) in [dir]: un'immagine per ogni fotogramma
+     * diverso dal precedente (320 di larghezza) e indice.txt "fotogramma file lampeggio fase stato menu titolo".
+     */
+    private fun registra(dir: String, body: (step: (Int) -> Unit, fase: (String) -> Unit) -> Unit) {
         GameSession.testStepFromStart = true
         try {
             s = start(battery = "giallo.battery") ?: return assumeTrue(false)
         } finally { GameSession.testStepFromStart = false }
-        val out = File(shots, "analisi").apply { deleteRecursively(); mkdirs() }
+        val out = File(shots, dir).apply { deleteRecursively(); mkdirs() }
         val index = StringBuilder()
         var last: IntArray? = null; var file = ""; var n = 0
         val win = ArrayDeque<IntArray>()
         var fase = "accensione"
-        fun step(count: Int) {
+        val step: (Int) -> Unit = { count ->
             repeat(count) {
                 s.stepPermits!!.release()
                 s.stepDone!!.tryAcquire(3, java.util.concurrent.TimeUnit.SECONDS)
@@ -1307,34 +1349,17 @@ class ZzGlitchTest : AppScreensHarness() {
                     FileOutputStream(File(out, file)).use { sm.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     last = px
                 }
-                // lampeggio: un fotogramma diverso sia dal precedente sia dal successivo, che invece sono uguali
                 win.addLast(px); if (win.size > 3) win.removeFirst()
                 var blip = 0
                 if (win.size == 3) { val a = win[0]; val m = win[1]; val c = win[2]
                     for (i in a.indices) if (m[i] != a[i] && m[i] != c[i] && a[i] == c[i]) blip++ }
-                if (false && n in 1385..1390) {
-                    val hf = GameSession::class.java.getDeclaredField("handle").apply { isAccessible = true }
-                    val oam = ByteArray(160); NativeCore.nativeReadRange(hf.getLong(s), 0xFE00, oam)
-                    println("DBGOAM $n lcdc=" + Integer.toHexString(NativeCore.nativeReadMemory(hf.getLong(s), 0xFF40)) + " scy=" + NativeCore.nativeReadMemory(hf.getLong(s), 0xFF42) + " " + (0 until 40).filter { oam[it * 4].toInt() and 0xFF != 0 && oam[it * 4].toInt() and 0xFF != 160 }
-                        .joinToString(" ") { "${oam[it * 4].toInt() and 0xFF},${oam[it * 4 + 1].toInt() and 0xFF},${(oam[it * 4 + 2].toInt() and 0xFF).toString(16)}" })
-                }
                 val raw = s.latestFrame.get(); val rawWhite = raw.all { it == raw[0] }
                 index.append("$n $file $blip $fase ${if (rawWhite) "uniforme" else "immagine"} ${s.mainMenuItems} ${s.titleShown}\n")
             }
         }
-        step(60)
-        fase = "introduzione"
-        var k = 0
-        while (!s.titleShown && k++ < 120) step(30)
-        fase = "titolo"
-        step(240)
-        s.setKeys(NativeCore.KEY_START); step(6); s.setKeys(0)
-        fase = "menu"
-        k = 0
-        while (s.mainMenuItems == 0 && k++ < 20) { step(20); if (s.mainMenuItems == 0 && s.titleShown) { s.setKeys(NativeCore.KEY_START); step(6); s.setKeys(0) } }
-        step(90)
+        body(step) { fase = it }
         File(out, "indice.txt").writeText(index.toString())
-        println("DBGAN fotogrammi $n, immagini ${out.list()!!.size - 1}")
+        println("DBGAN $dir fotogrammi $n, immagini ${out.list()!!.size - 1}")
     }
 
     /** OPZIONI dal menu iniziale: foto di com'è oggi (richiesta del committente, mockup). */
