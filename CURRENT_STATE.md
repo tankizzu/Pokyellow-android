@@ -41,7 +41,8 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 1. In attesa del committente: conferma del mockup OPZIONI (D-075: poi voci GIOCO modificabili, VIBRAZIONE attiva e
    OPZIONI del menu iniziale verso la stessa schermata); altri fotogrammi da correggere nel video dell'inizio; mockup
    dei menu del PC; prova dell'APK 0.12.4 sul telefono.
-2. Poi: stessa analisi fotogramma per fotogramma per NUOVO GIOCO (discorso del Professore, nomi, cameretta); partita
+2. Analisi di NUOVO GIOCO fatta (D-077): in attesa dei fotogrammi segnalati dal committente e della scelta sulle
+   dissolvenze colorate. Poi: partita
    automatica fino a far crescere Pikachu (mossa da dimenticare, mosse fuori lotta).
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
