@@ -806,6 +806,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         return ok
     }
 
+    /** Solo per il banco di prova: scrive un byte nella memoria del gioco. */
+    fun writeMemoryForTest(address: Int, value: Int) { runOnGameThread { NativeCore.nativeWriteMemory(handle, address, value) } }
+
     /** Solo per il banco di prova: legge [n] byte di memoria da [address]. */
     fun memoryForTest(address: Int, n: Int): ByteArray {
         val b = ByteArray(n)
@@ -1042,7 +1045,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     // personaggio che entra scorrendo (D-067). Si riempie col colore dello sfondo, anche la colonna accanto.
                     if (nameList != null) add(BoxMask.Box(0, 0, 11, 11, fill = back[NativeCore.WIDTH - 1]))
                     // Mosse del gioco: il riquadro TIPO / PP compare sulla scena; l'app mostra già le mosse (D-069).
-                    if (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight) && frameMask.ready) add(BoxMask.Box(0, 8, 10, 11))
+                    // Anche quando resta sotto un messaggio ("Non hai più PP per questa mossa!"): si riconosce dalla scritta TIPO/.
+                    val tipoBox = (frameTiles[9 * 20 + 1].toInt() and 0xFF) == 0x93 && (frameTiles[9 * 20 + 2].toInt() and 0xFF) == 0x88 &&
+                        (frameTiles[9 * 20 + 3].toInt() and 0xFF) == 0x8F
+                    if (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight || tipoBox) && frameMask.ready) add(BoxMask.Box(0, 8, 10, 11))
                     if (pcChoice.isNotEmpty() && frameMask.ready) add(BoxMask.Box(0, 0, 15, 9))
                     if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
                     if (dialog) add(if (frameMask.ready) BoxMask.Box(0, 12, 19, 17) else BoxMask.Box(0, 12, 19, 17, fill = back[0]))

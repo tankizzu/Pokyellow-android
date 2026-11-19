@@ -538,6 +538,21 @@ class AppBattleScreenTest : AppScreensHarness() {
     @Test fun schermataLotta() = lotta()
 }
 
+/** Mossa senza PP (D-084): "Non hai più PP per questa mossa!" senza il riquadro TIPO/PP del gioco sulla scena. */
+class AppNoPpTest : AppScreensHarness() {
+    @Test fun senzaPP() {
+        val s = start(auto = "giallo.state") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        assertTrue("menu di lotta", waitFor(20_000) { s.battleMenuShown && !s.commandBusy })
+        s.writeMemoryForTest(0xD018 + 25, 0)   // PP della prima mossa del Pokémon in campo
+        pump(300)
+        tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f)
+        pump(2500)
+        shot("50-senza-pp")
+    }
+}
+
 class AppTrainerScreenTest : AppScreensHarness() {
     @Test fun scheda() = schedaAllenatore()
 }
