@@ -550,8 +550,10 @@ int ev_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int top) {
             falling = nfall > 0; fall_off = 0;
         }
     }
+    if (falling && !gf) { falling = false; nfall = 0; frozen = 0; last_sum = -1; }
     if (falling) {
-        fall_off += 3;
+        static int tick = 0;
+        if (++tick % 3 == 0) fall_off += 1;   /* stessa velocità del gioco: 1 pixel ogni 3 fotogrammi */
         int alive = 0;
         for (int k = 0; k < nfall; k++) {
             for (int py = 0; py < 8; py++) for (int px = 0; px < 8; px++) {
@@ -578,6 +580,7 @@ int ev_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int top) {
         }
         if (falling && gf && o[2] == 0xA2) continue;   /* al loro posto le copie che cadono */
         int y = o[0] - 16, x = o[1] - 8;
+        if (o[0] >= 200) y -= 256;   /* sopra lo schermo (il gioco scrive -Y): non in basso (testa di Pikachu sul surf) */
         uint8_t attr = o[3];
         const uint8_t *data = (attr & 0x08) ? vram + 0x2000 : vram;
         int tile = tall == 16 ? (o[2] & 0xFE) : o[2];

@@ -138,16 +138,14 @@ fun GamePanel(
 
 /**
  * OPZIONI (D-040, D-075): una sola schermata nello stile del gioco, dal menu iniziale e dal menu START.
- * Riquadro GIOCO (opzioni del gioco, byte [gameOptions] a 0xD359): VELOCITÀ TESTO, ANIMAZIONE, STILE LOTTA, SUONO.
- * Riquadro TELEFONO (opzioni dell'app): COMPARSA TESTO, VOLUME, COLORI, VIBRAZIONE. Tocco su una voce = cambia valore.
+ * Un solo riquadro GIOCO: ANIMAZIONE, STILE LOTTA (byte [gameOptions] a 0xD359 del gioco), COMPARSA TESTO, VOLUME,
+ * COLORI, VIBRAZIONE (dell'app). Tocco su una voce = cambia valore.
  */
 @Composable
 fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: Int, onVolume: (Int) -> Unit, onBack: () -> Unit,
                 blackWhite: Boolean = false, onBlackWhite: () -> Unit = {},
                 gameOptions: Int = 0x03, onGameOption: (Int) -> Unit = {}, vibration: Boolean = true, onVibration: () -> Unit = {}) {
     val speeds = listOf("NO", "LENTO", "MEDIO", "VELOCE")
-    val textSpeed = when (gameOptions and 0x0F) { 1 -> "VELOCE"; 3 -> "MEDIO"; else -> "LENTO" }
-    val sounds = listOf("MONO", "CUFFIA 1", "CUFFIA 2", "CUFFIA 3")
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(sheet[(0x7F shr 4) * 8 * 128 + (0x7F and 15) * 8]))
         .pointerInput(Unit) { detectTapGestures { } }) {
         val density = LocalDensity.current
@@ -158,41 +156,42 @@ fun GameOptions(sheet: IntArray, autoText: Int, onAutoText: () -> Unit, volume: 
         TileImage(sheet, 20, 3, unit, key = "opz-titolo", modifier = Modifier.offset { g.at(0f, top.toFloat()) }) {
             box(0, 0, 19, 2); text("OPZIONI", 6, 1)
         }
-        // voci: (riquadro, riga nel riquadro) -> azione
+        // Un solo riquadro GIOCO (D-080): ANIMAZIONE, STILE LOTTA (opzioni del gioco), COMPARSA TESTO, VOLUME, COLORI,
+        // VIBRAZIONE (dell'app). VELOCITÀ TESTO e SUONO del gioco tolti: ci sono COMPARSA TESTO e VOLUME.
         TileImage(
-            sheet, 20, 32, unit, key = listOf(autoText, volume, blackWhite, gameOptions, vibration),
+            sheet, 20, 21, unit, key = listOf(autoText, volume, blackWhite, gameOptions, vibration),
             modifier = Modifier
                 .offset { g.at(0f, (top + 4).toFloat()) }
-                .pointerInput(Unit) {
+                .pointerInput(volume) {
                     detectTapGestures { pos ->
                         val row = (pos.y / g.tilePx).toInt()
                         when (row) {
-                            in 1..3 -> onGameOption(0); in 4..6 -> onGameOption(1); in 7..9 -> onGameOption(2); in 10..12 -> onGameOption(3)
-                            in 17..19 -> onAutoText()
-                            in 20..22 -> onVolume((((pos.x / unit) - 26) / 20).toInt().coerceIn(0, 5))
-                            in 23..25 -> onBlackWhite()
-                            in 26..28 -> onVibration()
+                            in 1..3 -> onGameOption(1); in 4..6 -> onGameOption(2)
+                            in 7..9 -> onAutoText()
+                            in 10..12 -> {
+                                // 5 tacche da 20%: tocco sulla tacca i = (i+1)×20%; sulla prima quando è già l'unica = muto
+                                val i = (((pos.x / unit) - 26) / 22).toInt().coerceIn(0, 4)
+                                onVolume(if (i == 0 && volume == 1) 0 else i + 1)
+                            }
+                            in 13..15 -> onBlackWhite()
+                            in 16..18 -> onVibration()
                         }
                     }
                 }
         ) {
-            box(0, 0, 19, 14)
+            box(0, 0, 19, 20)
             text("GIOCO", 7, 0)
-            text("VELOCITÀ TESTO", 2, 2); text(textSpeed, 3, 3)
-            text("ANIMAZIONE", 2, 5); text(if (gameOptions and 0x80 == 0) "SÌ" else "NO", 3, 6)
-            text("STILE LOTTA", 2, 8); text(if (gameOptions and 0x40 == 0) "SCEGLI" else "FISSO", 3, 9)
-            text("SUONO", 2, 11); text(sounds[(gameOptions shr 4) and 3], 3, 12)
-            box(0, 16, 19, 30)
-            text("TELEFONO", 6, 16)
-            text("COMPARSA TESTO", 2, 18); text(speeds[autoText], 3, 19)
-            text("VOLUME", 2, 21)
-            for (i in 0..5) {
-                val x = 26 + 20 * i; val y = 22 * 8
-                fill(x, y, 14, 8, ink)
-                if (volume == 0 || i > volume) fill(x + 1, y + 1, 12, 6, paper)   // 6 scelte: tocco sulla prima = muto
+            text("ANIMAZIONE", 2, 2); text(if (gameOptions and 0x80 == 0) "SÌ" else "NO", 3, 3)
+            text("STILE LOTTA", 2, 5); text(if (gameOptions and 0x40 == 0) "SCEGLI" else "FISSO", 3, 6)
+            text("COMPARSA TESTO", 2, 8); text(speeds[autoText], 3, 9)
+            text("VOLUME", 2, 11); text(if (volume == 0) "MUTO" else "", 13, 11)
+            for (i in 0..4) {
+                val x = 26 + 22 * i; val y = 12 * 8
+                fill(x, y, 16, 8, ink)
+                if (i >= volume) fill(x + 1, y + 1, 14, 6, paper)
             }
-            text("COLORI", 2, 24); text(if (blackWhite) "BIANCO E NERO" else "A COLORI", 3, 25)
-            text("VIBRAZIONE", 2, 27); text(if (vibration) "SÌ" else "NO", 3, 28)
+            text("COLORI", 2, 14); text(if (blackWhite) "BIANCO E NERO" else "A COLORI", 3, 15)
+            text("VIBRAZIONE", 2, 17); text(if (vibration) "SÌ" else "NO", 3, 18)
         }
         TileImage(
             sheet, 11, 4, unit, key = "opz-indietro",

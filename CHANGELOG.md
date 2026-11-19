@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-19 – OPZIONI in un riquadro, volume a 5 tacche, ritocchi all'introduzione (D-080)
+- OPZIONI: un solo riquadro GIOCO; tolte velocità testo e suono del gioco; volume 5 tacche da 20% e muto.
+- Introduzione: stelline alla velocità originale, niente testa di Pikachu in basso nel surf, vibrazione anche nei lampi dopo il Tuonoshock.
+
 ## 2026-11-19 – OPZIONI uniche, stelline fino in fondo (D-075, D-078)
 - OPZIONI: la stessa schermata dal menu iniziale e da START; le opzioni del gioco si cambiano col tocco; VIBRAZIONE sì/no.
 - Introduzione: le stelline colorate di GAME FREAK cadono fino in fondo allo schermo.

@@ -71,6 +71,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var onHit: (() -> Unit)? = null
     private var lastEnemyHp = -1
     private var lastYellow = 0
+    private var flashState = 0
+    private var shockSeen = false
     private var titleWasShown = false
     /** Fotogrammi fatti andare veloci nel bianco dopo START (per il banco di prova). */
     @Volatile var fastFrames = 0
@@ -905,8 +907,18 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         val r = (c shr 16) and 255; val g = (c shr 8) and 255; val b = c and 255
                         if (r > 230 && g in 170..235 && b < 60) yellow++
                     }
-                    if (lastYellow >= 1500 && yellow < 30) onHit?.invoke()
+                    if (lastYellow >= 1500 && yellow < 30) { onHit?.invoke(); shockSeen = true }
                     lastYellow = yellow
+                    // Dopo il Tuonoshock lo schermo cambia colore (lampi neri, poi rosso e giallo): una vibrazione per lampo.
+                    if (shockSeen) {
+                        var dark = 0; var n = 0
+                        for (i in back.indices step 7) { val c = back[i]; n++; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 150) dark++ }
+                        val bg = back[0]; val r = (bg shr 16) and 255; val b = bg and 255
+                        val state = when { dark * 2 > n -> 1; r > 180 && b < 100 && !(r >= 240 && ((bg shr 8) and 255) >= 240) -> 2 + ((bg shr 8) and 255) / 128; else -> 0 }
+                        if (state != flashState && state != 0) onHit?.invoke()
+                        flashState = state
+                    }
+                    if (titleShown) shockSeen = false
                 }
                 // Titolo: la scritta (C) GAME FREAK alla riga 17 (E0 E1 E2); il logo usa anche la casella del cursore ▶.
                 titleShown = (frameTiles[17 * 20 + 2].toInt() and 0xFF) == 0xE0 && (frameTiles[17 * 20 + 3].toInt() and 0xFF) == 0xE1 &&

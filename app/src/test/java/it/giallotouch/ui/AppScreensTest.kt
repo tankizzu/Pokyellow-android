@@ -488,14 +488,14 @@ abstract class AppScreensHarness {
         tapTile(10f, rows() - 2f)
         pump(800)
         tapTile(15f, 33f)            // OPZIONI
-        // OPZIONI uniche (D-075): riquadro GIOCO dalla riga 6, TELEFONO dalla riga 22 (COLORI alle righe 30-31)
-        assertTrue("OPZIONI", shotUntil("18-opzioni") { boxAt(it, 0, 6, 20, 15) && boxAt(it, 0, 22, 20, 15) })
-        tapTile(4f, 30.5f)           // COLORI: bianco e nero
+        // OPZIONI uniche (D-075, D-080): un solo riquadro GIOCO dalla riga 6 (COLORI alle righe 20-21)
+        assertTrue("OPZIONI", shotUntil("18-opzioni") { boxAt(it, 0, 6, 20, 21) })
+        tapTile(4f, 20.5f)           // COLORI: bianco e nero
         assertTrue("opzione bianco e nero", waitFor(3_000) { s.blackWhite })
         tapTile(9f, 40.5f)           // INDIETRO
         shot("18b-bianco-e-nero")
         tapTile(10f, rows() - 2f); pump(800); tapTile(15f, 33f); pump(800)
-        tapTile(4f, 30.5f)           // di nuovo a colori
+        tapTile(4f, 20.5f)           // di nuovo a colori
         assertTrue("di nuovo a colori", waitFor(3_000) { !s.blackWhite })
     }
 
@@ -795,10 +795,13 @@ class ZzScenarioTest : AppScreensHarness() {
             var walks = 0
             while (!s.latestSnapshot.get().inBattle && walks++ < 25) {
                 val gg = s.mapGridForTest() ?: break
-                val free = (0 until gg.width).flatMap { x -> (6 until gg.height - 4).map { y -> x to y } }.filter { gg.isFree(it.first, it.second) }
+                // erba della Strada 1 dove si incontrano i selvatici (x 8..16, y 9..24), solo caselle raggiungibili
+                val free = (8..16).flatMap { x -> (9..24).map { y -> x to y } }
+                    .filter { gg.isFree(it.first, it.second) && gg.path(pos().second, pos().third, setOf(it)) != null }
+                if (free.isEmpty()) break
                 val t = free[rnd.nextInt(free.size)]
                 s.walkPathForTest(t.first, t.second)
-                waitFor(30_000) { s.latestSnapshot.get().inBattle || pos().let { it.second == t.first && it.third == t.second } }
+                waitFor(15_000) { s.latestSnapshot.get().inBattle || pos().let { it.second == t.first && it.third == t.second } }
             }
             if (!s.latestSnapshot.get().inBattle) continue
             battles++
@@ -1449,15 +1452,19 @@ class ZzGlitchTest : AppScreensHarness() {
         val entries = it.giallotouch.bridge.StartMenuLayout.entries(s.mainMenuItems)
         val frameTop = (root.height - 144 * unit) / 2 / (8 * unit)
         tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(entries.indexOf(it.giallotouch.bridge.StartMenuLayout.Entry.OPZIONI)) + 0.5f)
-        // OPZIONI uniche dell'app (D-075): un tocco su VELOCITÀ TESTO cambia la velocità nella memoria del gioco
-        assertTrue("OPZIONI dell'app", shotUntil("op-opzioni") { boxAt(it, 0, 6, 20, 15) && boxAt(it, 0, 22, 20, 15) })
-        val before = s.gameOptions and 0x0F
+        // OPZIONI uniche dell'app (D-075, D-080): un tocco su ANIMAZIONE la cambia nella memoria del gioco
+        assertTrue("OPZIONI dell'app", shotUntil("op-opzioni") { boxAt(it, 0, 6, 20, 21) })
+        val before = s.gameOptions and 0x80
         tapTile(4f, 8.5f)
-        assertTrue("velocità cambiata", waitFor(3_000) { (s.gameOptions and 0x0F) != before })
+        assertTrue("animazione cambiata", waitFor(3_000) { (s.gameOptions and 0x80) != before })
         val after = s.gameOptions
         pump(800)
-        // gameOptions si rilegge dalla memoria del gioco a ogni fotogramma: se è rimasta uguale, la scrittura è nel gioco
         assertEquals("scritta nel gioco", after, s.gameOptions)
+        // volume: 5 tacche da 20%; la prima tacca = 20%, toccata di nuovo = muto
+        tapTile(3.6f, 18.5f); pump(300)
+        shot("op-volume-1")
+        tapTile(3.6f, 18.5f); pump(300)
+        shot("op-volume-0")
         shot("op-opzioni-dopo")
     }
 
@@ -1470,7 +1477,7 @@ class ZzGlitchTest : AppScreensHarness() {
         val pulses = ArrayList<Long>(); var stepNo = 0L
         s.onHit = { pulses.add(stepNo) }
         var saved = 0; var bad = 0
-        for (q in 0 until 400) {
+        for (q in 0 until 520) {
             frames(4, "video"); stepNo += 4
             val (px, bmp) = grab()
             val h = px.size / 160
