@@ -153,7 +153,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var optionsOpen by remember { mutableStateOf(false) }   // OPZIONI nello stile del gioco
     var trainerCard by remember { mutableStateOf(false) }   // scheda allenatore del gioco sullo schermo (D-045)
     var yesNo by remember { mutableStateOf<GameSession.YesNo?>(null) }   // domanda Sì/No del gioco (D-046)
-    var nameList by remember { mutableStateOf<List<IntArray>?>(null) }   // nomi proposti dal Professore (D-052)
+    var nameList by remember { mutableStateOf<List<IntArray>?>(null) }
+    var forgetMoves by remember { mutableStateOf<IntArray?>(null) }   // mossa da dimenticare (D-085)
+    var forgetNew by remember { mutableStateOf(0) }   // nomi proposti dal Professore (D-052)
     var pcOpen by remember { mutableStateOf(false) }       // STRUMENTI PC dell'app (D-055)
     var boxOpen by remember { mutableStateOf(false) }      // BOX POKéMON dell'app (D-058)
     var boxMons by remember { mutableStateOf<List<it.giallotouch.bridge.BoxMon>>(emptyList()) }
@@ -212,6 +214,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             if (openingTrainer && (trainerCard || (!itemRequested && !session.cardOpeningActive))) { openingTrainer = false; panelOpen = false }
             yesNo = session.yesNo
             nameList = session.nameList
+            forgetMoves = session.forgetMoves; forgetNew = session.forgetNew
             if (session.pcMenuShown && !pcOpen) pcOpen = true
             if (session.boxMenuShown && !boxOpen) boxOpen = true
             pcChoice = session.pcChoice
@@ -558,6 +561,24 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 },
                 vibration = vibration,
                 onVibration = { vibration = !vibration },
+            )
+        }
+
+        // Mossa da dimenticare (D-085): riquadri dell'app al posto della lista del gioco.
+        val forget = forgetMoves
+        if (forget != null && sheet != null) {
+            val owner = snapshot.party.firstOrNull { m -> m.moves.map { it.id } == forget.filter { it != 0 } } ?: snapshot.party.firstOrNull()
+            GameForgetMove(
+                sheet = sheet!!,
+                newMove = session.romData.moveName(forgetNew) to (session.romData.maxPp(forgetNew, 0)?.let { "$it/$it" } ?: ""),
+                moves = forget.filter { it != 0 }.mapIndexed { i, id ->
+                    val slot = owner?.moves?.getOrNull(i)
+                    val max = session.romData.maxPp(id, slot?.ppUps ?: 0)
+                    session.romData.moveName(id) to (if (slot != null && max != null) "${slot.pp}/$max" else "")
+                },
+                enabled = !commandBusy,
+                onForget = { session.pickDirect(it) },
+                onKeep = { session.pickDirect(null, NativeCore.KEY_B) },
             )
         }
 

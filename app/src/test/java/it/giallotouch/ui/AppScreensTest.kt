@@ -553,8 +553,8 @@ class AppNoPpTest : AppScreensHarness() {
     }
 }
 
-/** Mossa da dimenticare (salvataggio della partita automatica): com'è oggi, per il mockup. */
 class AppForgetMoveTest : AppScreensHarness() {
+    /** Mossa da dimenticare (D-085): SÌ, poi tocco su RUGGITO nel riquadro dell'app → ATT. RAPIDO al suo posto. */
     @Test fun dimentica() {
         val s = start(auto = "giallo.state.mossa") ?: return assumeTrue(false)
         pump(1500)
@@ -566,8 +566,15 @@ class AppForgetMoveTest : AppScreensHarness() {
             FileOutputStream(File(shots, "foglio-tile.png")).use { b.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
         tapTile(5f, 39f)          // SÌ
-        for (i in 0 until 6) { pump(700); shot("61-mossa-$i") }
-        tapTile(10f, 2f); pump(1200); shot("62-mossa-dopo")
+        assertTrue("riquadro delle mosse dell'app", waitFor(5_000) { s.forgetMoves != null })
+        pump(600)
+        assertTrue("mosse sotto il testo e NUOVA MOSSA in alto", shotUntil("61-mossa-elenco") { boxAt(it, 0, 32, 20, 10) && boxAt(it, 0, 3, 20, 5) })
+        tapTile(6f, 35.5f)        // RUGGITO (seconda mossa)
+        var k = 0
+        while (k++ < 30 && s.latestSnapshot.get().party.first().moves.none { it.id == 98 }) { pump(400); if (s.yesNo == null && s.forgetMoves == null && !s.battleMenuShown) press(s, NativeCore.KEY_A) }
+        shot("62-mossa-dopo")
+        val ids = s.latestSnapshot.get().party.first().moves.map { it.id }
+        assertTrue("ATT. RAPIDO imparata al posto di RUGGITO: $ids", 98 in ids && 45 !in ids)
     }
 }
 

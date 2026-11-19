@@ -1154,3 +1154,52 @@ fun GameShopScreen(
 }
 
 private data class Quint<A, B, C, D, E>(val a: A, val b: B, val c: C, val d: D, val e: E)
+
+
+/**
+ * Mossa da dimenticare (D-085, mockup approvato): in alto NUOVA MOSSA (nome e PP) e NON IMPARARE; sotto il testo del
+ * gioco le 4 mosse con i PP. Tocco su una mossa = la dimentica; NON IMPARARE = tasto B nel gioco (che poi chiede conferma).
+ */
+@Composable
+fun GameForgetMove(
+    sheet: IntArray,
+    newMove: Pair<String, String>,
+    moves: List<Pair<String, String>>,
+    enabled: Boolean,
+    onForget: (Int) -> Unit,
+    onKeep: () -> Unit,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        TileImage(sheet, 20, 5, unit, key = newMove, modifier = Modifier.offset { IntOffset(0, (3 * tilePx).toInt()) }) {
+            box(0, 0, 19, 4); text("NUOVA MOSSA", 1, 1); text(newMove.first.take(11), 2, 3)
+            if (newMove.second.isNotEmpty()) text(newMove.second, 19 - newMove.second.length, 3)
+        }
+        TileImage(
+            sheet, 14, 4, unit, key = "non-imparare",
+            modifier = Modifier
+                .offset { IntOffset((3 * tilePx).toInt(), (9 * tilePx).toInt()) }
+                .pointerInput(enabled) { detectTapGestures { if (enabled) onKeep() } }
+        ) { box(0, 0, 13, 3); text("NON IMPARARE", 1, 2) }
+        TileImage(
+            sheet, 20, 10, unit, key = moves,
+            modifier = Modifier
+                .offset { IntOffset(0, (32 * tilePx).toInt()) }
+                .pointerInput(moves, enabled) {
+                    detectTapGestures { pos ->
+                        if (!enabled) return@detectTapGestures
+                        val i = (((pos.y / tilePx).toInt() - 1) / 2).coerceIn(0, 3)
+                        if (i < moves.size) onForget(i)
+                    }
+                }
+        ) {
+            box(0, 0, 19, 9)
+            moves.forEachIndexed { i, mv ->
+                text(mv.first.take(11), 2, 1 + 2 * i)
+                if (mv.second.isNotEmpty()) text(mv.second, 19 - mv.second.length, 1 + 2 * i)
+            }
+        }
+    }
+}

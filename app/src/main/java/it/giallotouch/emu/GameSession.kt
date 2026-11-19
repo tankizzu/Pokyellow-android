@@ -86,6 +86,23 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         gameOptions = value
         tasks.add(Runnable { NativeCore.nativeWriteMemory(handle, MemoryMapIt.OPTIONS, value) })
     }
+    /**
+     * Mossa da dimenticare (D-085): il gioco mostra le 4 mosse (lista 4 voci in riga 8, colonna 5) per far spazio a una
+     * nuova. [forgetMoves] = mosse attuali (D0E0..D0E3), [forgetNew] = mossa nuova (D0E4); null se non c'è la lista.
+     */
+    @Volatile var forgetMoves: IntArray? = null
+    @Volatile var forgetNew = 0
+    /** Tasto premuto direttamente per qualche fotogramma (scelte immediate, D-081/D-085). */
+    private var directKey = 0
+    private var directFrames = 0
+    /** Scelta immediata in una lista del gioco: cursore scritto in memoria, un fotogramma libero, poi il tasto. */
+    fun pickDirect(index: Int?, key: Int = NativeCore.KEY_A) {
+        commandBusy = true
+        tasks.add(Runnable {
+            if (index != null) NativeCore.nativeWriteMemory(handle, MemoryMapIt.CURRENT_MENU_ITEM, index)
+            directKey = key; directFrames = 5
+        })
+    }
     /** Opzioni del gioco (byte a 0xD359: velocità del testo, animazione, stile lotta, suono). */
     @Volatile var gameOptions = 0x03
     private var lastPlayerHp = -1
@@ -669,6 +686,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var pendingA = 0
 
     private fun currentKeys(): Int {
+        if (directFrames > 0) {
+            directFrames--
+            if (directFrames == 0) commandBusy = false
+            return if (directFrames in 1..3) directKey else 0   // un fotogramma libero, tre col tasto, uno libero
+        }
         if (itemExecutor.busy) return stepItemAction()
         if (battleExecutor.busy) return stepBattleAction()
         if (closingFrames > 0) {
@@ -986,6 +1008,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     lastEnemyHp = eh; lastPlayerHp = ph
                 } else { lastEnemyHp = -1; lastPlayerHp = -1 }
                 gameOptions = NativeCore.nativeReadMemory(handle, MemoryMapIt.OPTIONS)
+                val forgetList = (frameVars[0].toInt() and 0xFF) == 8 && (frameVars[1].toInt() and 0xFF) == 5 && (frameVars[4].toInt() and 0xFF) == 3 &&
+                    (frameTiles[7 * 20 + 4].toInt() and 0xFF) == 0x79 && (frameTiles[8 * 20 + 4].toInt() and 0xFF) == 0x7C
+                if (forgetList) {
+                    val mv = ByteArray(5); NativeCore.nativeReadRange(handle, 0xD0E0, mv)
+                    forgetNew = mv[4].toInt() and 0xFF
+                    forgetMoves = IntArray(4) { mv[it].toInt() and 0xFF }
+                } else forgetMoves = null
                 // Introduzione (D-076): sprite anche fuori dalle 144 righe e sotto le bande, per non vederli tagliati.
                 if (!inGame && !titleShown && mainMenuItems == 0) {
                     val buf = IntArray(NativeCore.WIDTH * SPRITE_LAYER_H)
@@ -1079,7 +1108,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 var dialog = !itemExecutor.busy && !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight)) || dialog || yn != null || nameList != null || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
+                val onScreen = (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight)) || dialog || yn != null || nameList != null || forgetMoves != null || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
                     ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 // Senza immagine di prima: nelle scene senza mappa (introduzione, sfondo uniforme) il posto del dialogo si
                 // riempie col colore dello sfondo; sulla mappa il dialogo resta al suo posto.
@@ -1101,6 +1130,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val partyScreen = (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71 && (inBattleNow || pendingClose)
                     if ((hide || partyScreen) && frameMask.ready) add(if (inBattleNow) BoxMask.Box(0, 0, 19, 11) else BoxMask.Box(0, 0, 19, 17))
                     if (yn != null && frameMask.ready) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1))
+                    // in lotta senza immagine di prima (domanda "dimenticare una mossa?"): riquadro SÌ/NO del gioco riempito
+                    else if (yn != null && inBattleRaw) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1, fill = back[0]))
                     // Nomi proposti: lo sfondo della scena è uniforme; con l'immagine di prima comparivano pezzi del
                     // personaggio che entra scorrendo (D-067). Si riempie col colore dello sfondo, anche la colonna accanto.
                     if (nameList != null) add(BoxMask.Box(0, 0, 11, 11, fill = back[NativeCore.WIDTH - 1]))
@@ -1110,6 +1141,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         (frameTiles[9 * 20 + 3].toInt() and 0xFF) == 0x8F
                     if (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight || tipoBox) && frameMask.ready) add(BoxMask.Box(0, 8, 10, 11))
                     if (pcChoice.isNotEmpty() && frameMask.ready) add(BoxMask.Box(0, 0, 15, 9))
+                    // Lista del gioco delle mosse da dimenticare: la sostituisce il riquadro dell'app (D-085).
+                    if (forgetMoves != null) add(BoxMask.Box(4, 7, 19, 11, fill = back[0]))
                     if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
                     if (dialog) add(if (frameMask.ready) BoxMask.Box(0, 12, 19, 17) else BoxMask.Box(0, 12, 19, 17, fill = back[0]))
                 }
