@@ -132,6 +132,35 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
      * originale si allargano in proporzione sopra e sotto (righe estese), senza deformare la mappa.
      */
     private val wiped = BooleanArray(20 * 18)
+    private var lastMapExt = IntArray(0)
+    private var lastMapH = 0
+    private var lastMapTop = 0
+    private var wipeDark = 0
+    private var wipeOn = false
+    private var wipeColor = 0
+    private val colorMap = HashMap<Int, Int>()
+    /** L'immagine usa solo colori già visti nell'ultima immagine buona della mappa (lampo coi colori originali). */
+    private fun remappable(frame: IntArray): Boolean {
+        if (colorMap.isEmpty()) return false
+        var miss = 0; var i = 0; var n = 0
+        while (i < frame.size) { n++; if (!colorMap.containsKey(frame[i])) miss++; i += 5 }
+        return miss * 50 < n && colorMap.keys.any { k -> colorMap[k] != k }
+    }
+    /** Caselle già nere della tendina nell'immagine del gioco (riempie [wiped] e [wipeColor]). */
+    private fun wipeTiles(frame: IntArray): Int {
+        var dark = frame[0]; var darkL = Int.MAX_VALUE
+        var i = 0
+        while (i < frame.size) { val c = frame[i]; val l = (c shr 16 and 255) + (c shr 8 and 255) + (c and 255); if (l < darkL) { darkL = l; dark = c }; i += 13 }
+        if (darkL > 150) { java.util.Arrays.fill(wiped, false); return 0 }
+        wipeColor = dark
+        var n = 0
+        for (ty in 0 until 18) for (tx in 0 until 20) {
+            var solid = true
+            loop@ for (y in 0 until 8) for (x in 0 until 8) if (frame[(ty * 8 + y) * NativeCore.WIDTH + tx * 8 + x] != dark) { solid = false; break@loop }
+            wiped[ty * 20 + tx] = solid; if (solid) n++
+        }
+        return n
+    }
     private fun extendWipe(frame: IntArray, ext: IntArray, height: Int, frameTop: Int) {
         // colore più scuro dell'immagine = nero della tendina
         var dark = frame[0]; var darkL = Int.MAX_VALUE
@@ -1039,9 +1068,42 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     extendedIsMap = rendered == 1
                     // Cambio di luogo: per qualche fotogramma la mappa nuova non si allinea ancora; si tiene l'ultima
                     // immagine buona invece di mostrare il riempimento (rettangolo di colore, D-067).
-                    if (!active && extHold > 0 && !inBattleRaw && !trainerCardShown && mainMenuItems == 0) {
+                    if (active && rendered == 1 && !inBattleRaw) {
+                        // ultima immagine buona della mappa (per la tendina prima della lotta, D-083)
+                        if (lastMapExt.size != extBack.pixels.size) lastMapExt = IntArray(extBack.pixels.size)
+                        System.arraycopy(extBack.pixels, 0, lastMapExt, 0, extBack.pixels.size)
+                        lastMapH = eh; lastMapTop = extendedFrameTop; wipeDark = 0; wipeOn = true
+                        // colori dell'immagine del gioco → colori mostrati (ricolore dei luoghi), per i lampi prima della lotta
+                        colorMap.clear()
+                        val fr = latestFrame.get(); val top0 = extendedFrameTop.coerceAtLeast(0)
+                        var j = 0
+                        while (j < fr.size) { val r = top0 + j / NativeCore.WIDTH; if (r < eh) colorMap[fr[j]] = extBack.pixels[r * NativeCore.WIDTH + j % NativeCore.WIDTH]; j += 7 }
+                    }
+                    if (!active && wipeOn && lastMapH == eh && remappable(latestFrame.get())) {
+                        // Lampo prima della lotta coi colori originali del luogo (D-083): immagine del gioco coi colori ricolorati.
+                        System.arraycopy(lastMapExt, 0, extBack.pixels, 0, minOf(lastMapExt.size, extBack.pixels.size))
+                        val fr = latestFrame.get(); val top0 = lastMapTop.coerceAtLeast(0)
+                        for (j in fr.indices) { val r = top0 + j / NativeCore.WIDTH; if (r < eh) extBack.pixels[r * NativeCore.WIDTH + j % NativeCore.WIDTH] = colorMap[fr[j]] ?: fr[j] }
+                        if (wipeTiles(fr) > 0) extendWipe(fr, extBack.pixels, eh, top0)   // tendina: anche sopra e sotto
+                        extBack.height = eh; extBack.active = true; extendedActive = true
+                        extBack = latestExtended.getAndSet(extBack)
+                    } else
+                    if (!active && inBattleRaw && wipeOn && lastMapH == eh && wipeTiles(latestFrame.get()) >= wipeDark - 8 && wipeDark < 20 * 18) {
+                        // Tendina (D-083): il gioco non è più riconosciuto come mappa (quasi tutto nero) e si vedrebbero i
+                        // colori originali; si usa l'ultima immagine della mappa coperta dalle caselle nere della tendina.
+                        wipeDark = maxOf(wipeDark, wipeTiles(latestFrame.get()))
+                        System.arraycopy(lastMapExt, 0, extBack.pixels, 0, minOf(lastMapExt.size, extBack.pixels.size))
+                        val top = lastMapTop.coerceAtLeast(0)
+                        for (ty in 0 until 18) for (tx in 0 until 20) if (wiped[ty * 20 + tx])
+                            for (y in 0 until 8) { val r = top + ty * 8 + y; if (r < eh) java.util.Arrays.fill(extBack.pixels, r * NativeCore.WIDTH + tx * 8, r * NativeCore.WIDTH + tx * 8 + 8, wipeColor) }
+                        extendWipe(latestFrame.get(), extBack.pixels, eh, top)
+                        extBack.height = eh; extBack.active = true; extendedActive = true
+                        extBack = latestExtended.getAndSet(extBack)
+                    } else if (!active && extHold > 0 && !inBattleRaw && !trainerCardShown && mainMenuItems == 0) {
+                        if (!active && inBattleRaw) wipeOn = false
                         extHold--
                     } else {
+                        if (!active && inBattleRaw) wipeOn = false
                         if (active) extMask.apply(extBack.pixels, eh, extendedFrameTop, boxes, frameMask.older, boxesOnScreen = onScreen)
                         if (active && inBattleRaw) extendWipe(latestFrame.get(), extBack.pixels, eh, extendedFrameTop)
                         extBack.height = eh

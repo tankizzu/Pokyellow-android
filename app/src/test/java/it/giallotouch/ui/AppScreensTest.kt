@@ -1393,17 +1393,70 @@ class ZzGlitchTest : AppScreensHarness() {
         }
         fase("cameretta")
         step(120)
+        s.stepPermits = null; pump(300)
+        s.saveStateForTest(File(shots, "cameretta.state"))
+    }
+
+    /**
+     * Analisi dalla cameretta (-Pgiallo.state.cameretta=STATO, salvato da analisiNuovoGioco): scale, casa, Biancavilla,
+     * il Professore che ferma il giocatore nell'erba, Pikachu, il laboratorio, finché si cammina nel laboratorio.
+     */
+    @Test fun analisiCameretta() = registra("analisi3", auto = "giallo.state.cameretta") { step, fase ->
+        fun pos() = s.positionForTest()
+        fun walkTo(x: Int, y: Int, max: Int = 900) {
+            s.walkPathForTest(x, y)
+            var k = 0
+            val m = pos().first
+            while (k++ < max && pos().let { it.first == m && (it.second != x || it.third != y) }) step(2)
+        }
+        fun textUntilFree(max: Int) {
+            var k = 0
+            while (k++ < max) {
+                step(20)
+                if (s.latestSnapshot.get().freeRoam) { step(30); if (s.latestSnapshot.get().freeRoam) return }
+                if (s.yesNo != null) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            }
+        }
+        fase("cameretta"); step(60)
+        val stairs = s.warpsForTest().firstOrNull()
+        if (stairs != null) {
+            val m = pos().first
+            walkTo(stairs.second, stairs.first)
+            var k = 0
+            while (pos().first == m && k++ < 300) step(2)
+        }
+        fase("casa"); step(90)
+        textUntilFree(10)
+        val door = s.warpsForTest().maxByOrNull { it.first }
+        if (door != null) {
+            val m = pos().first
+            walkTo(door.second, door.first)
+            var k = 0
+            while (pos().first == m && k++ < 100) { s.setKeys(NativeCore.KEY_DOWN); step(4); s.setKeys(0); step(8) }
+        }
+        fase("biancavilla"); step(90)
+        // verso l'erba a nord: il Professore ferma il giocatore
+        val g = s.mapGridForTest()
+        val top = g?.let { gg -> (0 until gg.width).map { it to 1 }.filter { gg.isFree(it.first, it.second) && gg.path(pos().second, pos().third, setOf(it)) != null }.minByOrNull { kotlin.math.abs(it.first - pos().second) } }
+        if (top != null) walkTo(top.first, top.second)
+        var k = 0
+        while (s.latestSnapshot.get().freeRoam && k++ < 40) { s.setKeys(NativeCore.KEY_UP); step(8); s.setKeys(0); step(8) }
+        fase("professore")
+        textUntilFree(300)
+        fase("laboratorio"); step(120)
     }
 
     /**
      * Registra ogni fotogramma (sessione in passo a passo dall'accensione) in [dir]: un'immagine per ogni fotogramma
      * diverso dal precedente (320 di larghezza) e indice.txt "fotogramma file lampeggio fase stato menu titolo".
      */
-    private fun registra(dir: String, body: (step: (Int) -> Unit, fase: (String) -> Unit) -> Unit) {
+    private fun registra(dir: String, auto: String? = null, body: (step: (Int) -> Unit, fase: (String) -> Unit) -> Unit) {
         GameSession.testStepFromStart = true
         try {
-            s = start(battery = "giallo.battery") ?: return assumeTrue(false)
+            s = (if (auto != null) start(auto = auto) else start(battery = "giallo.battery")) ?: return assumeTrue(false)
         } finally { GameSession.testStepFromStart = false }
+        if (auto != null) assertTrue(s.loadSlot(SaveSlot.AUTO))
         val out = File(shots, dir).apply { deleteRecursively(); mkdirs() }
         val index = StringBuilder()
         var last: IntArray? = null; var file = ""; var n = 0

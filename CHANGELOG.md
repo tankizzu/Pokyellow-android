@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-19 – tendina prima della lotta coi colori giusti (D-083)
+- Prima della lotta la tendina nera copre la mappa coi colori della strada (niente più colori viola di Biancavilla).
+
 ## 2026-11-19 – COMPARSA TESTO e AUTO-TESTO separati (D-082)
 - OPZIONI: COMPARSA TESTO cambia la velocità del testo; AUTO-TESTO (sì/no) fa andare avanti il testo da solo.
 

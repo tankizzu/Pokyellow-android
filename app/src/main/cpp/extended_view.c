@@ -446,7 +446,21 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
         size_t o = CGB_PALETTES + 8 * (size_t)cur_pal;
         uint32_t game1 = GB_convert_rgb15(gb, (mt.rom[o + 2] | (mt.rom[o + 3] << 8)) & 0x7FFF, false);
         uint32_t game2 = GB_convert_rgb15(gb, (mt.rom[o + 4] | (mt.rom[o + 5] << 8)) & 0x7FFF, false);
+        /* la tavolozza del luogo può non essere la più usata (tendina nera prima della lotta, D-083): si cerca quella
+         * con i colori del luogo */
+        for (int p = 0; p < 8; p++)
+            if (colors[p][1] == game1 && colors[p][2] == game2 && colors[p][0] != colors[p][1]) { fallback = p; break; }
         recolor = game1 == colors[fallback][1] && game2 == colors[fallback][2] && colors[fallback][0] != colors[fallback][1];
+        if (!recolor) {
+            /* Tendina e lampi prima della lotta (D-083): la tavolozza del luogo è un'altra ma ha ancora il bianco come
+             * colore 0 e il nero come colore 3, e i colori 1 e 2 diversi da entrambi: si ricolora lo stesso. In una
+             * dissolvenza i colori 1 e 2 vanno verso il bianco (o il nero) e la regola non vale: niente ricolore. */
+            const uint32_t *k = colors[fallback];
+            #define LUM(v) ((((v) >> 16) & 255) + (((v) >> 8) & 255) + ((v) & 255))
+            recolor = LUM(k[0]) > 690 && LUM(k[3]) < 150 && LUM(k[1]) < 660 && LUM(k[2]) < 660 && LUM(k[1]) > 150 &&
+                      LUM(k[2]) > 150 && k[1] != k[2];
+            #undef LUM
+        }
     }
 
     /* 3. Disegno: righe sopra e sotto dalla mappa, al centro l'immagine originale. */
