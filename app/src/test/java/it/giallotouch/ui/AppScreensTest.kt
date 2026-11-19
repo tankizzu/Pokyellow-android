@@ -305,8 +305,7 @@ abstract class AppScreensHarness {
         fun fightIfNeeded() {
             var g = 0
             while (s.latestSnapshot.get().inBattle && g++ < 300) {
-                if (s.battleMenuShown && !s.commandBusy && (lead()?.moves?.firstOrNull()?.pp ?: 1) == 0) tapTile(10f, 34f)   // PP finiti: FUGA
-                else if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
+                if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f) else tapTile(10f, 2f)
             }
             waitFor(10_000) { s.latestSnapshot.get().freeRoam }
         }
@@ -815,7 +814,8 @@ class ZzScenarioTest : AppScreensHarness() {
                     log("domanda in lotta dopo $battles lotte: ${lead()}")
                     return
                 }
-                if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f)
+                if (s.battleMenuShown && !s.commandBusy && (lead()?.moves?.firstOrNull()?.pp ?: 1) == 0) tapTile(10f, 34f)   // PP finiti: FUGA
+                else if (s.battleMenuShown && !s.commandBusy) tapTile(4f, it.giallotouch.bridge.BattleLayout.MOVES_TOP_ROW + 2.5f)
                 else if (!s.commandBusy) press(s, NativeCore.KEY_A) else pump(200)   // testi della lotta: tasto A
             }
             val m = lead() ?: break
