@@ -3,7 +3,8 @@
 **Ultimo aggiornamento:** 2026-11-19
 
 ## Dove siamo
-- **0.12.4-prototipo (consegnata il 2026-11-19)**: analisi fotogramma per fotogramma dell'inizio (D-074, video con
+- **0.13.4-prototipo (consegnata il 2026-11-19)**: OPZIONI in un solo riquadro (D-075, D-080, D-082), menu e nomi
+  immediati (D-081), stelline una per una, vibrazione nei lampi. Prima, 0.12.4: analisi fotogramma per fotogramma dell'inizio (D-074, video con
   il numero del fotogramma), introduzione con stelle e Pikachu interi (D-076), vibrazione nel Tuonoshock (D-073),
   scritta (C) del titolo ferma in basso; bozza OPZIONI uniche (D-075). Prima, 0.12.0: introduzione senza bande nere (D-072), strumenti sui Pokémon a
   schermo intero (D-070), squadra del menu START dal mockup con icone animate e scorrimento (D-071), oltre a D-050…D-069
@@ -38,12 +39,10 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. In attesa del committente: conferma del mockup OPZIONI (D-075: poi voci GIOCO modificabili, VIBRAZIONE attiva e
-   OPZIONI del menu iniziale verso la stessa schermata); altri fotogrammi da correggere nel video dell'inizio; mockup
-   dei menu del PC; prova dell'APK 0.12.4 sul telefono.
-2. Analisi di NUOVO GIOCO fatta (D-077): in attesa dei fotogrammi segnalati dal committente e della scelta sulle
-   dissolvenze colorate. Poi: partita
-   automatica fino a far crescere Pikachu (mossa da dimenticare, mosse fuori lotta).
+1. In attesa del committente: fotogrammi da correggere nel video di NUOVO GIOCO; prova dell'APK 0.13.4 sul telefono.
+2. In corso: partita automatica (costruisci5, in una copia del progetto in scratchpad/wt) fino alla domanda
+   "dimenticare una mossa?" (Pikachu al livello 11); poi mockup di quella schermata e delle mosse fuori lotta.
+3. PC: nessuna modifica richiesta per ora.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
