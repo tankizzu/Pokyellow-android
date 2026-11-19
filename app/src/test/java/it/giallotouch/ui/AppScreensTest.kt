@@ -488,13 +488,14 @@ abstract class AppScreensHarness {
         tapTile(10f, rows() - 2f)
         pump(800)
         tapTile(15f, 33f)            // OPZIONI
-        assertTrue("OPZIONI", shotUntil("18-opzioni") { boxAt(it, 0, 10, 20, 28) && boxAt(it, 5, 39, 11, 4) })
-        tapTile(4f, 27f)             // GIOCO: bianco e nero
+        // OPZIONI uniche (D-075): riquadro GIOCO dalla riga 6, TELEFONO dalla riga 22 (COLORI alle righe 30-31)
+        assertTrue("OPZIONI", shotUntil("18-opzioni") { boxAt(it, 0, 6, 20, 15) && boxAt(it, 0, 22, 20, 15) })
+        tapTile(4f, 30.5f)           // COLORI: bianco e nero
         assertTrue("opzione bianco e nero", waitFor(3_000) { s.blackWhite })
         tapTile(9f, 40.5f)           // INDIETRO
         shot("18b-bianco-e-nero")
         tapTile(10f, rows() - 2f); pump(800); tapTile(15f, 33f); pump(800)
-        tapTile(4f, 27f)             // di nuovo a colori
+        tapTile(4f, 30.5f)           // di nuovo a colori
         assertTrue("di nuovo a colori", waitFor(3_000) { !s.blackWhite })
     }
 
