@@ -1,12 +1,12 @@
 # CURRENT_STATE
 
-**Ultimo aggiornamento:** 2026-11-18
+**Ultimo aggiornamento:** 2026-11-19
 
 ## Dove siamo
-- **0.7.1-prototipo (consegnata il 2026-11-18)**: tutta l'interfaccia nello stile del gioco, dai mockup del
-  committente (D-039…D-049), correzioni della lotta (B-005, B-006) e dei tocchi nei dialoghi (B-007); SQUADRA/BORSA in lotta (D-050) e
-  strumenti su un Pokémon con "SU CHI?" dell'app (D-051).
-- 80 prove superate (le prove sul gioco vero e il banco di prova dell'interfaccia girano solo in locale con la ROM).
+- **0.12.0-prototipo (consegnata il 2026-11-19)**: introduzione senza bande nere (D-072), strumenti sui Pokémon a
+  schermo intero (D-070), squadra del menu START dal mockup con icone animate e scorrimento (D-071), oltre a D-050…D-069
+  (box e PC, negozio, cura, prima apertura, titolo, vibrazione, colori dei luoghi).
+- 100 prove; quelle sul gioco vero chiedono una partita precisa (-Pgiallo.state.X) e senza si saltano.
 
 ## Cosa c'è nell'app
 - Scelta del file del gioco (anche ZIP), controllo SHA-1 e intestazione.
@@ -36,10 +36,10 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. In attesa del committente: riepilogo del mockup del negozio (inviato), file .sav con almeno 2 Pokémon e 2
-   strumenti (cambio in lotta, spostamenti), colore dell'immagine del Pokémon.
-2. Poi: negozio secondo il mockup (il primo negozio si apre dopo aver consegnato il Pacco a Oak: serve una partita di
-   prova più avanti), PC.
+1. In attesa del committente: risposta sul mockup dei menu del PC; prova dell'APK 0.12.0 sul telefono (scorrimento
+   della squadra con 6 Pokémon, Pozione su un Pokémon ferito, vibrazione, logo del titolo).
+2. Poi: partita automatica fino a far crescere Pikachu (mossa da dimenticare, mosse fuori lotta) con mockup delle
+   posizioni.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
