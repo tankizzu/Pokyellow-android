@@ -286,8 +286,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   fetch("registrazioni.json").then(r => r.json()).then(list => {
     list.forEach(r => { const o = document.createElement("option"); o.value = r.name; o.textContent = r.title; $("rec").appendChild(o); });
     const m = /^#([a-z0-9]+)-f(\d+)$/.exec(location.hash || "");
-    let pick = list[list.length - 1].name;
-    try { const st = localStorage.getItem("rec"); if (st && list.some(r => r.name === st)) pick = st; } catch (x) {}
+    let pick = list[0].name;
     if (m && list.some(r => r.name === m[1])) pick = m[1];
     $("rec").value = pick;
     loadRec(pick, m ? parseInt(m[2], 10) : null);
