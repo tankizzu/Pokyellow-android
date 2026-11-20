@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 2026-11-20 – primo dialogo in un luogo nuovo (D-094)
+## 2026-11-20 – primo dialogo in un luogo nuovo (D-094), 0.14.4
 - Entrando nel Market di Smeraldopoli niente più pezzo di città sotto la stanza mentre parla il commesso.
 - Provati anche INDIETRO dell'Etere, Elisir e PP-su.
 
