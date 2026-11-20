@@ -73,7 +73,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var lastYellow = 0
     private var afterBattle = 0
     private var maskMapId = -1
+    private val warpBlock = ByteArray(1 + 4 * 32)
+    @Volatile var onWarp = false
+    @Volatile var debugFrameInfo = ""
     private var tipoTail = 0
+    private var battleMenuSeen = false
+    private var shakeVibe = 0
+    private var keptText = IntArray(0)
     private var flashState = 0
     private var shockSeen = false
     private var titleWasShown = false
@@ -1013,6 +1019,20 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val c0 = back[0]
                 val rawWhite = ((c0 shr 16) and 255) + ((c0 shr 8) and 255) + (c0 and 255) > 720 && back.all { it == c0 }
                 val holdBattleEnd = rawWhite && afterBattle > 0 && latestExtended.get().active
+                // Mosse in lotta (D-096): il gioco fa tremare lo schermo (SCX/SCY). Si vibra a tempo e il testo in alto
+                // (righe 96–143 del gioco) resta fermo: prima scendeva e sopra comparivano pezzi della scena.
+                if (inBattleNowMem) {
+                    if (battleMenuShown) battleMenuSeen = true
+                } else battleMenuSeen = false
+                val scx = NativeCore.nativeReadMemory(handle, 0xFF43); val scy = NativeCore.nativeReadMemory(handle, 0xFF42)
+                val shaking = inBattleNowMem && battleMenuSeen && (scx != 0 || scy != 0)
+                if (shaking) {
+                    if (shakeVibe-- <= 0) { onHit?.invoke(); shakeVibe = 6 }
+                    if (battleSplit && keptText.isNotEmpty()) System.arraycopy(keptText, 0, back, 96 * NativeCore.WIDTH, keptText.size)
+                } else {
+                    shakeVibe = 0
+                    if (inBattleNowMem) { if (keptText.isEmpty()) keptText = IntArray(48 * NativeCore.WIDTH); System.arraycopy(back, 96 * NativeCore.WIDTH, keptText, 0, keptText.size) }
+                }
                 // Ogni fotogramma: schermata di lotta divisa e menu iniziale ridisegnato (in sincronia con l'immagine).
                 NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles)
                 NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, frameVars)
@@ -1055,6 +1075,14 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val cardRaw = ItemMenus.trainerCard(frameTiles)
                 val mapNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles)
                 freeRoamNow = mapNow && !inBattleRaw
+                run {
+                    val px = NativeCore.nativeReadMemory(handle, MemoryMapIt.X_COORD); val py = NativeCore.nativeReadMemory(handle, MemoryMapIt.Y_COORD)
+                    NativeCore.nativeReadRange(handle, 0xD3B2, warpBlock)
+                    val nw = (warpBlock[0].toInt() and 0xFF).coerceAtMost(32)
+                    onWarp = (0 until nw).any { (warpBlock[1 + 4 * it].toInt() and 0xFF) == py && (warpBlock[2 + 4 * it].toInt() and 0xFF) == px }
+                    debugFrameInfo = "joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
+                        NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP), px, py, onWarp)
+                }
                 // Vibrazione ai colpi (D-069): i PS di uno dei due Pokémon in lotta scendono.
                 if (inBattleRaw) {
                     val eh = (NativeCore.nativeReadMemory(handle, MemoryMapIt.ENEMY_MON_HP) shl 8) or NativeCore.nativeReadMemory(handle, MemoryMapIt.ENEMY_MON_HP + 1)
@@ -1353,7 +1381,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (titleShown) titleWasShown = true
                 if (inGame || mainMenuItems > 0) titleWasShown = false
                 val loadingWhite = titleWasShown && !titleShown && mainMenuItems == 0 && !inGame && back.all { it == back[0] }
-                if (loadingWhite && stepPermits == null) {
+                // Inizio lotta (D-097): dopo la tendina il gioco resta bianco qualche fotogramma prima della scena: va veloce,
+                // così la lotta compare prima.
+                val battleIntroWhite = inBattleNowMem && !battleMenuSeen && rawWhite
+                if ((loadingWhite || battleIntroWhite) && stepPermits == null) {
                     fastFrames++
                     nextFrameAt = SystemClock.elapsedRealtimeNanos()
                 } else if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {

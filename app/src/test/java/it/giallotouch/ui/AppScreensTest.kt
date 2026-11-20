@@ -1820,7 +1820,7 @@ class ZzGlitchTest : AppScreensHarness() {
                     val rb = Bitmap.createBitmap(raw, 160, 144, Bitmap.Config.ARGB_8888)
                     FileOutputStream(File(out, "raw%05d.png".format(n))).use { rb.compress(Bitmap.CompressFormat.PNG, 100, it) } } }
                 index.append("$n $file $blip $fase ${if (rawWhite) "uniforme" else "immagine"} ${s.mainMenuItems} ${s.titleShown} " +
-                    "lotta=${s.latestSnapshot.get().inBattle} divisa=${s.battleSplit} dialogo=${s.dialogStrip != null} estesa=${s.latestExtended.get().active} libero=${s.freeRoamNow}\n")
+                    "lotta=${s.latestSnapshot.get().inBattle} divisa=${s.battleSplit} dialogo=${s.dialogStrip != null} estesa=${s.latestExtended.get().active} libero=${s.freeRoamNow} ${s.debugFrameInfo}\n")
             }
         }
         body(step) { fase = it }

@@ -17,8 +17,15 @@ body { background: var(--bg); color: var(--fg); font-family: var(--ui);
 .num { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .phase { font-size: 15px; color: var(--accent); font-weight: 600; }
 .flags { font-size: 12px; color: var(--muted); min-height: 1.3em; }
-.screen { width: 100%; aspect-ratio: 320 / 710; max-width: 100%; background: #000; border-radius: 10px; overflow: hidden; }
+.screen { position: relative; width: 100%; aspect-ratio: 320 / 710; max-width: 100%; background: #000; border-radius: 10px; overflow: hidden; }
 canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+#ink { position: absolute; inset: 0; image-rendering: auto; touch-action: none; pointer-events: none; }
+.drawing #ink { pointer-events: auto; }
+.drawing .screen { outline: 3px solid #e0322b; }
+button.on { background: #e0322b; color: #fff; border-color: #e0322b; }
+.notes { display: grid; gap: 6px; }
+.notes button { font-size: 14px; padding: 8px; text-align: left; }
+textarea { font: 16px var(--ui); color: var(--fg); background: var(--btn); border: 1px solid var(--line); border-radius: 10px; padding: 10px; width: 100%; box-sizing: border-box; min-height: 60px; }
 .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .row2 { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; }
 button, select, input { font: 600 18px var(--ui); color: var(--fg); background: var(--btn); border: 1px solid var(--line); border-radius: 10px; padding: 12px 8px; }
@@ -39,7 +46,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
     <div class="phase" id="phase"></div>
   </div>
   <div class="flags" id="flags"></div>
-  <div class="screen"><canvas id="cv" width="320" height="710"></canvas></div>
+  <div class="screen"><canvas id="cv" width="320" height="710"></canvas><canvas id="ink" width="640" height="1420"></canvas></div>
   <input class="slider" id="slider" type="range" min="0" max="0" value="0" aria-label="Posizione nella registrazione">
   <div class="row">
     <button id="b10" aria-label="Indietro di 10">◀◀ 10</button>
@@ -50,7 +57,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   <div class="row">
     <button id="bc" aria-label="Cambio precedente">◀ cambio</button>
     <button class="play" id="play" aria-pressed="false">Riproduci</button>
-    <button id="speed">15/s</button>
+    <button id="speed">Reale</button>
     <button id="fc" aria-label="Cambio successivo">cambio ▶</button>
   </div>
   <div class="row2">
@@ -58,9 +65,18 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
     <button id="goBtn">Vai</button>
     <button id="copy" aria-label="Copia il numero">Copia</button>
   </div>
+  <div class="row">
+    <button id="draw" aria-pressed="false">✏ Disegna</button>
+    <button id="undo">Annulla</button>
+    <button id="clear">Cancella</button>
+    <button id="save">Salva</button>
+  </div>
+  <label class="hint" for="note">Nota per questo fotogramma (la leggo insieme al disegno)</label>
+  <textarea id="note" placeholder="Es. qui il pulsante START deve sparire"></textarea>
+  <div class="notes" id="notes"></div>
   <label class="hint" for="phases">Fasi della registrazione</label>
   <select id="phases"></select>
-  <div class="hint">◀ cambio / cambio ▶ saltano al fotogramma precedente o successivo in cui l'immagine cambia. Da tastiera: frecce ← → (con Maiuscole ±10), spazio per riprodurre. Il numero in alto è quello da scrivermi.</div>
+  <div class="hint">◀ cambio / cambio ▶ saltano al fotogramma precedente o successivo in cui l'immagine cambia. Da tastiera: frecce ← → (con Maiuscole ±10), spazio per riprodurre. Il numero in alto è quello da scrivermi. ✏ Disegna: tocca e trascina sull'immagine per segnare in rosso, poi Salva (con la nota se vuoi): i disegni salvati li leggo io.</div>
   <div class="status" id="status">Carico la registrazione…</div>
 </div>
 
@@ -70,7 +86,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   const $ = id => document.getElementById(id);
-  let data = null, i = 0, timer = null, fps = 15;
+  let data = null, i = 0, timer = null, fps = 60;
   const sheets = new Map();
 
   function sheet(n) {
@@ -100,7 +116,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
       ctx.drawImage(img, (k % data.cols) * data.w, Math.floor(k / data.cols) * data.h, data.w, data.h, 0, 0, data.w, data.h);
       $("status").textContent = "";
     } catch (e) { $("status").textContent = "Immagine non caricata: riprova tra poco."; }
-    if (s + 1 < data.sheets) sheet(s + 1);
+    for (let a = 1; a <= 3; a++) if (s + a < data.sheets) sheet(s + a);
+    showInk();
   }
 
   function go(n) { if (!data) return; i = Math.max(0, Math.min(data.frames.length - 1, n)); draw(); }
@@ -117,11 +134,19 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
     while (j >= 0 && j < data.frames.length && data.frames[j][1] === cur) j += dir;
     go(j);
   }
-  function stop() { if (timer) { clearInterval(timer); timer = null; } $("play").setAttribute("aria-pressed", "false"); $("play").textContent = "Riproduci"; }
+  function stop() { if (timer) { cancelAnimationFrame(timer); timer = null; } $("play").setAttribute("aria-pressed", "false"); $("play").textContent = "Riproduci"; }
   function play() {
     if (timer) { stop(); return; }
+    if (!data) return;
     $("play").setAttribute("aria-pressed", "true"); $("play").textContent = "Pausa";
-    timer = setInterval(() => { if (i >= data.frames.length - 1) stop(); else go(i + 1); }, 1000 / fps);
+    const start = performance.now(), from = i;
+    const tick = now => {
+      const n = from + Math.floor((now - start) * fps / 1000);
+      if (n >= data.frames.length - 1) { go(data.frames.length - 1); stop(); return; }
+      if (n !== i) go(n);
+      timer = requestAnimationFrame(tick);
+    };
+    timer = requestAnimationFrame(tick);
   }
 
   $("b10").onclick = () => { stop(); go(i - 10); };
@@ -132,9 +157,76 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   $("fc").onclick = () => { stop(); change(1); };
   $("play").onclick = play;
   $("speed").onclick = () => {
-    fps = fps === 15 ? 60 : fps === 60 ? 5 : 15; $("speed").textContent = fps + "/s";
+    fps = fps === 60 ? 30 : fps === 30 ? 15 : fps === 15 ? 5 : 60;
+    $("speed").textContent = fps === 60 ? "Reale" : fps === 30 ? "½" : fps === 15 ? "¼" : "5/s";
     if (timer) { stop(); play(); }
   };
+
+  /* Disegno sopra il fotogramma: tratti in coordinate 0..1, salvati per fotogramma (li legge Claude). */
+  const ink = $("ink"), ictx = ink.getContext("2d");
+  let drawing = false, strokes = [], cur = null, db = null, saved = {};
+  function frameNum() { return data ? data.frames[i][0] : 0; }
+  function paint(list, color) {
+    ictx.lineWidth = 6; ictx.lineCap = "round"; ictx.lineJoin = "round"; ictx.strokeStyle = color;
+    for (const st of list) { if (st.length < 2) continue; ictx.beginPath(); ictx.moveTo(st[0] * ink.width, st[1] * ink.height);
+      for (let k = 2; k < st.length; k += 2) ictx.lineTo(st[k] * ink.width, st[k + 1] * ink.height); ictx.stroke(); }
+  }
+  function showInk() {
+    ictx.clearRect(0, 0, ink.width, ink.height);
+    const sv = saved[frameNum()];
+    if (sv && !drawing) { paint(sv.strokes || [], "rgba(224,50,43,0.9)"); $("note").value = sv.note || ""; }
+    else if (!drawing) $("note").value = "";
+    paint(strokes, "#e0322b");
+  }
+  function pos(e) { const r = ink.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; }
+  ink.addEventListener("pointerdown", e => { if (!drawing) return; ink.setPointerCapture(e.pointerId); cur = pos(e); strokes.push(cur); e.preventDefault(); });
+  ink.addEventListener("pointermove", e => { if (!cur) return; const p = pos(e); cur.push(p[0], p[1]); showInk(); });
+  const endStroke = () => { cur = null; };
+  ink.addEventListener("pointerup", endStroke); ink.addEventListener("pointercancel", endStroke);
+  $("draw").onclick = () => {
+    stop(); drawing = !drawing;
+    document.body.classList.toggle("drawing", drawing);
+    $("draw").classList.toggle("on", drawing); $("draw").setAttribute("aria-pressed", String(drawing));
+    if (drawing) { const sv = saved[frameNum()]; strokes = sv ? JSON.parse(JSON.stringify(sv.strokes || [])) : []; }
+    else strokes = [];
+    showInk();
+  };
+  $("undo").onclick = () => { strokes.pop(); showInk(); };
+  $("clear").onclick = () => { strokes = []; showInk(); };
+  $("save").onclick = async () => {
+    if (!db) { $("status").textContent = "Salvataggio non disponibile qui: scrivimi il numero del fotogramma."; return; }
+    const n = frameNum();
+    const doc = { rec: NAME, frame: n, strokes: drawing ? strokes : (saved[n] && saved[n].strokes) || [], note: $("note").value.trim(), at: new Date().toISOString() };
+    $("status").textContent = "Salvo…";
+    try {
+      await db.doc("disegni/" + NAME + "-" + n).set({ ...doc, strokes: JSON.stringify(doc.strokes) });
+      saved[n] = doc; listNotes();
+      $("status").textContent = "Salvato sul fotogramma " + n + ".";
+      if (drawing) $("draw").click();
+    } catch (e) { $("status").textContent = "Non salvato (" + (e && e.code || "errore") + "): riprova."; }
+  };
+  function listNotes() {
+    const box = $("notes"); box.textContent = "";
+    Object.keys(saved).map(Number).sort((a, b) => a - b).forEach(n => {
+      const b = document.createElement("button");
+      b.textContent = "✏ " + n + (saved[n].note ? " – " + saved[n].note.slice(0, 60) : "");
+      b.onclick = () => { stop(); goNumber(n); };
+      box.appendChild(b);
+    });
+  }
+  (async () => {
+    try {
+      db = await window.claude?.use?.("db");
+      if (!db) return;
+      db.collection("disegni").onSnapshot(snap => {
+        saved = {};
+        snap.docs.forEach(d => { const v = d.data(); if (!v || v.rec !== NAME) return;
+          let st = []; try { st = JSON.parse(v.strokes || "[]"); } catch (e) {}
+          saved[v.frame] = { strokes: st, note: v.note || "" }; });
+        listNotes(); if (!drawing) showInk();
+      }, () => {});
+    } catch (e) {}
+  })();
   $("slider").oninput = e => { stop(); go(parseInt(e.target.value, 10)); };
   $("goBtn").onclick = () => { stop(); const n = parseInt($("go").value, 10); if (!isNaN(n)) goNumber(n); };
   $("go").addEventListener("keydown", e => { if (e.key === "Enter") $("goBtn").click(); });
@@ -145,7 +237,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
     catch (e) { $("go").value = t; $("go").select(); $("status").textContent = "Numero nel campo: copialo da lì."; }
   };
   document.addEventListener("keydown", e => {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") return;
     if (e.key === "ArrowRight") { stop(); go(i + (e.shiftKey ? 10 : 1)); e.preventDefault(); }
     else if (e.key === "ArrowLeft") { stop(); go(i - (e.shiftKey ? 10 : 1)); e.preventDefault(); }
     else if (e.key === " ") { play(); e.preventDefault(); }
