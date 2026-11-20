@@ -1,8 +1,12 @@
 # CURRENT_STATE
 
-**Ultimo aggiornamento:** 2026-11-19
+**Ultimo aggiornamento:** 2026-11-20
 
 ## Dove siamo
+- **0.14.3-prototipo (consegnata il 2026-11-20)**: Etere/Elisir/PP-su coi riquadri dell'app, disposizione B (D-093);
+  fine cattura ferma (D-089), porte coi colori di fuori (D-090), fine lotta senza messaggio doppio (D-091), niente
+  fotogrammi fuori posto dopo CURA (D-092), TIPO e POTENZA nella mossa da dimenticare (D-088). Prove complete: 101,
+  tutte passate dopo la correzione di RomDataTest.
 - **0.14.0-prototipo (consegnata il 2026-11-19)**: mossa da dimenticare (D-085), tendina e dissolvenze coi colori
   del luogo (D-083), TIPO/PP senza PP (D-084), analisi dalla cameretta al laboratorio. Prima, 0.13.4: OPZIONI in un solo riquadro (D-075, D-080, D-082), menu e nomi
   immediati (D-081), stelline una per una, vibrazione nei lampi. Prima, 0.12.4: analisi fotogramma per fotogramma dell'inizio (D-074, video con
@@ -40,14 +44,11 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. Domani col committente (pagina "domani.html" inviata): mossa da dimenticare sul telefono; fine cattura di Pikachu
-   (rettangolo bianco, dialogo che scende); colori all'ingresso del laboratorio; lampi chiari prima della lotta;
-   menu del PC; Etere/Elisir, MT/MN e mosse fuori lotta (stesso riquadro delle 4 mosse).
-2. Da verificare: D-086 (dialogo spostato solo a riquadro disegnato) col video del laboratorio.
-3. Analisi della lotta col rivale fatta (ZzGlitchTest.analisiRivale, laboratorio.state; video inviato). Da decidere:
-   dissolvenza dopo la lotta (sfondo fuori dalla stanza lilla/azzurro). Soprannome vuoto: verificato, la tastiera
-   dell'app non lo permette (era solo la prova automatica). Poi: Strada 1,
-   Smeraldopoli, Pacco.
+1. Aspetto dal committente: prova di Etere sul telefono (0.14.3); conferma per la pagina privata interattiva con la
+   grafica del gioco (spostare i riquadri col dito) oppure si continua con le immagini a griglia numerata.
+2. Da provare: INDIETRO del menu Etere; Elisir e PP-su dopo SU CHI?; lampi chiari prima della lotta a Biancavilla.
+3. Prossimi menu: MT/MN (lista Pokémon e mosse), mosse fuori lotta; PC da rivedere col committente.
+4. Analisi successive: Smeraldopoli, Pacco del Professore, Bosco Smeraldo.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
