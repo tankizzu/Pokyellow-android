@@ -2251,3 +2251,4 @@ class AppPpSuTest : EtereHarness() {
         assertEquals("un PP-su usato", 2, s.latestSnapshot.get().bag.firstOrNull { it.id == 0x4F }?.quantity)
     }
 }
+

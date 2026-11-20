@@ -85,6 +85,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var startMapCalm = 0
     private var leftHouse = false
     @Volatile var debugFrameInfo = ""
+    /** Solo per il banco di prova: righe del gioco disegnate dalla mappa da questa in giù (-1 = normale). */
+    @Volatile var forceMapFromRow = -1
     private var tipoTail = 0
     private var nameTail = 0
     private var battleMenuSeen = false
@@ -1400,7 +1402,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 } else if (holdBattleEnd) {
                     // immagine di prima (D-089): niente da pubblicare
                 } else if (eh > NativeCore.HEIGHT) {
-                    NativeCore.nativeSetMapFromRow(handle, if (mapUnderDialog && dialog) 96 else 1000)
+                    NativeCore.nativeSetMapFromRow(handle, if (forceMapFromRow >= 0) forceMapFromRow else if (mapUnderDialog && dialog) 96 else 1000)
                     val rendered = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop)
                     val active = rendered != 0
                     extendedIsMap = rendered == 1
