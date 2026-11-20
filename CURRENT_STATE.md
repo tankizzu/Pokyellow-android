@@ -46,7 +46,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 ## Prossimo passo
 1. Aspetto dal committente: prova di Etere sul telefono (0.14.3); conferma per la pagina privata interattiva con la
    grafica del gioco (spostare i riquadri col dito) oppure si continua con le immagini a griglia numerata.
-2. Da provare: INDIETRO del menu Etere; Elisir e PP-su dopo SU CHI?; lampi chiari prima della lotta a Biancavilla.
+2. Provati sul computer: INDIETRO dell'Etere ed Elisir. Da provare: PP-su; lampi chiari prima della lotta a Biancavilla.
 3. Prossimi menu: MT/MN (lista Pokémon e mosse), mosse fuori lotta; PC da rivedere col committente.
 4. Analisi successive: Smeraldopoli, Pacco del Professore, Bosco Smeraldo.
 

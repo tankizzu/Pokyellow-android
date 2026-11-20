@@ -2074,3 +2074,73 @@ class AppEtereTest : AppScreensHarness() {
         pump(2000); assertTrue("PP ricaricati: ${s.latestSnapshot.get().party.map { it.name to it.moves }}", s.latestSnapshot.get().party.first().moves[2].pp == 15)
     }
 }
+
+/** INDIETRO del menu Etere (D-093) ed Elisir (tutte le mosse, senza scelta della mossa). */
+abstract class EtereHarness : AppScreensHarness() {
+    protected fun apri(item: Int): GameSession {
+        val s = start(auto = "giallo.state.two")!!
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_COUNT, 1)
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS, item)
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS + 1, 3)
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS + 2, 0xFF)
+        s.writeMemoryForTest(0xD16F + 29, 5); s.writeMemoryForTest(0xD16F + 31, 5)
+        pump(800)
+        var opened = false
+        for (t in 0 until 3) {
+            if (opened) break
+            pump(800); tapTile(10f, rows() - 2f); pump(800)
+            tapTile(4f, 36f)                  // BORSA
+            opened = shotUntil("75-borsa") { b -> boxAt(b, 0, 3, 20, 3) }
+            if (!opened) { s.closeMenus(); waitFor(10_000) { s.latestSnapshot.get().freeRoam && !s.menusClosing } }
+        }
+        assertTrue("borsa", opened)
+        tapTile(4f, 10f); pump(800)
+        tapTile(4f, 37f)                      // USA
+        assertTrue("su chi? dell'app", shotUntil("76-su-chi") { b -> boxAt(b, 0, 7, 20, 32) })
+        tapTile(4f, 9f)                       // PIKACHU
+        return s
+    }
+
+    protected fun finoAllaMappa(s: GameSession) {
+        var k = 0
+        while (k++ < 40 && !s.latestSnapshot.get().freeRoam) { tapTile(10f, 20f); pump(400) }
+        pump(1500)
+        assertTrue("di nuovo a camminare", s.latestSnapshot.get().freeRoam)
+    }
+
+}
+
+/** Una prova per classe: ogni classe parte da una sessione nuova. */
+class AppEtereIndietroTest : EtereHarness() {
+    @Test fun indietro() {
+        if (System.getProperty("giallo.state.two") == null) return assumeTrue(false)
+        val s = apri(0x50)
+        assertTrue("lista delle mosse", waitFor(20_000) { s.etherList })
+        pump(600)
+        tapTile(10f, 41f)                     // INDIETRO
+        assertTrue("lista chiusa", waitFor(10_000) { !s.etherList })
+        shot("77-etere-indietro")
+        finoAllaMappa(s)
+        shot("78-etere-indietro-mappa")
+        assertEquals("ETERE non usato", 3, s.latestSnapshot.get().bag.firstOrNull { it.id == 0x50 }?.quantity)
+        assertEquals("PP invariati", 5, s.latestSnapshot.get().party.first().moves[0].pp)
+    }
+
+}
+
+class AppElisirTest : EtereHarness() {
+    @Test fun elisir() {
+        if (System.getProperty("giallo.state.two") == null) return assumeTrue(false)
+        val s = apri(0x52)
+        pump(1500)
+        shot("79-elisir")
+        assertFalse("nessuna scelta della mossa", s.etherList)
+        finoAllaMappa(s)
+        val mv = s.latestSnapshot.get().party.first().moves
+        assertTrue("PP ricaricati su tutte: $mv", mv[0].pp == 15 && mv[2].pp == 15)
+        assertEquals("un ELISIR usato", 2, s.latestSnapshot.get().bag.firstOrNull { it.id == 0x52 }?.quantity)
+    }
+}
