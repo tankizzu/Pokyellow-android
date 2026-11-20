@@ -45,7 +45,8 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
    menu del PC; Etere/Elisir, MT/MN e mosse fuori lotta (stesso riquadro delle 4 mosse).
 2. Da verificare: D-086 (dialogo spostato solo a riquadro disegnato) col video del laboratorio.
 3. Analisi della lotta col rivale fatta (ZzGlitchTest.analisiRivale, laboratorio.state; video inviato). Da decidere:
-   dissolvenza dopo la lotta (sfondo fuori dalla stanza lilla/azzurro), soprannome lasciato vuoto. Poi: Strada 1,
+   dissolvenza dopo la lotta (sfondo fuori dalla stanza lilla/azzurro). Soprannome vuoto: verificato, la tastiera
+   dell'app non lo permette (era solo la prova automatica). Poi: Strada 1,
    Smeraldopoli, Pacco.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
