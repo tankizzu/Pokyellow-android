@@ -36,6 +36,7 @@ object NativeCore {
      */
     @JvmStatic external fun nativeRenderExtended(handle: Long, out: IntArray, height: Int, frameTop: Int): Int
     @JvmStatic external fun nativeSetMapFromRow(handle: Long, row: Int)
+    @JvmStatic external fun nativeEvDebug(handle: Long, what: Int): Int
     const val EXT_MAX_HEIGHT = 512
     /** Foglio 128×128 dei tile del gioco (carattere, riquadri) con i colori dei riquadri di testo: 1 = colori dallo schermo. */
     /** Sprite anche fuori dalle 144 righe (introduzione): 160 × height, riga 0 del gioco alla riga top. */

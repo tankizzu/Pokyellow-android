@@ -87,6 +87,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var tipoTail = 0
     private var battleMenuSeen = false
     private var shakeVibe = 0
+    private var shakeFrames = 0
+    private var lastScx = 0
+    private var lastScy = 0
     private var keptText = IntArray(0)
     private var flashState = 0
     private var shockSeen = false
@@ -1038,12 +1041,17 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     if (battleMenuShown) battleMenuSeen = true
                 } else battleMenuSeen = false
                 val scx = NativeCore.nativeReadMemory(handle, 0xFF43); val scy = NativeCore.nativeReadMemory(handle, 0xFF42)
-                val shaking = inBattleNowMem && battleMenuSeen && (scx != 0 || scy != 0)
+                // tremolio = lo scorrimento cambia da un fotogramma all'altro (in lotta SCX può restare fermo a 2)
+                // (alcune mosse spostano anche la "finestra" del gioco, WY tra 1 e 143: copia della scena spostata in giù)
+                val wy = NativeCore.nativeReadMemory(handle, 0xFF4A)
+                if (scx != lastScx || scy != lastScy) shakeFrames = 4 else if (shakeFrames > 0) shakeFrames--
+                lastScx = scx; lastScy = scy
+                val shaking = inBattleNowMem && battleMenuSeen && (shakeFrames > 0 || wy in 1..143)
+                if (!(inBattleNowMem && battleMenuSeen && shakeFrames > 0)) shakeVibe = 0
                 if (shaking) {
-                    if (shakeVibe-- <= 0) { onHit?.invoke(); shakeVibe = 6 }
+                    if (shakeFrames > 0 && shakeVibe-- <= 0) { onHit?.invoke(); shakeVibe = 6 }
                     if (battleSplit && keptText.isNotEmpty()) System.arraycopy(keptText, 0, back, 96 * NativeCore.WIDTH, keptText.size)
                 } else {
-                    shakeVibe = 0
                     if (inBattleNowMem) { if (keptText.isEmpty()) keptText = IntArray(48 * NativeCore.WIDTH); System.arraycopy(back, 96 * NativeCore.WIDTH, keptText, 0, keptText.size) }
                 }
                 // Ogni fotogramma: schermata di lotta divisa e menu iniziale ridisegnato (in sincronia con l'immagine).
@@ -1093,7 +1101,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     NativeCore.nativeReadRange(handle, 0xD3B2, warpBlock)
                     val nw = (warpBlock[0].toInt() and 0xFF).coerceAtMost(32)
                     onWarp = (0 until nw).any { (warpBlock[1 + 4 * it].toInt() and 0xFF) == py && (warpBlock[2 + 4 * it].toInt() and 0xFF) == px }
-                    debugFrameInfo = "start=$startOk sc=%d,%d wy=%d joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, 0xFF43), NativeCore.nativeReadMemory(handle, 0xFF42), NativeCore.nativeReadMemory(handle, 0xFF4A),NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
+                    debugFrameInfo = "al=${(0..5).joinToString(",") { NativeCore.nativeEvDebug(handle, it).toString() }} start=$startOk sc=%d,%d wy=%d joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, 0xFF43), NativeCore.nativeReadMemory(handle, 0xFF42), NativeCore.nativeReadMemory(handle, 0xFF4A),NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
                         NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP), px, py, onWarp)
                 }
                 // Vibrazione ai colpi (D-069): i PS di uno dei due Pokémon in lotta scendono.

@@ -180,6 +180,15 @@ Java_it_giallotouch_emu_NativeCore_nativeSetMapFromRow(JNIEnv *env, jclass cls, 
     as_core(handle)->ev.map_from_row = row;
 }
 
+/* Diagnosi dell'allineamento della vista estesa: punteggio, spostamento scelto, righe usate. */
+JNIEXPORT jint JNICALL
+Java_it_giallotouch_emu_NativeCore_nativeEvDebug(JNIEnv *env, jclass cls, jlong handle, jint what) {
+    (void)env; (void)cls;
+    EVState *st = &as_core(handle)->ev;
+    switch (what) { case 0: return st->dbg_score; case 1: return st->dbg_dx; case 2: return st->dbg_dy; case 3: return st->dbg_rows;
+        case 4: return st->base_x; default: return st->base_y; }
+}
+
 /* Sprite anche fuori dalle 144 righe (introduzione, D-076): out = 160 × height, riga 0 del gioco alla riga top. */
 JNIEXPORT jint JNICALL
 Java_it_giallotouch_emu_NativeCore_nativeSprites(JNIEnv *env, jclass cls, jlong handle, jintArray out, jint height, jint top) {

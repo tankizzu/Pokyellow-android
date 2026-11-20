@@ -422,17 +422,27 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     int est_ty = rd(gb, Y_COORD) * 2 + 12 - 8;
     /* A parità di punteggio vince lo spostamento più vicino alla stima (D-101): nelle stanze piccole circondate di nero
      * molti spostamenti combaciano uguale e prima vinceva il primo provato (riga della stanza fuori posto). */
+    /* Righe coperte da un riquadro di testo del gioco (bordo nella colonna 0): non contano (D-101), altrimenti durante i
+     * dialoghi l'allineamento sbagliava di qualche casella nelle stanze piccole. */
+    bool skip_row[18] = {false};
+    int rows_used = 18;
+    for (int j = 0; j < 18; j++) {
+        uint8_t v = bank0[bg_map + (((scy >> 3) + j) & 31) * 32 + ((scx >> 3) & 31)];
+        if (v >= 0x79 && v <= 0x7E) { skip_row[j] = true; rows_used--; }
+    }
+    if (rows_used < 6) { for (int j = 0; j < 18; j++) skip_row[j] = false; rows_used = 18; }
     int best = -1, best_tx = 0, best_ty = 0, best_d = 99;
     for (int dy = -3; dy <= 3; dy++) for (int dx = -3; dx <= 3; dx++) {
         int score = 0;
-        for (int j = 0; j < 18; j++) for (int i = 0; i < 20; i++) {
+        for (int j = 0; j < 18; j++) { if (skip_row[j]) continue; for (int i = 0; i < 20; i++) {
             uint8_t v = bank0[bg_map + (((scy >> 3) + j) & 31) * 32 + (((scx >> 3) + i) & 31)];
             if (v == map_tile(&mt, est_tx + dx + i, est_ty + dy + j)) score++;
-        }
+        } }
         int d = abs(dx) + abs(dy);
         if (score > best || (score == best && d < best_d)) { best = score; best_tx = est_tx + dx; best_ty = est_ty + dy; best_d = d; }
     }
-    if (best < 300) { st->valid = false; return 0; }   /* meno dell'83%: lo sfondo non è la mappa */
+    st->dbg_score = best; st->dbg_dx = best_tx - est_tx; st->dbg_dy = best_ty - est_ty; st->dbg_rows = rows_used;
+    if (best * 100 < 83 * 20 * rows_used) { st->valid = false; return 0; }   /* meno dell'83%: lo sfondo non è la mappa */
 
     /* Finestra a tutto schermo (riquadri del gioco): se mostra un menu a schermo pieno e non la mappa, niente estensione. */
     if ((lcdc & 0x20) && rd(gb, 0xFF4A) == 0 && rd(gb, 0xFF4B) <= 7) {
