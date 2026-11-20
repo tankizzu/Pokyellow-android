@@ -890,6 +890,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         val ok = NativeCore.nativeLoadState(handle, state) ||
             (storage.backupOf(files.state)?.let { NativeCore.nativeLoadState(handle, it) } ?: false)
         check(ok) { "salvataggio non leggibile" }
+        startMapId = -1; doorPending = false   // partita caricata: non è un'entrata da una porta (D-098)
         lastBattery?.let { storage.writeAtomic(storage.batteryBeforeLoadFile, it) }
         walker.cancel(); executor.cancel(); nameExecutor.cancel(); itemExecutor.cancel(); battleExecutor.cancel(); battleBusy = false
         frameMask.reset(); extMask.reset()   // le immagini di prima appartengono a un'altra partita
@@ -1327,7 +1328,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     var uniform = true; var q = 0
                     while (q < back.size) { if (back[q] != c0) { uniform = false; break }; q += 13 }
                     if (mapIdNow != startMapId) {
-                        if (onWarp || startOnWarp) { doorPending = true; doorUniform = false; doorFrames = 0 }
+                        // il primo luogo (avvio, partita caricata) non è un'entrata da una porta
+                        if (startMapId >= 0 && (onWarp || startOnWarp)) { doorPending = true; doorUniform = false; doorFrames = 0 }
                         startMapId = mapIdNow
                     }
                     startOnWarp = onWarp

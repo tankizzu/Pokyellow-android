@@ -2140,25 +2140,10 @@ class AppPickerTest : AppScreensHarness() {
  * Etere (D-093): borsa con ETERE scritto in memoria, PP della terza mossa a 5; BORSA → ETERE → USA → SU CHI? dell'app
  * → PIKACHU → riquadro dell'app con le mosse (disposizione B) → tocco sulla terza mossa → PP da 5 a 15.
  */
-class AppEtereTest : AppScreensHarness() {
+class AppEtereTest : EtereHarness() {
     @Test fun etere() {
-        val s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
-        pump(1500)
-        assertTrue(s.loadSlot(SaveSlot.AUTO))
-        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
-        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_COUNT, 1)
-        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS, 0x50)
-        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS + 1, 3)
-        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS + 2, 0xFF)
-        s.writeMemoryForTest(0xD16F + 31, 5)   // PP della terza mossa (COLPO-CODA)
-        pump(800)
-        tapTile(10f, rows() - 2f); pump(800)
-        tapTile(4f, 36f)                      // BORSA
-        assertTrue("borsa", shotUntil("70-etere-borsa") { b -> boxAt(b, 0, 3, 20, 3) })
-        tapTile(4f, 10f); pump(800)           // ETERE
-        tapTile(4f, 37f)                      // USA
-        assertTrue("su chi? dell'app", shotUntil("71-etere-su-chi") { b -> boxAt(b, 0, 7, 20, 32) })
-        tapTile(4f, 9f)                       // PIKACHU
+        if (System.getProperty("giallo.state.two") == null) return assumeTrue(false)
+        val s = apri(0x50)
         assertTrue("lista delle mosse del gioco", waitFor(20_000) { s.etherList })
         pump(600)
         assertTrue("riquadri dell'app (disposizione B)", shotUntil("72-etere-mosse") { b -> boxAt(b, 0, 28, 20, 10) && boxAt(b, 3, 39, 14, 4) && boxAt(b, 0, 1, 20, 7) })

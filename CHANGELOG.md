@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-20 – revisione fotogramma per fotogramma (D-096..D-105), 0.14.5
+- Pulsante START: sparisce entrando nelle porte, torna subito a fine dialogo e lotta, non sparisce passando tra i luoghi;
+  a inizio partita compare la prima volta che si esce di casa.
+- Lotta: testo fermo e vibrazione durante il tremolio delle mosse; bianco iniziale più breve; tendina a tutto schermo.
+- Persone fuori dall'inquadratura sempre visibili (testa intera nell'erba).
+- Scritte © centrate; testo in alto anche nelle dissolvenze del Professore; lista dei nomi del gioco mai visibile.
+
 ## 2026-11-20 – lotta senza lampo del riquadro TIPO/PP (D-095)
 - Quando tocchi una mossa, il riquadro TIPO/PP del gioco non compare più per un attimo sulla scena.
 
