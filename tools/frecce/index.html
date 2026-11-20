@@ -13,6 +13,8 @@
 body { background: var(--bg); color: var(--fg); font-family: var(--ui);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 28px; }
 .wrap { max-width: 480px; margin: 0 auto; display: grid; gap: 12px; }
+.left, .right { display: grid; gap: 10px; align-content: start; min-width: 0; }
+
 .info { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .num { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .phase { font-size: 15px; color: var(--accent); font-weight: 600; }
@@ -38,15 +40,25 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .slider { width: 100%; }
 .hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
 .status { font-size: 13px; color: var(--muted); }
+/* Computer: immagine a sinistra alta quanto la finestra, comandi a destra (niente scorrimento su e giù). */
+@media (min-width: 720px) {
+  .wrap { max-width: 1000px; grid-template-columns: auto minmax(300px, 460px); align-items: start; justify-content: center; gap: 20px; }
+  .screen { height: calc(100vh - 110px); width: auto; }
+  .right { position: sticky; top: 12px; }
+  button, select, input { font-size: 15px; padding: 9px 6px; }
+}
 </style>
 
 <div class="wrap">
+ <div class="left">
   <div class="info">
     <div><span class="num" id="num">–</span> <span class="status" id="of"></span></div>
     <div class="phase" id="phase"></div>
   </div>
   <div class="flags" id="flags"></div>
   <div class="screen"><canvas id="cv" width="320" height="710"></canvas><canvas id="ink" width="640" height="1420"></canvas></div>
+ </div>
+ <div class="right">
   <input class="slider" id="slider" type="range" min="0" max="0" value="0" aria-label="Posizione nella registrazione">
   <div class="row">
     <button id="b10" aria-label="Indietro di 10">◀◀ 10</button>
@@ -74,15 +86,18 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   <label class="hint" for="note">Nota per questo fotogramma (la leggo insieme al disegno)</label>
   <textarea id="note" placeholder="Es. qui il pulsante START deve sparire"></textarea>
   <div class="notes" id="notes"></div>
+  <label class="hint" for="rec">Registrazione</label>
+  <select id="rec"></select>
   <label class="hint" for="phases">Fasi della registrazione</label>
   <select id="phases"></select>
   <div class="hint">◀ cambio / cambio ▶ saltano al fotogramma precedente o successivo in cui l'immagine cambia. Da tastiera: frecce ← → (con Maiuscole ±10), spazio per riprodurre. Il numero in alto è quello da scrivermi. ✏ Disegna: tocca e trascina sull'immagine per segnare in rosso, poi Salva (con la nota se vuoi): i disegni salvati li leggo io.</div>
   <div class="status" id="status">Carico la registrazione…</div>
+ </div>
 </div>
 
 <script>
 (function () {
-  const NAME = "smeraldopoli";
+  let NAME = "smeraldopoli";
   const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   const $ = id => document.getElementById(id);
@@ -108,7 +123,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
     $("phase").textContent = f[2];
     $("flags").textContent = f[3] || " ";
     $("slider").value = i;
-    try { location.replace("#f" + f[0]); } catch (e) {}
+    try { location.replace("#" + NAME + "-f" + f[0]); } catch (e) {}
     const want = i;
     try {
       const img = await sheet(s);
@@ -219,14 +234,22 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
       db = await window.claude?.use?.("db");
       if (!db) return;
       db.collection("disegni").onSnapshot(snap => {
+        lastSnap = snap; refreshSaved();
+      }, () => {});
+    } catch (e) {}
+  })();
+  let lastSnap = null;
+  function refreshSaved() {
+    if (!lastSnap) return;
+    const snap = lastSnap;
+    {
         saved = {};
         snap.docs.forEach(d => { const v = d.data(); if (!v || v.rec !== NAME) return;
           let st = []; try { st = JSON.parse(v.strokes || "[]"); } catch (e) {}
           saved[v.frame] = { strokes: st, note: v.note || "" }; });
-        listNotes(); if (!drawing) showInk();
-      }, () => {});
-    } catch (e) {}
-  })();
+        listNotes(); if (!drawing && data) showInk();
+    }
+  }
   $("slider").oninput = e => { stop(); go(parseInt(e.target.value, 10)); };
   $("goBtn").onclick = () => { stop(); const n = parseInt($("go").value, 10); if (!isNaN(n)) goNumber(n); };
   $("go").addEventListener("keydown", e => { if (e.key === "Enter") $("goBtn").click(); });
@@ -243,15 +266,31 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
     else if (e.key === " ") { play(); e.preventDefault(); }
   });
 
-  fetch(NAME + ".json").then(r => r.json()).then(d => {
+  function loadRec(name, startNum) {
+    stop(); NAME = name; data = null; sheets.clear();
+    $("status").textContent = "Carico la registrazione…"; $("phases").textContent = "";
+    if (typeof listNotes === "function") { refreshSaved(); }
+    fetch(NAME + ".json").then(r => r.json()).then(d => onData(d, startNum))
+      .catch(() => { $("status").textContent = "Registrazione non caricata: ricarica la pagina."; });
+  }
+  $("rec").onchange = e => { loadRec(e.target.value); try { localStorage.setItem("rec", e.target.value); } catch (x) {} };
+  function onData(d, startNum) {
     data = d;
     $("slider").max = d.frames.length - 1;
     let last = null;
     d.frames.forEach((f, k) => {
       if (f[2] !== last) { const o = document.createElement("option"); o.value = k; o.textContent = f[2] + " (dal " + f[0] + ")"; $("phases").appendChild(o); last = f[2]; }
     });
-    const m = /^#f(\d+)$/.exec(location.hash || "");
-    if (m) goNumber(parseInt(m[1], 10)); else go(0);
-  }).catch(() => { $("status").textContent = "Registrazione non caricata: ricarica la pagina."; });
+    if (startNum != null) goNumber(startNum); else go(0);
+  }
+  fetch("registrazioni.json").then(r => r.json()).then(list => {
+    list.forEach(r => { const o = document.createElement("option"); o.value = r.name; o.textContent = r.title; $("rec").appendChild(o); });
+    const m = /^#([a-z0-9]+)-f(\d+)$/.exec(location.hash || "");
+    let pick = list[list.length - 1].name;
+    try { const st = localStorage.getItem("rec"); if (st && list.some(r => r.name === st)) pick = st; } catch (x) {}
+    if (m && list.some(r => r.name === m[1])) pick = m[1];
+    $("rec").value = pick;
+    loadRec(pick, m ? parseInt(m[2], 10) : null);
+  }).catch(() => loadRec(NAME));
 })();
 </script>
