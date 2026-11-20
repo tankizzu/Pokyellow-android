@@ -1688,10 +1688,71 @@ class ZzGlitchTest : AppScreensHarness() {
         }
         fase("pacco"); step(60)
         println("DBGSM borsa ${s.latestSnapshot.get().bag}")
-        val m1 = pos().first
+        System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "pacco.state")) }
+        // uscita dal Market: verso la porta (la più in basso) e poi giù
+        fun esci() {
+            val m = pos().first
+            val d = s.warpsForTest().maxByOrNull { it.first } ?: return
+            s.walkPathForTest(d.second, d.first)
+            var j = 0
+            while (j++ < 400 && pos().first == m) { step(4); if (j % 20 == 0) { s.setKeys(NativeCore.KEY_DOWN); step(8); s.setKeys(0) } }
+        }
+        fase("uscita"); esci(); step(60)
+        fun lotta() {
+            fase("lotta"); var b = 0
+            while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && b++ < 300) {
+                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(0)); step(30) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+            }
+        }
+        // verso sud fino a Biancavilla (mappa 0)
+        fase("strada1"); k = 0
+        while (pos().first != 0 && k++ < 60) {
+            val g = s.mapGridForTest() ?: break
+            val bottom = (0 until g.width).map { it to g.height - 1 }.filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }
+                .minByOrNull { kotlin.math.abs(it.first - pos().second) }
+            val target = bottom ?: (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
+                .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }.maxByOrNull { it.second } ?: break
+            val m = pos().first
+            s.walkPathForTest(target.first, target.second)
+            var t = 0
+            while (t++ < 400 && pos().first == m && (pos().second != target.first || pos().third != target.second)) {
+                step(4)
+                if (s.latestSnapshot.get().inBattle) { lotta(); fase("strada1"); s.walkPathForTest(target.first, target.second) }
+                else if (!s.latestSnapshot.get().freeRoam && t % 8 == 0) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            }
+            if (pos().first == m && pos().third == target.second) { s.setKeys(NativeCore.KEY_DOWN); step(16); s.setKeys(0); step(30) }
+        }
+        fase("biancavilla"); step(60)
+        System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "biancavilla-pacco.state")) }
+        // laboratorio: la porta più in basso di Biancavilla
+        val lab = s.warpsForTest().maxByOrNull { it.first }
+        if (lab != null) {
+            s.walkPathForTest(lab.second, lab.first + 1)
+            k = 0
+            while (k++ < 600 && pos().first == 0 && (pos().second != lab.second || pos().third != lab.first + 1)) step(2)
+            s.setKeys(NativeCore.KEY_UP); step(16); s.setKeys(0)
+            k = 0
+            while (k++ < 300 && pos().first == 0) step(2)
+        }
+        fase("laboratorio"); step(60)
+        // verso il Professore (in alto al centro) e A
         k = 0
-        while (k++ < 200 && pos().first == m1) { s.setKeys(NativeCore.KEY_DOWN); step(8); s.setKeys(0); step(4) }
-        fase("uscita"); step(120)
+        while (k++ < 40 && s.latestSnapshot.get().bag.any { it.id == 70 }) {
+            if (s.latestSnapshot.get().freeRoam) { s.setKeys(NativeCore.KEY_UP); step(10); s.setKeys(0); step(4) }
+            s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(20)
+            if (s.yesNo != null) s.command(it.giallotouch.bridge.GameCommand.Answer(true))
+        }
+        fase("consegna"); k = 0; var calm2 = 0
+        while (k++ < 300 && calm2 < 6) {
+            step(20)
+            if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); calm2 = 0 }
+            else if (s.dialogStrip != null || !s.latestSnapshot.get().freeRoam) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); calm2 = 0 }
+            else calm2++
+        }
+        println("DBGSM fine ${pos()} borsa ${s.latestSnapshot.get().bag}")
+        System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "pokedex2.state")) }
+        fase("fine"); step(120)
     }
 
     /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */
