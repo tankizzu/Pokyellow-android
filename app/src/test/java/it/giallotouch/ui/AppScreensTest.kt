@@ -1534,26 +1534,39 @@ class ZzGlitchTest : AppScreensHarness() {
         // testi in sospeso, poi verso l'uscita (in basso)
         var k = 0
         while (!s.latestSnapshot.get().freeRoam && k++ < 60) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(26) }
-        // prima si parla col Professore (la persona più in alto), poi verso l'uscita
-        val g = s.mapGridForTest()
-        val oak = g?.people?.minByOrNull { it.second }
-        if (g != null && oak != null) {
-            val spot = g.interactionSpots(oak.first, oak.second).entries.firstOrNull { g.path(pos().second, pos().third, setOf(it.key)) != null }
-            if (spot != null) {
-                s.walkPathForTest(spot.key.first, spot.key.second)
-                k = 0
-                while (k++ < 300 && pos().let { it.second != spot.key.first || it.third != spot.key.second }) step(2)
-                s.setKeys(spot.value.key); step(6); s.setKeys(0); step(6)
-                s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(30)
-                k = 0
-                while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < 120) {
-                    if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); step(30) }
-                    else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(26) }
-                }
+        // Si parla con ogni persona del laboratorio, una alla volta, e dopo ognuna si prova a uscire: la lotta col
+        // rivale parte quando la scena del laboratorio è completa.
+        fun talkThrough() {
+            var t = 0
+            while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && t++ < 120) {
+                if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(false)); step(30) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(26) }
             }
         }
+        fun tryExit() {
+            val ex = s.warpsForTest().maxByOrNull { it.first } ?: return
+            s.walkPathForTest(ex.second, ex.first - 1)
+            var t = 0
+            while (t++ < 150 && !s.latestSnapshot.get().inBattle) {
+                step(4)
+                if (!s.latestSnapshot.get().freeRoam) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+                if (pos().first != 40 && pos().first != s.positionForTest().first) break
+            }
+        }
+        val g0 = s.mapGridForTest()
+        for (person in g0?.people.orEmpty().sortedBy { it.second }) {
+            if (s.latestSnapshot.get().inBattle) break
+            val g = s.mapGridForTest() ?: break
+            val spot = g.interactionSpots(person.first, person.second).entries.firstOrNull { g.path(pos().second, pos().third, setOf(it.key)) != null } ?: continue
+            s.walkPathForTest(spot.key.first, spot.key.second)
+            k = 0
+            while (k++ < 300 && pos().let { it.second != spot.key.first || it.third != spot.key.second }) { step(2); if (s.latestSnapshot.get().inBattle) break }
+            s.setKeys(spot.value.key); step(6); s.setKeys(0); step(6)
+            s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(30)
+            talkThrough()
+            tryExit()
+        }
         val exit = s.warpsForTest().maxByOrNull { it.first }
-        if (exit != null && !s.latestSnapshot.get().inBattle) s.walkPathForTest(exit.second, exit.first - 2)
         k = 0
         while (!s.latestSnapshot.get().inBattle && k++ < 400) {
             step(4)
