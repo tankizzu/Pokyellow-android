@@ -2033,3 +2033,40 @@ class AppPickerTest : AppScreensHarness() {
         shot("61-scelta-file-prima-volta")
     }
 }
+
+/**
+ * Etere (in preparazione): borsa con ETERE scritto in memoria, PP della prima mossa abbassati; BORSA → ETERE → USA →
+ * PIKACHU, poi si guarda cosa mostra il gioco (lista delle mosse) per costruire il riquadro dell'app.
+ */
+class AppEtereTest : AppScreensHarness() {
+    @Test fun etere() {
+        val s = start(auto = "giallo.state.two") ?: return assumeTrue(false)
+        pump(1500)
+        assertTrue(s.loadSlot(SaveSlot.AUTO))
+        waitFor(10_000) { s.latestSnapshot.get().freeRoam }
+        val item = (System.getProperty("giallo.etere") ?: "80").toInt()
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_COUNT, 1)
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS, item)
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS + 1, 3)
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS + 2, 0xFF)
+        s.writeMemoryForTest(0xD16F + 29, 5)   // PP della prima mossa
+        pump(800)
+        tapTile(10f, rows() - 2f); pump(800)
+        tapTile(4f, 36f)                      // BORSA
+        assertTrue("borsa", shotUntil("70-etere-borsa") { b -> boxAt(b, 0, 3, 20, 3) })
+        tapTile(4f, 10f); pump(800)           // ETERE
+        tapTile(4f, 37f)                      // USA
+        shotUntil("71-etere-su-chi") { b -> boxAt(b, 0, 7, 20, 32) }
+        tapTile(4f, 9f)                       // PIKACHU
+        var k = 0
+        while (k++ < 40) {
+            pump(300)
+            val t = s.frameTilesForTest()
+            val v = s.memoryForTest(0xCC24, 8)
+            println("DBGET $k vars=${v.joinToString(",") { (it.toInt() and 0xFF).toString(16) }} busy=${s.itemBusy} dlg=${s.dialogStrip != null}")
+            if (k % 5 == 0) println("DBGET righe\n" + (0 until 18).joinToString("\n") { r -> (0 until 20).joinToString(" ") { c -> "%02x".format(t[r * 20 + c].toInt() and 0xFF) } })
+            if (k == 8) shot("72-etere-mosse")
+        }
+        shot("73-etere-fine")
+    }
+}

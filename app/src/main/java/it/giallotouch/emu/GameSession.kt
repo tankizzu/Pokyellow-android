@@ -95,6 +95,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var forgetNew = 0
     private var lastYn: YesNo? = null
     private var answerTail = 0
+    private var ynGone = 99
+    private var dialogWas = false
+    private var dialogEnd = 0
     /** Riquadro SÌ/NO del gioco ancora sullo schermo dopo la risposta (D-087). */
     @Volatile var answerPending = false
     /** Tasto premuto direttamente per qualche fotogramma (scelte immediate, D-081/D-085). */
@@ -1127,7 +1130,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 else lastYn = null
                 val ynBoxStill = ynNow == null && lastYn?.let { (frameTiles[it.y0 * 20 + it.x0].toInt() and 0xFF) == 0x79 } == true
                 answerPending = ynBoxStill
-                val yn = ynNow ?: lastYn?.takeIf { ynBoxStill }
+                // L'immagine arriva un paio di fotogrammi dopo la memoria dello schermo: il riquadro SÌ/NO (CURA/ESCI) si
+                // vedeva ancora per un fotogramma dopo essere sparito dalle caselle. Si copre ancora per 2 fotogrammi.
+                if (ynNow != null || ynBoxStill) ynGone = 0 else if (ynGone < 99) ynGone++
+                val yn = ynNow ?: lastYn?.takeIf { ynBoxStill || ynGone <= 2 }
                 // Mentre l'app guida i menu del gioco le sue domande ("Su quale POKéMON…?") non si mostrano (D-071).
                 var dialog = !itemExecutor.busy && !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
@@ -1148,6 +1154,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         if (n > best) best = n }
                     if (best < 120) dialog = false
                 }
+                // Fine dialogo: le caselle non hanno più il riquadro ma l'immagine sì (arriva dopo) per un fotogramma,
+                // e il dialogo compariva in basso (D-092). Finché il riquadro è ancora disegnato si continua a spostarlo.
+                if (!dialog && dialogWas && dialogEnd < 3 && !itemExecutor.busy && !battleSplit && !inBattleRaw && frameMask.ready) {
+                    var best = 0
+                    for (y in 96 until 104) { var n = 0; val b = y * NativeCore.WIDTH
+                        for (x in 8 until NativeCore.WIDTH - 8) { val c = back[b + x]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200) n++ }
+                        if (n > best) best = n }
+                    if (best >= 120) { dialog = true; dialogEnd++ }
+                }
+                if (dialog && dialogEnd == 0) dialogWas = true else if (!dialog) { dialogWas = false; dialogEnd = 0 }
                 if (holdBattleEnd) {
                     // dialogo di prima (vedi D-089)
                 } else if (dialog) {
