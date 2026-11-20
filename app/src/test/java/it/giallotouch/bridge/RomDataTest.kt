@@ -16,7 +16,7 @@ class RomDataTest {
         val e3 = listOf(3, 0, 0, 0, 0, 5)
         val rom = (listOf(9) + e1 + e2 + e3).map { it.toByte() }.toByteArray()
         assertEquals(
-            listOf(RomData.MoveInfo(0x0A, 0x14), RomData.MoveInfo(0x17, 0x1E), RomData.MoveInfo(0, 5)),
+            listOf(RomData.MoveInfo(0x0A, 0x14, 0), RomData.MoveInfo(0x17, 0x1E, 0x28), RomData.MoveInfo(0, 5, 0)),
             RomData.readMoveData(rom, 1, 3)
         )
         assertNull("dati insufficienti", RomData.readMoveData(rom, 1, 4))
@@ -40,8 +40,8 @@ class RomDataTest {
         val file = System.getProperty("giallo.rom")?.let(::File)
         assumeTrue(file != null && file.isFile)
         val data = RomData.load(file!!.readBytes(), supported = true)
-        assertEquals(RomData.MoveInfo(type = 0x17, maxPp = 30), data.moveInfo(0x54))
-        assertEquals(RomData.MoveInfo(type = 0x00, maxPp = 40), data.moveInfo(0x2D))
+        assertEquals(RomData.MoveInfo(type = 0x17, maxPp = 30, power = 40), data.moveInfo(0x54))
+        assertEquals(RomData.MoveInfo(type = 0x00, maxPp = 40, power = 0), data.moveInfo(0x2D))
         assertEquals(true, data.typeName(0x17).isNotEmpty() && data.moveName(0x54).isNotEmpty())
         // nomi delle specie: tutti presenti, al massimo 10 caratteri; PP massimi con i PP Su (30 + 6 × 3)
         assertEquals(true, (1..190).all { data.speciesName(it).length in 1..10 })
