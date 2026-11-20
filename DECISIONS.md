@@ -118,6 +118,8 @@
 | D-103 | 2026-11-20 | **Lista dei nomi del gioco coperta dopo la scelta** (note 2666, 2668, 3433): per 10 fotogrammi dopo la lista dell'app il gioco ridisegna la sua (▶NUOVO…): resta coperta. |
 | D-104 | 2026-11-20 | **Testo in alto anche nelle dissolvenze** (note 1452, 2442, 2802, 3613, 4414): il riquadro del gioco si riconosce con qualunque colore (bordo di un solo colore e riga interna di un altro), non più solo col bordo scuro. |
 | D-105 | 2026-11-20 | **START a inizio partita solo dopo essere usciti di casa** (nota 4501, scelta del committente): senza Pokémon, nella casa del giocatore (luoghi 37 e 38) START non c'è finché non si esce la prima volta. |
+| D-106 | 2026-11-20 | **START nascosto nelle scene guidate** (il Professore che accompagna al laboratorio): quando il gioco blocca i comandi START non c'è, tranne subito dopo una porta (60 fotogrammi) e dopo una lotta, dove torna subito (D-098). Da verificare. |
+| D-107 | 2026-11-20 | **Cattura di Pikachu nella disposizione della lotta**: lo sfondo del gioco resta la mappa e la vista estesa disegnava la scena della lotta dentro la mappa; con la lotta in corso e la disposizione della lotta la vista estesa si spegne. Da verificare. |
 
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |

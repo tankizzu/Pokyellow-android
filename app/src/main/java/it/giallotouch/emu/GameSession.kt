@@ -84,6 +84,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var doorFrames = 0
     private var startMapCalm = 0
     private var leftHouse = false
+    private var doorRecent = 0
     @Volatile var debugFrameInfo = ""
     /** Solo per il banco di prova: righe del gioco disegnate dalla mappa da questa in giù (-1 = normale). */
     @Volatile var forceMapFromRow = -1
@@ -1336,9 +1337,12 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     }
                     startOnWarp = onWarp
                     if (doorPending) {
-                        if (uniform) doorUniform = true else if (doorUniform) doorPending = false
+                        if (uniform) doorUniform = true else if (doorUniform) { doorPending = false; doorRecent = 60 }
                         if (++doorFrames > 400) doorPending = false
-                    }
+                    } else if (doorRecent > 0) doorRecent--
+                    // Scene guidate (il Professore che accompagna, D-106): il gioco blocca i comandi e START non serve.
+                    // Non vale subito dopo una porta o una lotta, dove il blocco dura pochi fotogrammi e START torna subito.
+                    val joyBlocked = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) != 0 && afterBattle == 0 && doorRecent == 0
                     var boxDrawn = false
                     if (dialogStrip == null) boxDrawn = boxBorderDrawn(back) && boxInnerClean(back)
                     val cursor = frameTiles.any { (it.toInt() and 0xFF) == 0xED }
@@ -1349,7 +1353,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val noParty = NativeCore.nativeReadMemory(handle, MemoryMapIt.PARTY_COUNT) == 0
                     if (noParty && mapIdNow != 37 && mapIdNow != 38 && mapish) leftHouse = true
                     val startHome = noParty && !leftHouse && (mapIdNow == 37 || mapIdNow == 38)
-                    startOk = !startHome && !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
+                    startOk = !startHome && !joyBlocked && !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
                         !itemExecutor.busy && yesNo == null && nameList == null && !holdBattleEnd && (mapish || (startOk && startMapCalm < 30))
                 }
                 if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
@@ -1404,7 +1408,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 } else if (eh > NativeCore.HEIGHT) {
                     NativeCore.nativeSetMapFromRow(handle, if (forceMapFromRow >= 0) forceMapFromRow else if (mapUnderDialog && dialog) 96 else 1000)
                     val rendered = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop)
-                    val active = rendered != 0
+                    // Lotta già in corso con la disposizione della lotta (D-107): niente mappa estesa intorno (nella cattura
+                    // di Pikachu lo sfondo del gioco resta la mappa e la scena compariva dentro la mappa).
+                    val active = rendered != 0 && !(inBattleRaw && battleSplit)
                     extendedIsMap = rendered == 1
                     // Cambio di luogo: per qualche fotogramma la mappa nuova non si allinea ancora; si tiene l'ultima
                     // immagine buona invece di mostrare il riempimento (rettangolo di colore, D-067).
