@@ -8,3 +8,6 @@ frecce ◀ ▶ (1), ◀◀ ▶▶ (10), "cambio" (salta al prossimo fotogramma d
 
 Le immagini contengono la grafica del gioco: la cartella d'uscita resta fuori dal repository e la pagina resta privata
 (scelta del committente, 2026-11-20).
+
+Regola del committente (2026-11-20): ogni volta che si ripropone la pagina con registrazioni nuove, prima si leggono e
+si cancellano tutte le note e i disegni salvati (raccolta `disegni` del database della pagina).

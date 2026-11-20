@@ -47,7 +47,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 ## Prossimo passo
 1. Revisione col committente nella pagina privata "Fotogramma per fotogramma": registrazioni 1 Nuovo gioco (col video
    iniziale), 2 Cameretta, 3 Rivale, 4 Strada 1, 5 Smeraldopoli→Pacco. Note del 2026-11-20 su Nuovo gioco corrette
-   (D-102..D-105); i disegni salvati del tratto 1 hanno la numerazione vecchia (+1410 nella nuova).
+   (D-102..D-105). Regola: a ogni nuova pagina proposta si cancellano le note precedenti (tools/frecce/LEGGIMI.md).
 2. Ancora aperti: 984 (riga della stanza spostata durante il dialogo), rivale che entra dalla porta (10436), Blu fino
    alla porta (13865) da verificare.
 3. APK nuovo dopo la revisione (D-096..D-105 non ancora in un APK).
