@@ -45,12 +45,12 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. Aspetto dal committente: prova sul telefono della 0.14.4 (Etere, Market) e della pagina privata
-   "Fotogramma per fotogramma" (frecce ◀ ▶; strumento in tools/frecce, scelta del committente del 2026-11-20).
-2. Analisi fatta: Smeraldopoli → Market → Strada 1 → consegna del Pacco (D-094, D-095 corretti). Partite di prova
-   salvate: pacco.state, biancavilla-pacco.state, pokedex2.state (scratchpad, fuori dal repository).
-3. Prossime analisi: Strada 2 e Bosco Smeraldo; ogni analisi nella pagina privata con le frecce.
-4. Prossimi menu: MT/MN, mosse fuori lotta; PC da rivedere col committente.
+1. Revisione col committente della registrazione Smeraldopoli → Pacco nella pagina privata "Fotogramma per fotogramma"
+   (rifatta con D-096..D-101). Ancora aperti: 984 (riga in basso della stanza spostata durante il dialogo, con la mappa
+   disegnata sotto il dialogo, D-094); rivale che entra dalla porta (10436); Blu che esce fino alla porta (13865) da
+   verificare; persone che compaiono tardi entrando nel laboratorio (8901).
+2. Poi registrazione da NUOVO GIOCO da rivedere insieme nella stessa pagina.
+3. APK nuovo dopo la revisione (D-096..D-101 non ancora in un APK).
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
