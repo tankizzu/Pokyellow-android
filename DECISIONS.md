@@ -120,6 +120,7 @@
 | D-105 | 2026-11-20 | **START a inizio partita solo dopo essere usciti di casa** (nota 4501, scelta del committente): senza Pokémon, nella casa del giocatore (luoghi 37 e 38) START non c'è finché non si esce la prima volta. |
 | D-106 | 2026-11-20 | **START nascosto nelle scene guidate** (il Professore che accompagna al laboratorio): quando il gioco blocca i comandi START non c'è, tranne subito dopo una porta (60 fotogrammi) e dopo una lotta, dove torna subito (D-098). Da verificare. |
 | D-107 | 2026-11-20 | **Cattura di Pikachu nella disposizione della lotta**: lo sfondo del gioco resta la mappa e la vista estesa disegnava la scena della lotta dentro la mappa; con la lotta in corso e la disposizione della lotta la vista estesa si spegne. Da verificare. |
+| D-108 | 2026-11-20 | **Inizio dei dialoghi**: il dialogo si sposta anche quando il riquadro è già nell'immagine prima che nelle caselle; START sparisce appena le caselle segnano il riquadro. Resta 1 fotogramma col riquadro in basso all'inizio di alcuni dialoghi (l'immagine mostrata è un fotogramma avanti rispetto a quella usata per decidere): da sistemare. |
 
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
