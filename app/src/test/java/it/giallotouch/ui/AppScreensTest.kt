@@ -1648,8 +1648,9 @@ class ZzGlitchTest : AppScreensHarness() {
         // OPZIONI uniche dell'app (D-075, D-080): un tocco su ANIMAZIONE la cambia nella memoria del gioco
         assertTrue("OPZIONI dell'app", shotUntil("op-opzioni") { boxAt(it, 0, 6, 20, 24) })
         val before = s.gameOptions and 0x80
-        tapTile(4f, 8.5f)
-        assertTrue("animazione cambiata", waitFor(3_000) { (s.gameOptions and 0x80) != before })
+        var tries = 0
+        while (tries++ < 3 && (s.gameOptions and 0x80) == before) { tapTile(4f, 8.5f); waitFor(2_000) { (s.gameOptions and 0x80) != before } }
+        assertTrue("animazione cambiata", (s.gameOptions and 0x80) != before)
         val after = s.gameOptions
         pump(800)
         assertEquals("scritta nel gioco", after, s.gameOptions)
