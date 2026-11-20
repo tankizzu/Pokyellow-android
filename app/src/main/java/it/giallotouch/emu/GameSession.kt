@@ -299,18 +299,29 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
      * rosse/gialle del Professore, D-104): una riga del bordo superiore (96–103) di un solo colore per tutta la larghezza e,
      * sotto, la riga vuota interna (106) quasi tutta di un altro colore. Il nero intorno alle stanze e gli scaffali no.
      */
+    /** Riga interna del riquadro (106) di un colore solo: esclude il nero intorno alle stanze (per START, D-098). */
+    private fun boxInnerClean(px: IntArray): Boolean {
+        val inner = 106 * NativeCore.WIDTH; val fill = px[inner + 80]
+        val l = ((fill shr 16) and 255) + ((fill shr 8) and 255) + (fill and 255)
+        return l > 300 && (8 until NativeCore.WIDTH - 8).count { px[inner + it] == fill } >= 136
+    }
+
     private fun boxBorderDrawn(px: IntArray): Boolean {
         val inner = 106 * NativeCore.WIDTH
         val fill = px[inner + 80]
         var same = 0
         for (x in 8 until NativeCore.WIDTH - 8) if (px[inner + x] == fill) same++
-        if (same < 136) return false
+        val innerOk = same >= 136
         for (y in 96 until 104) {
             val b = y * NativeCore.WIDTH; val c = px[b + 80]
-            if (c == fill) continue
+            if (innerOk && c == fill) continue
             var n = 0
             for (x in 8 until NativeCore.WIDTH - 8) if (px[b + x] == c) n++
-            if (n >= 140) return true
+            if (n < 140) continue
+            // bordo scuro (colori normali): basta il bordo, anche se l'interno non è ancora pulito (come D-086);
+            // bordo di un altro colore (dissolvenze): serve anche l'interno di un colore solo
+            val dark = ((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200
+            if (dark || innerOk) return true
         }
         return false
     }
@@ -1325,7 +1336,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         if (++doorFrames > 400) doorPending = false
                     }
                     var boxDrawn = false
-                    if (dialogStrip == null) boxDrawn = boxBorderDrawn(back)
+                    if (dialogStrip == null) boxDrawn = boxBorderDrawn(back) && boxInnerClean(back)
                     val cursor = frameTiles.any { (it.toInt() and 0xFF) == 0xED }
                     val mapish = latestExtended.get().active && extendedIsMap
                     if (mapish) startMapCalm = 0 else startMapCalm++

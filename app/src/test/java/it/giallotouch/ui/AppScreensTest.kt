@@ -1456,6 +1456,9 @@ class ZzGlitchTest : AppScreensHarness() {
      */
     @Test fun analisiNuovoGioco() = registra("analisi2") { step, fase ->
         var k = 0
+        // il video iniziale si guarda tutto (richiesta del committente): START solo sul titolo
+        while (!s.titleShown && k++ < 400) step(30)
+        fase("titolo"); step(120); k = 0
         while (s.mainMenuItems == 0 && k++ < 200) { s.setKeys(NativeCore.KEY_START); step(4); s.setKeys(0); step(26) }
         fase("menu")
         step(40)
