@@ -1816,6 +1816,11 @@ class ZzGlitchTest : AppScreensHarness() {
                 if (win.size == 3) { val a = win[0]; val m = win[1]; val c = win[2]
                     for (i in a.indices) if (m[i] != a[i] && m[i] != c[i] && a[i] == c[i]) blip++ }
                 val raw = s.latestFrame.get(); val rawWhite = raw.all { it == raw[0] }
+                System.getProperty("giallo.sprdump")?.split("-")?.let { (a, b) -> if (n in a.toInt()..b.toInt()) {
+                    val d1 = s.memoryForTest(0xC100, 256); val d2 = s.memoryForTest(0xC200, 256)
+                    fun h(b: ByteArray, o: Int) = (0 until 16).joinToString("") { "%02x".format(b[o + it].toInt() and 0xFF) }
+                    println("DBGSP $n " + (0 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }.joinToString(" | ") { "$it:${h(d1, it * 16)}/${h(d2, it * 16)}" })
+                } }
                 System.getProperty("giallo.raw")?.split("-")?.let { (a, b) -> if (n in a.toInt()..b.toInt()) {
                     val rb = Bitmap.createBitmap(raw, 160, 144, Bitmap.Config.ARGB_8888)
                     FileOutputStream(File(out, "raw%05d.png".format(n))).use { rb.compress(Bitmap.CompressFormat.PNG, 100, it) } } }

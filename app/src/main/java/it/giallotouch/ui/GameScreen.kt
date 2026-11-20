@@ -157,6 +157,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var forgetMoves by remember { mutableStateOf<IntArray?>(null) }   // mossa da dimenticare (D-085)
     var forgetNew by remember { mutableStateOf(0) }   // nomi proposti dal Professore (D-052)
     var etherShown by remember { mutableStateOf(false) }   // Etere: scelta della mossa (D-093)
+    var startOk by remember { mutableStateOf(false) }   // pulsante START (D-098)
     var etherFor by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // strumento e Pokémon scelti (D-093)
     var pcOpen by remember { mutableStateOf(false) }       // STRUMENTI PC dell'app (D-055)
     var boxOpen by remember { mutableStateOf(false) }      // BOX POKéMON dell'app (D-058)
@@ -218,6 +219,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             nameList = session.nameList
             forgetMoves = session.forgetMoves; forgetNew = session.forgetNew
             etherShown = session.etherList
+            startOk = session.startOk && !session.itemBusy && !session.menusClosing
             if (session.pcMenuShown && !pcOpen) pcOpen = true
             if (session.boxMenuShown && !boxOpen) boxOpen = true
             pcChoice = session.pcChoice
@@ -510,7 +512,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         } else if (inGame && sheet != null && !trainerCard && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 &&
             // START solo quando sullo schermo c'è davvero la mappa (non nelle schermate bianche dell'introduzione, D-065)
-            (snapshot.freeRoam && mapVisible || panelOpen)) {
+            (startOk || panelOpen)) {
             // Pulsanti durante il gioco (D-040): MENU in basso; aperto, squadra in alto e POKéDEX/BORSA/OPZIONI/SALVA.
             GamePanel(
                 sheet = sheet!!,

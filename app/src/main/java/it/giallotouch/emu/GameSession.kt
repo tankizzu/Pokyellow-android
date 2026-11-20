@@ -75,6 +75,14 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var maskMapId = -1
     private val warpBlock = ByteArray(1 + 4 * 32)
     @Volatile var onWarp = false
+    /** Pulsante START visibile in questo fotogramma (D-098). */
+    @Volatile var startOk = false
+    private var startMapId = -1
+    private var startOnWarp = false
+    private var doorPending = false
+    private var doorUniform = false
+    private var doorFrames = 0
+    private var startMapCalm = 0
     @Volatile var debugFrameInfo = ""
     private var tipoTail = 0
     private var battleMenuSeen = false
@@ -293,15 +301,20 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             wiped[ty * 20 + tx] = solid; if (solid) any = true
         }
         if (!any) return
+        // Tendina a tutto schermo (D-099): il disegno del gioco (20×18 caselle) si allunga su tutta l'altezza, anche al
+        // centro, sopra l'ultima immagine della mappa; prima al centro restava la tendina del gioco e sopra/sotto due
+        // copie schiacciate.
+        val full = lastMapH == height && lastMapExt.size >= height * NativeCore.WIDTH
+        if (full) System.arraycopy(lastMapExt, 0, ext, 0, height * NativeCore.WIDTH)
         val below = height - frameTop - NativeCore.HEIGHT
         for (r in 0 until height) {
-            val fr = when {
+            val fr = if (full) r * NativeCore.HEIGHT / height else when {
                 r < frameTop -> if (frameTop > 0) r * 72 / frameTop else continue
                 r >= frameTop + NativeCore.HEIGHT -> if (below > 0) 72 + (r - frameTop - NativeCore.HEIGHT) * 72 / below else continue
                 else -> continue
             }.coerceIn(0, NativeCore.HEIGHT - 1)
             val rowBase = r * NativeCore.WIDTH
-            for (tx in 0 until 20) if (wiped[(fr / 8) * 20 + tx]) java.util.Arrays.fill(ext, rowBase + tx * 8, rowBase + tx * 8 + 8, dark)
+            for (tx in 0 until 20) if (wiped[(fr.coerceIn(0, NativeCore.HEIGHT - 1) / 8) * 20 + tx]) java.util.Arrays.fill(ext, rowBase + tx * 8, rowBase + tx * 8 + 8, dark)
         }
     }
 
@@ -1080,7 +1093,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     NativeCore.nativeReadRange(handle, 0xD3B2, warpBlock)
                     val nw = (warpBlock[0].toInt() and 0xFF).coerceAtMost(32)
                     onWarp = (0 until nw).any { (warpBlock[1 + 4 * it].toInt() and 0xFF) == py && (warpBlock[2 + 4 * it].toInt() and 0xFF) == px }
-                    debugFrameInfo = "joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
+                    debugFrameInfo = "start=$startOk joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
                         NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP), px, py, onWarp)
                 }
                 // Vibrazione ai colpi (D-069): i PS di uno dei due Pokémon in lotta scendono.
@@ -1260,6 +1273,33 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     dialogStrip = stripA
                     val t = stripA; stripA = stripB; stripB = t
                 } else dialogStrip = null
+                // Pulsante START (D-098): deciso sull'immagine di questo fotogramma, non sulla memoria del gioco (che arriva
+                // prima o dopo): sparisce appena si entra in una porta e torna appena il luogo nuovo è sullo schermo; torna
+                // subito a fine dialogo o lotta (anche se il gioco blocca ancora i tasti); non sparisce per un attimo
+                // passando da un luogo all'altro.
+                run {
+                    val c0 = back[0]
+                    var uniform = true; var q = 0
+                    while (q < back.size) { if (back[q] != c0) { uniform = false; break }; q += 13 }
+                    if (mapIdNow != startMapId) {
+                        if (onWarp || startOnWarp) { doorPending = true; doorUniform = false; doorFrames = 0 }
+                        startMapId = mapIdNow
+                    }
+                    startOnWarp = onWarp
+                    if (doorPending) {
+                        if (uniform) doorUniform = true else if (doorUniform) doorPending = false
+                        if (++doorFrames > 400) doorPending = false
+                    }
+                    var boxDrawn = false
+                    if (dialogStrip == null) for (y in 96 until 104) { var n = 0; val b = y * NativeCore.WIDTH
+                        for (x in 8 until NativeCore.WIDTH - 8) { val c = back[b + x]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200) n++ }
+                        if (n >= 120) { boxDrawn = true; break } }
+                    val cursor = frameTiles.any { (it.toInt() and 0xFF) == 0xED }
+                    val mapish = latestExtended.get().active && extendedIsMap
+                    if (mapish) startMapCalm = 0 else startMapCalm++
+                    startOk = !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
+                        !itemExecutor.busy && yesNo == null && nameList == null && !holdBattleEnd && (mapish || (startOk && startMapCalm < 30))
+                }
                 if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
                 checkPendingClose(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles))
                 val hide = hidingOldMenus()
