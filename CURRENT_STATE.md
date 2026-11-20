@@ -33,7 +33,8 @@
 ## Limiti noti
 - Spostare i Pokémon della squadra: non ancora (serve una partita di prova con almeno 2 Pokémon); lo scambio degli
   strumenti è provato solo con la logica (serve una partita con almeno 2 strumenti). Chiesto al committente un .sav.
-- Partita caricata a dialogo aperto: quel dialogo resta in basso (manca l'immagine della mappa senza dialogo).
+- Partita caricata a dialogo aperto: sulla mappa il dialogo dovrebbe ora spostarsi con la mappa disegnata sotto (D-094, da verificare); nelle
+  scene senza mappa resta in basso.
 - Persone fuori inquadratura disegnate ferme; al cambio di mappa la vista estesa può spegnersi per qualche fotogramma.
 - Nessun telefono qui: l'app è provata sul computer con il banco di prova (telefono simulato), non su un telefono vero.
 
@@ -48,7 +49,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
    grafica del gioco (spostare i riquadri col dito) oppure si continua con le immagini a griglia numerata.
 2. Provati sul computer: INDIETRO dell'Etere, Elisir, PP-su; lampi prima della lotta a Biancavilla coi colori della strada (a posto).
 3. Prossimi menu: MT/MN (lista Pokémon e mosse), mosse fuori lotta; PC da rivedere col committente.
-4. Analisi successive: Smeraldopoli, Pacco del Professore, Bosco Smeraldo.
+4. Analisi: Smeraldopoli fatta fino al PACCO (D-094 corretto); poi consegna del Pacco al laboratorio, Bosco Smeraldo.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,

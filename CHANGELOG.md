@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-20 – primo dialogo in un luogo nuovo (D-094)
+- Entrando nel Market di Smeraldopoli niente più pezzo di città sotto la stanza mentre parla il commesso.
+- Provati anche INDIETRO dell'Etere, Elisir e PP-su.
+
 ## 2026-11-20 – Etere ed Elisir con i riquadri dell'app (D-093), 0.14.3
 - BORSA → ETERE → USA: SU CHI? dell'app, poi le mosse in basso con i PP e INDIETRO al centro; il tocco sulla mossa ricarica i PP.
 - Elisir e PP-su usano anche loro la scelta del Pokémon dell'app.
