@@ -92,6 +92,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
      */
     @Volatile var forgetMoves: IntArray? = null
     @Volatile var forgetNew = 0
+    private var lastYn: YesNo? = null
+    private var answerTail = 0
+    /** Riquadro SÌ/NO del gioco ancora sullo schermo dopo la risposta (D-087). */
+    @Volatile var answerPending = false
     /** Tasto premuto direttamente per qualche fotogramma (scelte immediate, D-081/D-085). */
     private var directKey = 0
     private var directFrames = 0
@@ -1103,7 +1107,15 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 namingShown = NamingReader.looksLikeNaming(frameTiles)
                 // Dopo la schermata dei nomi l'immagine "di prima" sarebbe la tastiera del gioco: si butta (D-067).
                 if (namingShown) frameMask.reset()
-                val yn = yesNo?.takeIf { !trainerCardShown }   // anche in lotta (riquadro del gioco sulla scena)
+                val ynNow = yesNo?.takeIf { !trainerCardShown }   // anche in lotta (riquadro del gioco sulla scena)
+                // Subito dopo la risposta (D-087) il riquadro SÌ/NO del gioco resta qualche fotogramma col cursore: si
+                // continua a coprirlo, il dialogo resta al suo posto e SELECT non compare.
+                if (ynNow != null) { lastYn = ynNow; answerTail = 0 }
+                else if (lastYn != null && answerTail < 40) answerTail++
+                else lastYn = null
+                val ynBoxStill = ynNow == null && lastYn?.let { (frameTiles[it.y0 * 20 + it.x0].toInt() and 0xFF) == 0x79 } == true
+                answerPending = ynBoxStill
+                val yn = ynNow ?: lastYn?.takeIf { ynBoxStill }
                 // Mentre l'app guida i menu del gioco le sue domande ("Su quale POKéMON…?") non si mostrano (D-071).
                 var dialog = !itemExecutor.busy && !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)

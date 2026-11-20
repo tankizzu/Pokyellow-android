@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-20 – niente pulsanti Sì/No fuori stile (D-087)
+- Cura al Centro: spariti i pulsanti gialli e SELECT che comparivano per un attimo dopo la risposta.
+
 ## 2026-11-19 – mossa da dimenticare (D-085)
 - Quando un Pokémon vuole imparare una quinta mossa: riquadro dell'app con le 4 mosse (tocco = dimentica) e NON IMPARARE.
 - Dialoghi: niente pezzi di mappa nel riquadro prima che compaia; scelta dei nomi sempre immediata (D-086).

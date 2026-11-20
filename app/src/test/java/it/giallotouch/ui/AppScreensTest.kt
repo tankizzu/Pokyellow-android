@@ -1615,6 +1615,33 @@ class ZzGlitchTest : AppScreensHarness() {
         fase("smeraldopoli"); step(180)
     }
 
+    /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */
+    @Test fun analisiCentro() = registra("analisi6", auto = "giallo.state.centro") { step, fase ->
+        fun pos() = s.positionForTest()
+        fase("centro"); step(30)
+        s.walkPathForTest(3, 3)
+        var k = 0
+        while (k++ < 300 && pos().let { it.second != 3 || it.third != 3 }) step(2)
+        s.setKeys(NativeCore.KEY_UP); step(6); s.setKeys(0); step(6)
+        s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0)
+        fase("cura")
+        k = 0
+        while (s.yesNo == null && k++ < 60) { step(20); if (s.yesNo == null) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) } }
+        step(30)
+        s.command(it.giallotouch.bridge.GameCommand.Answer(true))
+        k = 0
+        while (!s.latestSnapshot.get().freeRoam && k++ < 80) { step(20); s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+        fase("uscita")
+        val door = s.warpsForTest().maxByOrNull { it.first }
+        if (door != null) {
+            s.walkPathForTest(door.second, door.first)
+            k = 0
+            val m = pos().first
+            while (k++ < 300 && pos().first == m) { step(4); if (k % 20 == 0) { s.setKeys(NativeCore.KEY_DOWN); step(8); s.setKeys(0) } }
+        }
+        fase("città"); step(120)
+    }
+
     /**
      * Registra ogni fotogramma (sessione in passo a passo dall'accensione) in [dir]: un'immagine per ogni fotogramma
      * diverso dal precedente (320 di larghezza) e indice.txt "fotogramma file lampeggio fase stato menu titolo".

@@ -12,8 +12,8 @@ android {
         applicationId = "it.giallotouch"
         minSdk = 26
         targetSdk = 36
-        versionCode = 34
-        versionName = "0.14.1-prototipo"
+        versionCode = 35
+        versionName = "0.14.2-prototipo"
         ndk {
             // CMF Phone 2 Pro e quasi tutti i telefoni moderni sono arm64.
             abiFilters += listOf("arm64-v8a")
@@ -67,7 +67,7 @@ dependencies {
 // uno stato salvato e la libreria del motore compilata per il computer, per esempio:
 // ./gradlew testDebugUnitTest -Pgiallo.rom=/percorso/gioco.gb -Pgiallo.state=/percorso/stato.state -Pgiallo.hostlib=/percorso/cartella
 tasks.withType<Test>().configureEach {
-    listOf("giallo.rom", "giallo.state", "giallo.state.yesno", "giallo.state.pallet", "giallo.zip", "giallo.state.text", "giallo.state.naming", "giallo.state.bag", "giallo.state.title", "giallo.shots", "giallo.battery", "giallo.state.squadra", "giallo.state.items", "giallo.scenario", "giallo.state.shop", "giallo.state.two", "giallo.state.grind", "giallo.state.cameretta", "giallo.state.mossa", "giallo.state.laboratorio", "giallo.state.strada", "giallo.ko").forEach { key ->
+    listOf("giallo.rom", "giallo.state", "giallo.state.yesno", "giallo.state.pallet", "giallo.zip", "giallo.state.text", "giallo.state.naming", "giallo.state.bag", "giallo.state.title", "giallo.shots", "giallo.battery", "giallo.state.squadra", "giallo.state.items", "giallo.scenario", "giallo.state.shop", "giallo.state.two", "giallo.state.grind", "giallo.state.cameretta", "giallo.state.mossa", "giallo.state.laboratorio", "giallo.state.strada", "giallo.state.centro", "giallo.ko").forEach { key ->
         providers.gradleProperty(key).orNull?.let { systemProperty(key, it) }
     }
     providers.gradleProperty("giallo.hostlib").orNull?.let { jvmArgs("-Djava.library.path=$it") }

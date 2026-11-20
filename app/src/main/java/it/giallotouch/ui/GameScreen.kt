@@ -430,22 +430,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
                     }
                 }
             }
-        } else if (snapshot.menu.kind == MenuKind.YES_NO) {
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                val imageHeight = maxWidth * 0.9f
-                val imageTop = (maxHeight - imageHeight) / 2
-                Column(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = imageTop + imageHeight * 0.30f, end = 10.dp)
-                        .width(132.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AnswerButton("Sì", primary = true, enabled = !commandBusy) { session.command(GameCommand.Answer(true)) }
-                    AnswerButton("No", primary = false, enabled = !commandBusy) { session.command(GameCommand.Answer(false)) }
-                }
-            }
         }
+        // (D-087) Niente pulsanti Sì/No di riserva: con una domanda in corso ma già risposta dall'app si vedeva per qualche
+        // fotogramma una coppia di pulsanti non nello stile del gioco.
 
         // Squadra in alto, con i dati letti dalla memoria del gioco (nascosta durante la lotta).
         val battleMon = snapshot.battleMon
@@ -584,7 +571,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
 
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && !itemRequested && !openingTrainer && !session.itemBusy && !session.menusClosing && session.mainMenuItems == 0 && !session.titleShown && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && snapshot.cursorOnScreen && session.choiceOnScreen && !commandBusy && !session.answerPending && !itemRequested && !openingTrainer && !session.itemBusy && !session.menusClosing && session.mainMenuItems == 0 && !session.titleShown && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()
