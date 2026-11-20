@@ -72,6 +72,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var lastEnemyHp = -1
     private var lastYellow = 0
     private var afterBattle = 0
+    private var maskMapId = -1
     private var flashState = 0
     private var shockSeen = false
     private var titleWasShown = false
@@ -1198,7 +1199,12 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // riempie col colore dello sfondo; sulla mappa il dialogo resta al suo posto.
                 val plainBackground = !frameMask.ready && !extendedActive && back[0] == back[NativeCore.WIDTH - 1] &&
                     back[0] == back[11 * 8 * NativeCore.WIDTH] && back[0] == back[12 * 8 * NativeCore.WIDTH - 1]
-                if (dialog && !frameMask.ready && !plainBackground) dialog = false
+                // Appena entrati in un luogo (D-094) l'immagine di prima è di un altro luogo (pezzo di città sotto la stanza):
+                // si butta, e sotto il dialogo si disegna la mappa vera del luogo (vista estesa), senza immagine di prima.
+                val mapIdNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP)
+                if (mapIdNow != maskMapId) { frameMask.reset(); maskMapId = mapIdNow }
+                val mapUnderDialog = dialog && !frameMask.ready && extendedActive && extendedIsMap && !inBattleRaw
+                if (dialog && !frameMask.ready && !plainBackground && !mapUnderDialog) dialog = false
                 // Il riquadro deve essere già disegnato nell'immagine (bordo superiore scuro alla riga 96-103): nei primi
                 // fotogrammi la mappa delle caselle lo ha già ma l'immagine no, e si spostava un pezzo di mappa (D-086).
                 if (dialog) {
@@ -1251,7 +1257,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     // Etere (D-093): tutta l'immagine del gioco (squadra e lista) coperta con l'immagine di prima (mappa).
                     if (etherList) add(if (frameMask.ready) BoxMask.Box(0, 0, 19, 17) else BoxMask.Box(0, 0, 19, 17, fill = back[0]))
                     if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
-                    if (dialog) add(if (frameMask.ready) BoxMask.Box(0, 12, 19, 17) else BoxMask.Box(0, 12, 19, 17, fill = back[0]))
+                    if (dialog && !(mapUnderDialog && dialog)) add(if (frameMask.ready) BoxMask.Box(0, 12, 19, 17) else BoxMask.Box(0, 12, 19, 17, fill = back[0]))
                 }
                 frameMask.apply(back, NativeCore.HEIGHT, 0, boxes, boxesOnScreen = onScreen || holdImage)
                 if (holdImage) {
@@ -1271,6 +1277,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 } else if (holdBattleEnd) {
                     // immagine di prima (D-089): niente da pubblicare
                 } else if (eh > NativeCore.HEIGHT) {
+                    NativeCore.nativeSetMapFromRow(handle, if (mapUnderDialog && dialog) 96 else 1000)
                     val rendered = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop)
                     val active = rendered != 0
                     extendedIsMap = rendered == 1

@@ -44,7 +44,9 @@ class BoxMask(private val width: Int = NativeCore.WIDTH) {
             if (boxesOnScreen) return
             // Le schermate tutte di un colore (passaggi tra scene, es. prima della lista dopo un KO) non si tengono:
             // sotto i riquadri resterebbe un'immagine bianca.
-            if (blank(pixels, height, frameTop)) return
+            // Dopo una schermata tutta di un colore (porta, cambio di scena) l'immagine di prima è di un'altra scena: si
+            // butta (D-094), altrimenti sotto il primo dialogo del luogo nuovo compariva un pezzo del luogo di prima.
+            if (blank(pixels, height, frameTop)) { reset(); return }
             if (frames++ % 8 == 0) {
                 val old = before
                 before = recent; beforeTop = recentTop

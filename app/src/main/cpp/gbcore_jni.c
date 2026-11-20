@@ -173,6 +173,13 @@ Java_it_giallotouch_emu_NativeCore_nativeRenderExtended(JNIEnv *env, jclass cls,
     return r;   /* 1 = mappa, 2 = schermata del titolo */
 }
 
+/* Righe del gioco da [row] in giù disegnate dalla mappa invece che copiate (sotto il dialogo spostato, D-094). */
+JNIEXPORT void JNICALL
+Java_it_giallotouch_emu_NativeCore_nativeSetMapFromRow(JNIEnv *env, jclass cls, jlong handle, jint row) {
+    (void)env; (void)cls;
+    as_core(handle)->ev.map_from_row = row;
+}
+
 /* Sprite anche fuori dalle 144 righe (introduzione, D-076): out = 160 × height, riga 0 del gioco alla riga top. */
 JNIEXPORT jint JNICALL
 Java_it_giallotouch_emu_NativeCore_nativeSprites(JNIEnv *env, jclass cls, jlong handle, jintArray out, jint height, jint top) {

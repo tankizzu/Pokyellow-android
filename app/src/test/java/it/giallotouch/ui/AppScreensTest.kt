@@ -1661,6 +1661,39 @@ class ZzGlitchTest : AppScreensHarness() {
         }
     }
 
+    /**
+     * Analisi di Smeraldopoli (-Pgiallo.state.citta=STATO a Smeraldopoli, prima del Pacco): cammino fino al Market,
+     * ingresso, il commesso consegna il PACCO DI OAK, uscita.
+     */
+    @Test fun analisiSmeraldopoli() = registra("analisi8", auto = "giallo.state.citta") { step, fase ->
+        fun pos() = s.positionForTest()
+        fase("citta"); step(30)
+        println("DBGSM posizione ${pos()} porte ${s.warpsForTest()}")
+        val door = s.warpsForTest().firstOrNull { it.first == 19 && it.second == 29 } ?: s.warpsForTest().first()
+        s.walkPathForTest(door.second, door.first + 1)
+        var k = 0
+        val m0 = pos().first
+        while (k++ < 600 && pos().let { it.first == m0 && (it.second != door.second || it.third != door.first + 1) }) step(2)
+        s.setKeys(NativeCore.KEY_UP); step(16); s.setKeys(0)
+        k = 0
+        while (k++ < 300 && pos().first == m0) step(2)
+        fase("market"); step(60)
+        k = 0
+        var calm = 0
+        while (k++ < 200 && calm < 6) {
+            step(20)
+            if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); calm = 0 }
+            else if (s.dialogStrip != null || !s.latestSnapshot.get().freeRoam) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); calm = 0 }
+            else calm++
+        }
+        fase("pacco"); step(60)
+        println("DBGSM borsa ${s.latestSnapshot.get().bag}")
+        val m1 = pos().first
+        k = 0
+        while (k++ < 200 && pos().first == m1) { s.setKeys(NativeCore.KEY_DOWN); step(8); s.setKeys(0); step(4) }
+        fase("uscita"); step(120)
+    }
+
     /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */
     @Test fun analisiCentro() = registra("analisi6", auto = "giallo.state.centro") { step, fase ->
         fun pos() = s.positionForTest()

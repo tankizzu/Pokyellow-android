@@ -7,7 +7,8 @@
 typedef struct {
     bool valid;
     int map_id;
-    int last_outdoor, last_w, last_h;   /* ultimo luogo all'aperto (porte: colori di fuori finché si vede ancora fuori) */
+    int last_outdoor, last_w, last_h;
+    int map_from_row;   /* righe del gioco da questa in giù disegnate dalla mappa (sotto il dialogo, D-094) */   /* ultimo luogo all'aperto (porte: colori di fuori finché si vede ancora fuori) */
     int base_x, base_y;           /* pixel della mappa (con il bordo) nell'angolo in alto a sinistra dell'inquadratura */
     uint8_t attr_by_tile[256];    /* attributi a colori imparati dai tile visibili */
     bool attr_known[256];

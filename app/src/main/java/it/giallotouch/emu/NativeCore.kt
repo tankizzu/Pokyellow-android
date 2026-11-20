@@ -35,6 +35,7 @@ object NativeCore {
      * restituisce 1 se lo schermo mostra la mappa, 0 altrimenti.
      */
     @JvmStatic external fun nativeRenderExtended(handle: Long, out: IntArray, height: Int, frameTop: Int): Int
+    @JvmStatic external fun nativeSetMapFromRow(handle: Long, row: Int)
     const val EXT_MAX_HEIGHT = 512
     /** Foglio 128×128 dei tile del gioco (carattere, riquadri) con i colori dei riquadri di testo: 1 = colori dallo schermo. */
     /** Sprite anche fuori dalle 144 righe (introduzione): 160 × height, riga 0 del gioco alla riga top. */

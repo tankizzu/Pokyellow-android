@@ -312,7 +312,7 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
     }
 }
 
-void ev_reset(EVState *st) { memset(st, 0, sizeof(*st)); st->map_id = -1; st->last_outdoor = -1; }
+void ev_reset(EVState *st) { memset(st, 0, sizeof(*st)); st->map_id = -1; st->last_outdoor = -1; st->map_from_row = 1000; }
 
 /*
  * Schermata del titolo a tutto schermo (D-069): il logo che scende dall'alto è già nella memoria video sopra la parte
@@ -490,7 +490,7 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
         uint32_t *dst = out + (size_t)row * FRAME_W;
         int my = st->base_y + f;
         int ty = floordiv(my, 8), py = posmod(my, 8);
-        if (f >= 0 && f < FRAME_H) {
+        if (f >= 0 && f < FRAME_H && f < st->map_from_row) {
             memcpy(dst, frame + (size_t)f * FRAME_W, FRAME_W * sizeof(uint32_t));
             if (!recolor) continue;
             /* immagine del gioco: i colori 1 e 2 della mappa si riportano a quelli del luogo a cui appartiene il tile */
