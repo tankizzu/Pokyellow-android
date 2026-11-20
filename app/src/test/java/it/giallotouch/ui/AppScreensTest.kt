@@ -1232,7 +1232,11 @@ class AppSenzaLampeggiTest : AppScreensHarness() {
         s.onFrame = {
             old?.invoke()
             val t = s.frameTilesForTest()
-            val boxBottom = (t[12 * 20].toInt() and 0xFF) == 0x79 && (t[17 * 20 + 19].toInt() and 0xFF) == 0x7E
+            // riquadro nelle caselle e anche nell'immagine (a fine lotta il gioco è tutto bianco con le caselle ancora lì)
+            val raw = s.latestFrame.get()
+            // e il bordo del riquadro già disegnato nell'immagine (righe 96-103, come D-086)
+            val drawn = (96 until 104).any { y -> (8 until 152).count { x -> val c = raw[y * 160 + x]; ((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200 } >= 120 }
+            val boxBottom = (t[12 * 20].toInt() and 0xFF) == 0x79 && (t[17 * 20 + 19].toInt() and 0xFF) == 0x7E && raw.any { it != raw[0] } && drawn
             rec.add(booleanArrayOf(s.battleSplit, s.dialogStrip != null, s.battleMenuShown, s.battleGameMenu, s.yesNo != null,
                 s.extendedActive, s.latestSnapshot.get().inBattle, s.latestSnapshot.get().freeRoam, s.battlePartyAsked,
                 boxBottom && !s.latestSnapshot.get().inBattle && s.dialogStrip == null))
@@ -1613,6 +1617,48 @@ class ZzGlitchTest : AppScreensHarness() {
             if (pos().first == 12 && pos().third == 0) { s.setKeys(NativeCore.KEY_UP); step(16); s.setKeys(0); step(30) }
         }
         fase("smeraldopoli"); step(180)
+    }
+
+    /** Analisi dei dialoghi sulla Strada 1 (-Pgiallo.state.two=two.state): cartelli e persone come AppSenzaLampeggiTest. */
+    @Test fun analisiDialoghi() = registra("analisi7", auto = "giallo.state.two") { step0, fase ->
+        fun pos() = s.positionForTest()
+        var n = 0
+        val step: (Int) -> Unit = { c -> repeat(c) { step0(1); n++
+            val t = s.frameTilesForTest()
+            val boxBottom = (t[12 * 20].toInt() and 0xFF) == 0x79 && (t[17 * 20 + 19].toInt() and 0xFF) == 0x7E
+            val raw = s.latestFrame.get()
+            if (boxBottom && raw.any { it != raw[0] } && !s.latestSnapshot.get().inBattle && s.dialogStrip == null) println("DBGDL in basso al passo $n libero=${s.latestSnapshot.get().freeRoam}")
+        } }
+        fun lotta() {
+            fase("lotta"); var b = 0
+            while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && b++ < 300) {
+                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(0)); step(30) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+            }
+            fase("strada"); step(30)
+        }
+        fase("strada"); step(30)
+        if (s.latestSnapshot.get().inBattle) lotta()
+        val g = s.mapGridForTest()!!
+        for (target in (g.signs + g.people).take(3)) for (tent in 0 until 3) {
+            val here = pos()
+            val spot = g.interactionSpots(target.first, target.second).entries.firstOrNull { g.path(here.second, here.third, setOf(it.key)) != null } ?: continue
+            s.walkPathForTest(spot.key.first, spot.key.second)
+            var k = 0
+            while (k++ < 600 && pos().let { it.second != spot.key.first || it.third != spot.key.second } && !s.latestSnapshot.get().inBattle) step(2)
+            if (s.latestSnapshot.get().inBattle) { lotta(); continue }
+            if (pos().let { it.second != spot.key.first || it.third != spot.key.second }) continue
+            fase("dialogo$target")
+            s.setKeys(spot.value.key); step(9); s.setKeys(0); step(18)
+            s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(24)
+            k = 0
+            while (!s.latestSnapshot.get().freeRoam && k++ < 30) {
+                if (s.yesNo != null) s.command(it.giallotouch.bridge.GameCommand.Answer(false)) else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+                step(20)
+            }
+            fase("strada"); step(40)
+            break
+        }
     }
 
     /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */

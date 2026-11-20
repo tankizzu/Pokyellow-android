@@ -1001,7 +1001,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // Niente lampeggi (D-061): quando il gioco ridisegna il riquadro del testo o il menu di lotta, per qualche
                 // fotogramma non si riconoscono; la disposizione della lotta e i riquadri dell'app restano finché il
                 // cambio non dura davvero (12 fotogrammi, 0,2 s). Un menu del gioco aperto vale subito.
-                if (split) splitHold = HOLD_FRAMES else if (inBattleRaw && !gameMenu && splitHold > 0) { splitHold--; split = true } else splitHold = 0
+                // A fine lotta la memoria dice già "fuori lotta" mentre l'immagine mostra ancora la lotta per qualche
+                // fotogramma: anche lì la disposizione resta (prima per un fotogramma il dialogo compariva due volte).
+                val battleTail = !inBattleRaw && afterBattle > 0 && !latestExtended.get().active
+                if (split) splitHold = HOLD_FRAMES else if ((inBattleRaw || battleTail) && !gameMenu && splitHold > 0) { splitHold--; split = true } else splitHold = 0
                 var menuShown = menuRaw
                 if (menuRaw) menuHold = HOLD_FRAMES else if (inBattleRaw && !gameMenu && menuHold > 0) { menuHold--; menuShown = true } else menuHold = 0
                 battleSplit = split
