@@ -45,11 +45,12 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. Aspetto dal committente: prova di Etere sul telefono (0.14.3); conferma per la pagina privata interattiva con la
-   grafica del gioco (spostare i riquadri col dito) oppure si continua con le immagini a griglia numerata.
-2. Provati sul computer: INDIETRO dell'Etere, Elisir, PP-su; lampi prima della lotta a Biancavilla coi colori della strada (a posto).
-3. Prossimi menu: MT/MN (lista Pokémon e mosse), mosse fuori lotta; PC da rivedere col committente.
-4. Analisi: Smeraldopoli fatta fino al PACCO (D-094 corretto); poi consegna del Pacco al laboratorio, Bosco Smeraldo.
+1. Aspetto dal committente: prova sul telefono della 0.14.4 (Etere, Market) e della pagina privata
+   "Fotogramma per fotogramma" (frecce ◀ ▶; strumento in tools/frecce, scelta del committente del 2026-11-20).
+2. Analisi fatta: Smeraldopoli → Market → Strada 1 → consegna del Pacco (D-094, D-095 corretti). Partite di prova
+   salvate: pacco.state, biancavilla-pacco.state, pokedex2.state (scratchpad, fuori dal repository).
+3. Prossime analisi: Strada 2 e Bosco Smeraldo; ogni analisi nella pagina privata con le frecce.
+4. Prossimi menu: MT/MN, mosse fuori lotta; PC da rivedere col committente.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
