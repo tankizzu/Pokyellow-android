@@ -45,12 +45,12 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. Revisione col committente della registrazione Smeraldopoli → Pacco nella pagina privata "Fotogramma per fotogramma"
-   (rifatta con D-096..D-101). Ancora aperti: 984 (riga in basso della stanza spostata durante il dialogo, con la mappa
-   disegnata sotto il dialogo, D-094); rivale che entra dalla porta (10436); Blu che esce fino alla porta (13865) da
-   verificare; persone che compaiono tardi entrando nel laboratorio (8901).
-2. Poi registrazione da NUOVO GIOCO da rivedere insieme nella stessa pagina.
-3. APK nuovo dopo la revisione (D-096..D-101 non ancora in un APK).
+1. Revisione col committente nella pagina privata "Fotogramma per fotogramma": registrazioni 1 Nuovo gioco (col video
+   iniziale), 2 Cameretta, 3 Rivale, 4 Strada 1, 5 Smeraldopoli→Pacco. Note del 2026-11-20 su Nuovo gioco corrette
+   (D-102..D-105); i disegni salvati del tratto 1 hanno la numerazione vecchia (+1410 nella nuova).
+2. Ancora aperti: 984 (riga della stanza spostata durante il dialogo), rivale che entra dalla porta (10436), Blu fino
+   alla porta (13865) da verificare.
+3. APK nuovo dopo la revisione (D-096..D-105 non ancora in un APK).
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
