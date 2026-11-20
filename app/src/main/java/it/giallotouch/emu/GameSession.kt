@@ -1307,7 +1307,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // si butta, e sotto il dialogo si disegna la mappa vera del luogo (vista estesa), senza immagine di prima.
                 val mapIdNow = NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP)
                 if (mapIdNow != maskMapId) { frameMask.reset(); maskMapId = mapIdNow }
-                val mapUnderDialog = dialog && !frameMask.ready && extendedActive && extendedIsMap && !inBattleRaw
+                var mapUnderDialog = dialog && !frameMask.ready && extendedActive && extendedIsMap && !inBattleRaw
                 if (dialog && !frameMask.ready && !plainBackground && !mapUnderDialog) dialog = false
                 // Il riquadro deve essere già disegnato nell'immagine (bordo superiore scuro alla riga 96-103): nei primi
                 // fotogrammi la mappa delle caselle lo ha già ma l'immagine no, e si spostava un pezzo di mappa (D-086).
@@ -1320,8 +1320,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // Inizio dialogo (D-108): a volte l'immagine ha già il riquadro e le caselle non ancora; prima per un
                 // fotogramma il riquadro si vedeva al suo posto in basso (con START). Riquadro largo tutto lo schermo,
                 // bordo e interno puliti: è un dialogo.
-                if (!dialog && !dialogWas && !itemExecutor.busy && !battleSplit && !inBattleRaw && frameMask.ready && mainMenuItems == 0 &&
-                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back)) dialog = true
+                if (!dialog && !dialogWas && !itemExecutor.busy && !battleSplit && !inBattleRaw && (frameMask.ready || (extendedActive && extendedIsMap)) && mainMenuItems == 0 &&
+                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back)) {
+                    dialog = true
+                    if (!frameMask.ready) mapUnderDialog = true
+                }
                 if (dialog && dialogEnd == 0) dialogWas = true else if (!dialog) { dialogWas = false; dialogEnd = 0 }
                 if (holdBattleEnd) {
                     // dialogo di prima (vedi D-089)
@@ -1433,7 +1436,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         var j = 0
                         while (j < fr.size) { val r = top0 + j / NativeCore.WIDTH; if (r < eh) colorMap[fr[j]] = extBack.pixels[r * NativeCore.WIDTH + j % NativeCore.WIDTH]; j += 7 }
                     }
-                    if (!active && wipeOn && lastMapH == eh && remappable(latestFrame.get())) {
+                    val battleLayoutOn = inBattleRaw && battleSplit   // scena di lotta già disposta: non è un lampo né una tendina (D-107)
+                    if (!active && !battleLayoutOn && wipeOn && lastMapH == eh && remappable(latestFrame.get())) {
                         // Lampo prima della lotta coi colori originali del luogo (D-083): immagine del gioco coi colori ricolorati.
                         System.arraycopy(lastMapExt, 0, extBack.pixels, 0, minOf(lastMapExt.size, extBack.pixels.size))
                         val fr = latestFrame.get(); val top0 = lastMapTop.coerceAtLeast(0)
@@ -1444,7 +1448,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         extBack.height = eh; extBack.active = true; extendedActive = true
                         extBack = latestExtended.getAndSet(extBack)
                     } else
-                    if (!active && inBattleRaw && wipeOn && lastMapH == eh && wipeTiles(latestFrame.get()) >= wipeDark - 8 && wipeDark < 20 * 18) {
+                    if (!active && !battleLayoutOn && inBattleRaw && wipeOn && lastMapH == eh && wipeTiles(latestFrame.get()) >= wipeDark - 8 && wipeDark < 20 * 18) {
                         // Tendina (D-083): il gioco non è più riconosciuto come mappa (quasi tutto nero) e si vedrebbero i
                         // colori originali; si usa l'ultima immagine della mappa coperta dalle caselle nere della tendina.
                         wipeDark = maxOf(wipeDark, wipeTiles(latestFrame.get()))
