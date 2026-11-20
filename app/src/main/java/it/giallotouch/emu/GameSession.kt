@@ -85,6 +85,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var startMapCalm = 0
     private var leftHouse = false
     private var doorRecent = 0
+    private var d108 = ""
     @Volatile var debugFrameInfo = ""
     /** Solo per il banco di prova: righe del gioco disegnate dalla mappa da questa in giù (-1 = normale). */
     @Volatile var forceMapFromRow = -1
@@ -1154,7 +1155,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     NativeCore.nativeReadRange(handle, 0xD3B2, warpBlock)
                     val nw = (warpBlock[0].toInt() and 0xFF).coerceAtMost(32)
                     onWarp = (0 until nw).any { (warpBlock[1 + 4 * it].toInt() and 0xFF) == py && (warpBlock[2 + 4 * it].toInt() and 0xFF) == px }
-                    debugFrameInfo = "al=${(0..5).joinToString(",") { NativeCore.nativeEvDebug(handle, it).toString() }} start=$startOk sc=%d,%d wy=%d joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, 0xFF43), NativeCore.nativeReadMemory(handle, 0xFF42), NativeCore.nativeReadMemory(handle, 0xFF4A),NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
+                    debugFrameInfo = "$d108 al=${(0..5).joinToString(",") { NativeCore.nativeEvDebug(handle, it).toString() }} start=$startOk sc=%d,%d wy=%d joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, 0xFF43), NativeCore.nativeReadMemory(handle, 0xFF42), NativeCore.nativeReadMemory(handle, 0xFF4A),NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
                         NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP), px, py, onWarp)
                 }
                 // Vibrazione ai colpi (D-069): i PS di uno dei due Pokémon in lotta scendono.
@@ -1320,6 +1321,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // Inizio dialogo (D-108): a volte l'immagine ha già il riquadro e le caselle non ancora; prima per un
                 // fotogramma il riquadro si vedeva al suo posto in basso (con START). Riquadro largo tutto lo schermo,
                 // bordo e interno puliti: è un dialogo.
+                d108 = "d108 dlg=$dialog was=$dialogWas fm=${frameMask.ready} ext=$extendedActive/$extendedIsMap bb=${boxBorderDrawn(back)} bi=${boxInnerClean(back)} tiles=${dialogAtBottom(frameTiles)}"
                 if (!dialog && !dialogWas && !itemExecutor.busy && !battleSplit && !inBattleRaw && (frameMask.ready || (extendedActive && extendedIsMap)) && mainMenuItems == 0 &&
                     !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back)) {
                     dialog = true
