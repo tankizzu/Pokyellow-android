@@ -83,8 +83,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var doorUniform = false
     private var doorFrames = 0
     private var startMapCalm = 0
+    private var leftHouse = false
     @Volatile var debugFrameInfo = ""
     private var tipoTail = 0
+    private var nameTail = 0
     private var battleMenuSeen = false
     private var shakeVibe = 0
     private var shakeFrames = 0
@@ -292,6 +294,27 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         }
         return n
     }
+    /**
+     * Riquadro di testo del gioco già disegnato nell'immagine (righe 96–143), con qualunque colori (anche nelle dissolvenze
+     * rosse/gialle del Professore, D-104): una riga del bordo superiore (96–103) di un solo colore per tutta la larghezza e,
+     * sotto, la riga vuota interna (106) quasi tutta di un altro colore. Il nero intorno alle stanze e gli scaffali no.
+     */
+    private fun boxBorderDrawn(px: IntArray): Boolean {
+        val inner = 106 * NativeCore.WIDTH
+        val fill = px[inner + 80]
+        var same = 0
+        for (x in 8 until NativeCore.WIDTH - 8) if (px[inner + x] == fill) same++
+        if (same < 136) return false
+        for (y in 96 until 104) {
+            val b = y * NativeCore.WIDTH; val c = px[b + 80]
+            if (c == fill) continue
+            var n = 0
+            for (x in 8 until NativeCore.WIDTH - 8) if (px[b + x] == c) n++
+            if (n >= 140) return true
+        }
+        return false
+    }
+
     private fun extendWipe(frame: IntArray, ext: IntArray, height: Int, frameTop: Int) {
         // colore più scuro dell'immagine = nero della tendina
         var dark = frame[0]; var darkL = Int.MAX_VALUE
@@ -1035,6 +1058,18 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val c0 = back[0]
                 val rawWhite = ((c0 shr 16) and 255) + ((c0 shr 8) and 255) + (c0 and 255) > 720 && back.all { it == c0 }
                 val holdBattleEnd = rawWhite && afterBattle > 0 && latestExtended.get().active
+                // Scritte (C) all'accensione (D-102): nel gioco hanno 16 pixel a sinistra e 8 a destra; si spostano di 4 pixel
+                // a destra così i margini sono uguali (richiesta del committente).
+                if (!inGame && !titleWasShown) {
+                    val bg = back[0]
+                    var minX = 999; var maxX = -1; var minY = 999; var maxY = -1
+                    for (y in 0 until NativeCore.HEIGHT) { val b = y * NativeCore.WIDTH
+                        for (x in 0 until NativeCore.WIDTH) if (back[b + x] != bg) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; maxY = y } }
+                    if (minX == 16 && maxX == 151 && minY in 48..64 && maxY in 88..104) {
+                        for (y in minY..maxY) { val b = y * NativeCore.WIDTH
+                            System.arraycopy(back, b, back, b + 4, NativeCore.WIDTH - 4); for (x in 0 until 4) back[b + x] = bg }
+                    }
+                }
                 // Mosse in lotta (D-096): il gioco fa tremare lo schermo (SCX/SCY). Si vibra a tempo e il testo in alto
                 // (righe 96–143 del gioco) resta fermo: prima scendeva e sopra comparivano pezzi della scena.
                 if (inBattleNowMem) {
@@ -1224,6 +1259,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 }
                 yesNo = if (frameMenu.kind == MenuKind.YES_NO) yesNoInfo(frameVars, frameTiles, frameMenu.item) else null
                 nameList = if (frameMenu.kind == MenuKind.NAME_LIST) MenuReader.nameListEntries(frameTiles, frameMenu.items) else null
+                if (nameList != null) nameTail = 10 else if (nameTail > 0) nameTail--
                 namingShown = NamingReader.looksLikeNaming(frameTiles)
                 // Dopo la schermata dei nomi l'immagine "di prima" sarebbe la tastiera del gioco: si butta (D-067).
                 if (namingShown) frameMask.reset()
@@ -1243,7 +1279,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 var dialog = !itemExecutor.busy && !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight)) || dialog || yn != null || nameList != null || forgetMoves != null || etherList || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
+                val onScreen = (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight)) || dialog || yn != null || nameList != null || nameTail > 0 || forgetMoves != null || etherList || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
                     ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 // Senza immagine di prima: nelle scene senza mappa (introduzione, sfondo uniforme) il posto del dialogo si
                 // riempie col colore dello sfondo; sulla mappa il dialogo resta al suo posto.
@@ -1257,21 +1293,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (dialog && !frameMask.ready && !plainBackground && !mapUnderDialog) dialog = false
                 // Il riquadro deve essere già disegnato nell'immagine (bordo superiore scuro alla riga 96-103): nei primi
                 // fotogrammi la mappa delle caselle lo ha già ma l'immagine no, e si spostava un pezzo di mappa (D-086).
-                if (dialog) {
-                    var best = 0
-                    for (y in 96 until 104) { var n = 0; val b = y * NativeCore.WIDTH
-                        for (x in 8 until NativeCore.WIDTH - 8) { val c = back[b + x]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200) n++ }
-                        if (n > best) best = n }
-                    if (best < 120) dialog = false
-                }
+                if (dialog && !boxBorderDrawn(back)) dialog = false
                 // Fine dialogo: le caselle non hanno più il riquadro ma l'immagine sì (arriva dopo) per un fotogramma,
                 // e il dialogo compariva in basso (D-092). Finché il riquadro è ancora disegnato si continua a spostarlo.
                 if (!dialog && dialogWas && dialogEnd < 3 && !itemExecutor.busy && !battleSplit && !inBattleRaw && frameMask.ready) {
-                    var best = 0
-                    for (y in 96 until 104) { var n = 0; val b = y * NativeCore.WIDTH
-                        for (x in 8 until NativeCore.WIDTH - 8) { val c = back[b + x]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200) n++ }
-                        if (n > best) best = n }
-                    if (best >= 120) { dialog = true; dialogEnd++ }
+                    if (boxBorderDrawn(back)) { dialog = true; dialogEnd++ }
                 }
                 if (dialog && dialogEnd == 0) dialogWas = true else if (!dialog) { dialogWas = false; dialogEnd = 0 }
                 if (holdBattleEnd) {
@@ -1299,20 +1325,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         if (++doorFrames > 400) doorPending = false
                     }
                     var boxDrawn = false
-                    // riquadro del gioco ancora nell'immagine: bordo superiore scuro per tutta la larghezza e bordi laterali
-                    // (gli scaffali scuri del Market sembravano un bordo)
-                    fun dark(c: Int) = ((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200
-                    if (dialogStrip == null) for (y in 96 until 104) { var n = 0; val b = y * NativeCore.WIDTH
-                        for (x in 8 until NativeCore.WIDTH - 8) if (dark(back[b + x])) n++
-                        if (n >= 140) {
-                            // dentro il riquadro, sotto il bordo, la riga vuota è chiara (il nero intorno alle stanze no)
-                            val light = (8 until NativeCore.WIDTH - 8).count { x -> val c = back[106 * NativeCore.WIDTH + x]; ((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) > 600 }
-                            if (light >= 130) { boxDrawn = true; break }
-                        } }
+                    if (dialogStrip == null) boxDrawn = boxBorderDrawn(back)
                     val cursor = frameTiles.any { (it.toInt() and 0xFF) == 0xED }
                     val mapish = latestExtended.get().active && extendedIsMap
                     if (mapish) startMapCalm = 0 else startMapCalm++
-                    startOk = !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
+                    // Inizio partita (D-105, scelta del committente): START compare la prima volta che si esce di casa
+                    // (casa del giocatore = luoghi 37 e 38, ancora senza Pokémon).
+                    val noParty = NativeCore.nativeReadMemory(handle, MemoryMapIt.PARTY_COUNT) == 0
+                    if (noParty && mapIdNow != 37 && mapIdNow != 38 && mapish) leftHouse = true
+                    val startHome = noParty && !leftHouse && (mapIdNow == 37 || mapIdNow == 38)
+                    startOk = !startHome && !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
                         !itemExecutor.busy && yesNo == null && nameList == null && !holdBattleEnd && (mapish || (startOk && startMapCalm < 30))
                 }
                 if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
@@ -1329,7 +1351,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     else if (yn != null && inBattleRaw) add(BoxMask.Box(yn.x0, yn.y0, yn.x1, yn.y1, fill = back[0]))
                     // Nomi proposti: lo sfondo della scena è uniforme; con l'immagine di prima comparivano pezzi del
                     // personaggio che entra scorrendo (D-067). Si riempie col colore dello sfondo, anche la colonna accanto.
-                    if (nameList != null) add(BoxMask.Box(0, 0, 11, 11, fill = back[NativeCore.WIDTH - 1]))
+                    // dopo la scelta il gioco ridisegna la sua lista (▶NUOVO…) per qualche fotogramma: resta coperta (D-103)
+                    if (nameList != null || nameTail > 0) add(BoxMask.Box(0, 0, 11, 11, fill = back[NativeCore.WIDTH - 1]))
                     // Mosse del gioco: il riquadro TIPO / PP compare sulla scena; l'app mostra già le mosse (D-069).
                     // Anche quando resta sotto un messaggio ("Non hai più PP per questa mossa!"): si riconosce dalla scritta TIPO/.
                     val tipoBox = (frameTiles[9 * 20 + 1].toInt() and 0xFF) == 0x93 && (frameTiles[9 * 20 + 2].toInt() and 0xFF) == 0x88 &&
