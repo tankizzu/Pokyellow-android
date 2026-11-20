@@ -44,7 +44,9 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
    (rettangolo bianco, dialogo che scende); colori all'ingresso del laboratorio; lampi chiari prima della lotta;
    menu del PC; Etere/Elisir, MT/MN e mosse fuori lotta (stesso riquadro delle 4 mosse).
 2. Da verificare: D-086 (dialogo spostato solo a riquadro disegnato) col video del laboratorio.
-3. Poi: analisi fotogramma per fotogramma della lotta col rivale, Strada 1, Smeraldopoli, Pacco.
+3. Analisi della lotta col rivale fatta (ZzGlitchTest.analisiRivale, laboratorio.state; video inviato). Da decidere:
+   dissolvenza dopo la lotta (sfondo fuori dalla stanza lilla/azzurro), soprannome lasciato vuoto. Poi: Strada 1,
+   Smeraldopoli, Pacco.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
