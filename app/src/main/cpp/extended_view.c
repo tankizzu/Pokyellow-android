@@ -312,7 +312,7 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
     }
 }
 
-void ev_reset(EVState *st) { memset(st, 0, sizeof(*st)); st->map_id = -1; }
+void ev_reset(EVState *st) { memset(st, 0, sizeof(*st)); st->map_id = -1; st->last_outdoor = -1; }
 
 /*
  * Schermata del titolo a tutto schermo (D-069): il logo che scende dall'alto è già nella memoria video sopra la parte
@@ -450,6 +450,13 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     uint32_t place_colors[64][4];
     bool place_known[64] = {false};
     int cur_pal = map_palette(map_id);
+    /* Porta (D-090): entrando in un edificio il gioco cambia subito il luogo, ma per qualche fotogramma si vede ancora
+     * fuori (dissolvenza) coi colori originali del luogo di fuori. Si continua a ricolorare come il luogo di prima. */
+    /* Solo finché i blocchi caricati sono ancora quelli di fuori (stesse misure): dentro gli edifici niente. */
+    if (cur_pal >= 0) { st->last_outdoor = map_id; st->last_w = mt.w; st->last_h = mt.h; }
+    else if (st->last_outdoor >= 0 && map_palette(st->last_outdoor) >= 0 && mt.w == st->last_w && mt.h == st->last_h) {
+        map_id = st->last_outdoor; cur_pal = map_palette(map_id);
+    }
     bool recolor = cur_pal >= 0 && mt.rom_size > CGB_PALETTES + 8 * 16;
     uint32_t src1 = 0, src2 = 0;   /* colori del luogo nel gioco (ROM): si ricolorano dovunque compaiano */
     #define PLACE_COLORS(m) (((m) >= 0 && (m) < 64 && map_palette(m) >= 0) ? place_colors_for(gb, &mt, place_colors, place_known, (m)) : NULL)

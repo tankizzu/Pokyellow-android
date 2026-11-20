@@ -2,6 +2,7 @@
 
 ## 2026-11-20 – fine cattura ferma, TIPO e POTENZA (D-088, D-089)
 - Mossa da dimenticare: la mossa nuova mostra anche TIPO e POTENZA.
+- Entrando nel laboratorio (e negli altri edifici) i colori restano quelli della strada fino al cambio di scena (D-090).
 - Dopo la cattura di Pikachu (e a fine lotta) niente più rettangolo bianco: l'immagine resta ferma col dialogo fino alla mappa.
 
 ## 2026-11-20 – niente pulsanti Sì/No fuori stile (D-087)
