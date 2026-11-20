@@ -307,7 +307,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private fun boxInnerClean(px: IntArray): Boolean {
         val inner = 106 * NativeCore.WIDTH; val fill = px[inner + 80]
         val l = ((fill shr 16) and 255) + ((fill shr 8) and 255) + (fill and 255)
-        return l > 300 && (8 until NativeCore.WIDTH - 8).count { px[inner + it] == fill } >= 136
+        return l > 300 && (8 until NativeCore.WIDTH - 8).count { px[inner + it] == fill } >= 112
     }
 
     private fun boxBorderDrawn(px: IntArray): Boolean {
@@ -315,13 +315,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         val fill = px[inner + 80]
         var same = 0
         for (x in 8 until NativeCore.WIDTH - 8) if (px[inner + x] == fill) same++
-        val innerOk = same >= 136
+        val innerOk = same >= 112   // qualche pixel può essere coperto da una persona (D-108)
         for (y in 96 until 104) {
             val b = y * NativeCore.WIDTH; val c = px[b + 80]
             if (innerOk && c == fill) continue
             var n = 0
             for (x in 8 until NativeCore.WIDTH - 8) if (px[b + x] == c) n++
-            if (n < 140) continue
+            if (n < 120) continue
             // bordo scuro (colori normali): basta il bordo, anche se l'interno non è ancora pulito (come D-086);
             // bordo di un altro colore (dissolvenze): serve anche l'interno di un colore solo
             val dark = ((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200
