@@ -93,6 +93,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var battleMenuSeen = false
     private var shakeVibe = 0
     private var shakeFrames = 0
+    private var shakeHold = 0
     private var lastScx = 0
     private var lastScy = 0
     private var keptText = IntArray(0)
@@ -1096,7 +1097,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val wy = NativeCore.nativeReadMemory(handle, 0xFF4A)
                 if (scx != lastScx || scy != lastScy) shakeFrames = 4 else if (shakeFrames > 0) shakeFrames--
                 lastScx = scx; lastScy = scy
-                val shaking = inBattleNowMem && battleMenuSeen && (shakeFrames > 0 || wy in 1..143)
+                // l'immagine arriva un fotogramma dopo i registri: il testo resta fermo ancora 3 fotogrammi
+                if (shakeFrames > 0 || wy in 1..143) shakeHold = 3 else if (shakeHold > 0) shakeHold--
+                val shaking = inBattleNowMem && battleMenuSeen && shakeHold > 0
                 if (!(inBattleNowMem && battleMenuSeen && shakeFrames > 0)) shakeVibe = 0
                 if (shaking) {
                     if (shakeFrames > 0 && shakeVibe-- <= 0) { onHit?.invoke(); shakeVibe = 6 }
@@ -1314,6 +1317,11 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (!dialog && dialogWas && dialogEnd < 3 && !itemExecutor.busy && !battleSplit && !inBattleRaw && frameMask.ready) {
                     if (boxBorderDrawn(back)) { dialog = true; dialogEnd++ }
                 }
+                // Inizio dialogo (D-108): a volte l'immagine ha già il riquadro e le caselle non ancora; prima per un
+                // fotogramma il riquadro si vedeva al suo posto in basso (con START). Riquadro largo tutto lo schermo,
+                // bordo e interno puliti: è un dialogo.
+                if (!dialog && !dialogWas && !itemExecutor.busy && !battleSplit && !inBattleRaw && frameMask.ready && mainMenuItems == 0 &&
+                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back)) dialog = true
                 if (dialog && dialogEnd == 0) dialogWas = true else if (!dialog) { dialogWas = false; dialogEnd = 0 }
                 if (holdBattleEnd) {
                     // dialogo di prima (vedi D-089)
