@@ -71,6 +71,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var onHit: (() -> Unit)? = null
     private var lastEnemyHp = -1
     private var lastYellow = 0
+    private var afterBattle = 0
     private var flashState = 0
     private var shockSeen = false
     private var titleWasShown = false
@@ -965,6 +966,14 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 stepPermits?.let { p -> if (!p.tryAcquire(200, java.util.concurrent.TimeUnit.MILLISECONDS)) continue }
                 NativeCore.nativeSetKeys(handle, currentKeys())
                 val count = NativeCore.nativeRunFrame(handle, back, audio)
+                // Fine lotta sulla mappa (D-089): il gioco fa tutto bianco prima di tornare alla mappa, ma la vista estesa
+                // disegnava ancora la mappa intorno (rettangolo bianco). Si tiene l'immagine di prima col dialogo finché
+                // il bianco dura (solo appena finita una lotta).
+                val inBattleNowMem = NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0
+                if (inBattleNowMem) afterBattle = 120 else if (afterBattle > 0) afterBattle--
+                val c0 = back[0]
+                val rawWhite = ((c0 shr 16) and 255) + ((c0 shr 8) and 255) + (c0 and 255) > 720 && back.all { it == c0 }
+                val holdBattleEnd = rawWhite && afterBattle > 0 && latestExtended.get().active
                 // Ogni fotogramma: schermata di lotta divisa e menu iniziale ridisegnato (in sincronia con l'immagine).
                 NativeCore.nativeReadRange(handle, MemoryMapIt.TILE_MAP, frameTiles)
                 NativeCore.nativeReadRange(handle, MenuReader.MENU_VARS, frameVars)
@@ -1136,7 +1145,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         if (n > best) best = n }
                     if (best < 120) dialog = false
                 }
-                if (dialog) {
+                if (holdBattleEnd) {
+                    // dialogo di prima (vedi D-089)
+                } else if (dialog) {
                     System.arraycopy(back, 96 * NativeCore.WIDTH, stripA, 0, stripA.size)
                     dialogStrip = stripA
                     val t = stripA; stripA = stripB; stripB = t
@@ -1182,6 +1193,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         extBack.height = savedExt.height; extBack.active = savedExt.active; extendedActive = savedExt.active
                         extBack = latestExtended.getAndSet(extBack)
                     }
+                } else if (holdBattleEnd) {
+                    // immagine di prima (D-089): niente da pubblicare
                 } else if (eh > NativeCore.HEIGHT) {
                     val rendered = NativeCore.nativeRenderExtended(handle, extBack.pixels, eh, extendedFrameTop)
                     val active = rendered != 0
