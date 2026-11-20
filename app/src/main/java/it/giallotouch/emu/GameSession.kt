@@ -1291,9 +1291,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         if (++doorFrames > 400) doorPending = false
                     }
                     var boxDrawn = false
+                    // riquadro del gioco ancora nell'immagine: bordo superiore scuro per tutta la larghezza e bordi laterali
+                    // (gli scaffali scuri del Market sembravano un bordo)
+                    fun dark(c: Int) = ((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200
                     if (dialogStrip == null) for (y in 96 until 104) { var n = 0; val b = y * NativeCore.WIDTH
-                        for (x in 8 until NativeCore.WIDTH - 8) { val c = back[b + x]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) < 200) n++ }
-                        if (n >= 120) { boxDrawn = true; break } }
+                        for (x in 8 until NativeCore.WIDTH - 8) if (dark(back[b + x])) n++
+                        if (n >= 140) {
+                            val side = (112 until 136).count { r -> (0 until 8).any { dark(back[r * NativeCore.WIDTH + it]) } &&
+                                (NativeCore.WIDTH - 8 until NativeCore.WIDTH).any { dark(back[r * NativeCore.WIDTH + it]) } }
+                            if (side >= 20) { boxDrawn = true; break }
+                        } }
                     val cursor = frameTiles.any { (it.toInt() and 0xFF) == 0xED }
                     val mapish = latestExtended.get().active && extendedIsMap
                     if (mapish) startMapCalm = 0 else startMapCalm++
