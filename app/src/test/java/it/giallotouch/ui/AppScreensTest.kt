@@ -1585,6 +1585,36 @@ class ZzGlitchTest : AppScreensHarness() {
         step(120)
     }
 
+    /** Analisi della Strada 1 verso Smeraldopoli (-Pgiallo.state.strada=STATO sulla Strada 1): cammino, lotte, confine. */
+    @Test fun analisiStrada1() = registra("analisi5", auto = "giallo.state.strada") { step, fase ->
+        fun pos() = s.positionForTest()
+        fase("strada"); step(30)
+        var k = 0
+        while (pos().first != 1 && k++ < 30) {
+            val g = s.mapGridForTest() ?: break
+            val top = (0 until g.width).map { it to 0 }.filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }
+                .minByOrNull { kotlin.math.abs(it.first - pos().second) }
+            val target = top ?: (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
+                .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }.minByOrNull { it.second } ?: break
+            s.walkPathForTest(target.first, target.second)
+            var t = 0
+            while (t++ < 400 && pos().let { it.first == 12 && (it.second != target.first || it.third != target.second) }) {
+                step(4)
+                if (s.latestSnapshot.get().inBattle) {
+                    fase("lotta")
+                    var b = 0
+                    while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && b++ < 300) {
+                        if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(0)); step(30) }
+                        else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+                    }
+                    fase("strada"); s.walkPathForTest(target.first, target.second)
+                } else if (!s.latestSnapshot.get().freeRoam && t % 8 == 0) { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            }
+            if (pos().first == 12 && pos().third == 0) { s.setKeys(NativeCore.KEY_UP); step(16); s.setKeys(0); step(30) }
+        }
+        fase("smeraldopoli"); step(180)
+    }
+
     /**
      * Registra ogni fotogramma (sessione in passo a passo dall'accensione) in [dir]: un'immagine per ogni fotogramma
      * diverso dal precedente (320 di larghezza) e indice.txt "fotogramma file lampeggio fase stato menu titolo".
