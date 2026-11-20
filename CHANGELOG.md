@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-20 – scene guidate e cattura di Pikachu (D-106..D-108), 0.14.6
+- START nascosto mentre il Professore ti accompagna e appena inizia un dialogo.
+- Cattura di Pikachu nella disposizione della lotta (non più dentro la mappa).
+- Testo della lotta fermo anche nel fotogramma dopo il tremolio delle mosse.
+
 ## 2026-11-20 – revisione fotogramma per fotogramma (D-096..D-105), 0.14.5
 - Pulsante START: sparisce entrando nelle porte, torna subito a fine dialogo e lotta, non sparisce passando tra i luoghi;
   a inizio partita compare la prima volta che si esce di casa.
