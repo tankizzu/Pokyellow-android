@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-20 – Etere ed Elisir con i riquadri dell'app (D-093), 0.14.3
+- BORSA → ETERE → USA: SU CHI? dell'app, poi le mosse in basso con i PP e INDIETRO al centro; il tocco sulla mossa ricarica i PP.
+- Elisir e PP-su usano anche loro la scelta del Pokémon dell'app.
+
 ## 2026-11-20 – fine cattura ferma, TIPO e POTENZA (D-088, D-089)
 - Mossa da dimenticare: la mossa nuova mostra anche TIPO e POTENZA.
 - Cura al Centro: dopo la risposta niente più riquadro del gioco né dialogo in basso per un attimo (D-092).

@@ -1209,3 +1209,65 @@ fun GameForgetMove(
         }
     }
 }
+
+
+/**
+ * Etere / Elisir / PP-su (D-093), disposizione B scelta dal committente: in alto strumento, Pokémon e cosa fa (righe
+ * 1–7); il testo del gioco alla riga 9; le 4 mosse con i PP alla riga 28 (tocco = quella mossa); INDIETRO in basso al
+ * centro (riga 39) = tasto B nel gioco.
+ */
+@Composable
+fun GameEther(
+    sheet: IntArray,
+    itemName: String,
+    monName: String,
+    level: Int,
+    effect: String,
+    text: List<String>,
+    moves: List<Pair<String, String>>,
+    enabled: Boolean,
+    onPick: (Int) -> Unit,
+    onBack: () -> Unit,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val unit = with(density) { maxWidth.toPx() } / 160f
+        val tilePx = 8 * unit
+        TileImage(sheet, 20, 7, unit, key = Triple(itemName, monName, effect), modifier = Modifier.offset { IntOffset(0, (1 * tilePx).toInt()) }) {
+            box(0, 0, 19, 6)
+            if (itemName.isNotEmpty()) text(itemName.take(18), 1, 1)
+            text(monName.take(10), 2, 3)
+            val l = ":L$level"; text(l, 19 - l.length, 3)
+            if (effect.isNotEmpty()) text(effect.take(17), 2, 5)
+        }
+        TileImage(sheet, 20, 6, unit, key = text, modifier = Modifier.offset { IntOffset(0, (9 * tilePx).toInt()) }) {
+            box(0, 0, 19, 5)
+            text.getOrNull(0)?.let { text(it.take(18), 1, 2) }
+            text.getOrNull(1)?.let { text(it.take(18), 1, 4) }
+        }
+        TileImage(
+            sheet, 20, 10, unit, key = moves,
+            modifier = Modifier
+                .offset { IntOffset(0, (28 * tilePx).toInt()) }
+                .pointerInput(moves, enabled) {
+                    detectTapGestures { pos ->
+                        if (!enabled) return@detectTapGestures
+                        val i = (((pos.y / tilePx).toInt() - 1) / 2).coerceIn(0, 3)
+                        if (i < moves.size) onPick(i)
+                    }
+                }
+        ) {
+            box(0, 0, 19, 9)
+            moves.forEachIndexed { i, mv ->
+                text(mv.first.take(11), 2, 1 + 2 * i)
+                if (mv.second.isNotEmpty()) text(mv.second, 19 - mv.second.length, 1 + 2 * i)
+            }
+        }
+        TileImage(
+            sheet, 14, 4, unit, key = "etere-indietro",
+            modifier = Modifier
+                .offset { IntOffset((3 * tilePx).toInt(), (39 * tilePx).toInt()) }
+                .pointerInput(enabled) { detectTapGestures { if (enabled) onBack() } }
+        ) { box(0, 0, 13, 3); text("INDIETRO", 3, 2) }
+    }
+}

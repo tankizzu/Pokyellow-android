@@ -2035,8 +2035,8 @@ class AppPickerTest : AppScreensHarness() {
 }
 
 /**
- * Etere (in preparazione): borsa con ETERE scritto in memoria, PP della prima mossa abbassati; BORSA → ETERE → USA →
- * PIKACHU, poi si guarda cosa mostra il gioco (lista delle mosse) per costruire il riquadro dell'app.
+ * Etere (D-093): borsa con ETERE scritto in memoria, PP della terza mossa a 5; BORSA → ETERE → USA → SU CHI? dell'app
+ * → PIKACHU → riquadro dell'app con le mosse (disposizione B) → tocco sulla terza mossa → PP da 5 a 15.
  */
 class AppEtereTest : AppScreensHarness() {
     @Test fun etere() {
@@ -2044,29 +2044,33 @@ class AppEtereTest : AppScreensHarness() {
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         waitFor(10_000) { s.latestSnapshot.get().freeRoam }
-        val item = (System.getProperty("giallo.etere") ?: "80").toInt()
         s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_COUNT, 1)
-        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS, item)
+        s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS, 0x50)
         s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS + 1, 3)
         s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.BAG_ITEMS + 2, 0xFF)
-        s.writeMemoryForTest(0xD16F + 29, 5)   // PP della prima mossa
+        s.writeMemoryForTest(0xD16F + 31, 5)   // PP della terza mossa (COLPO-CODA)
         pump(800)
         tapTile(10f, rows() - 2f); pump(800)
         tapTile(4f, 36f)                      // BORSA
         assertTrue("borsa", shotUntil("70-etere-borsa") { b -> boxAt(b, 0, 3, 20, 3) })
         tapTile(4f, 10f); pump(800)           // ETERE
         tapTile(4f, 37f)                      // USA
-        shotUntil("71-etere-su-chi") { b -> boxAt(b, 0, 7, 20, 32) }
+        assertTrue("su chi? dell'app", shotUntil("71-etere-su-chi") { b -> boxAt(b, 0, 7, 20, 32) })
         tapTile(4f, 9f)                       // PIKACHU
+        assertTrue("lista delle mosse del gioco", waitFor(20_000) { s.etherList })
+        pump(600)
+        assertTrue("riquadri dell'app (disposizione B)", shotUntil("72-etere-mosse") { b -> boxAt(b, 0, 28, 20, 10) && boxAt(b, 3, 39, 14, 4) && boxAt(b, 0, 1, 20, 7) })
+        println("DBGET testo ${s.etherText} busy=${s.commandBusy} item=${s.itemBusy}")
+        if (System.getProperty("giallo.manuale") != null) press(s, NativeCore.KEY_A) else tapTile(6f, 33.5f)   // terza mossa
         var k = 0
-        while (k++ < 40) {
-            pump(300)
-            val t = s.frameTilesForTest()
-            val v = s.memoryForTest(0xCC24, 8)
-            println("DBGET $k vars=${v.joinToString(",") { (it.toInt() and 0xFF).toString(16) }} busy=${s.itemBusy} dlg=${s.dialogStrip != null}")
-            if (k % 5 == 0) println("DBGET righe\n" + (0 until 18).joinToString("\n") { r -> (0 until 20).joinToString(" ") { c -> "%02x".format(t[r * 20 + c].toInt() and 0xFF) } })
-            if (k == 8) shot("72-etere-mosse")
-        }
-        shot("73-etere-fine")
+        while (k++ < 40 && s.etherList) pump(300)
+        shot("73-etere-messaggio")
+        k = 0
+        while (k++ < 40 && !s.latestSnapshot.get().freeRoam) { tapTile(10f, 20f); pump(400) }
+        pump(1000)
+        shot("74-etere-fine")
+        assertTrue("di nuovo a camminare", s.latestSnapshot.get().freeRoam)
+        assertEquals("un ETERE usato", 2, s.latestSnapshot.get().bag.firstOrNull { it.id == 0x50 }?.quantity)
+        pump(2000); assertTrue("PP ricaricati: ${s.latestSnapshot.get().party.map { it.name to it.moves }}", s.latestSnapshot.get().party.first().moves[2].pp == 15)
     }
 }

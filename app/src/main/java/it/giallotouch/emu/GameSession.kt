@@ -93,6 +93,16 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
      */
     @Volatile var forgetMoves: IntArray? = null
     @Volatile var forgetNew = 0
+    /**
+     * Etere / PP-su (D-093): lista del gioco "Ricarica PP di quale tecnica?" (riquadro alla riga 7, colonna 4). Le
+     * righe del testo del gioco sono in [etherText]; l'app mostra le mosse del Pokémon scelto nel suo riquadro.
+     */
+    @Volatile var etherList = false
+    @Volatile var etherText: List<String> = emptyList()
+    private var etherHash = 0
+    private var etherQuestion = 0
+    private var etherDone = false
+    private var etherCalm = 0
     private var lastYn: YesNo? = null
     private var answerTail = 0
     private var ynGone = 99
@@ -111,6 +121,23 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
             directKey = key; directFrames = 5
         })
     }
+    /**
+     * Scelta in un menu del gioco premendo i tasti come una persona (D-093): GIÙ [index] volte, poi A (o [key]).
+     * Serve dove la scelta diretta non basta (lista delle mosse dell'Etere: con la scelta diretta il gioco
+     * consumava l'Etere senza ricaricare i PP).
+     */
+    fun pickByKeys(index: Int, key: Int = NativeCore.KEY_A) {
+        commandBusy = true
+        tasks.add(Runnable {
+            val seq = ArrayList<Int>()
+            repeat(6) { seq += 0 }
+            repeat(index) { repeat(6) { seq += NativeCore.KEY_DOWN }; repeat(8) { seq += 0 } }
+            repeat(12) { seq += key }; repeat(4) { seq += 0 }
+            keyScript = seq.toIntArray(); keyScriptPos = 0
+        })
+    }
+    private var keyScript: IntArray? = null
+    private var keyScriptPos = 0
     /** Opzioni del gioco (byte a 0xD359: velocità del testo, animazione, stile lotta, suono). */
     @Volatile var gameOptions = 0x03
     private var lastPlayerHp = -1
@@ -587,6 +614,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         pendingFree = if (free && closingFrames == 0) pendingFree + 1 else 0
         if (--pendingCloseFrames <= 0 || pendingFree >= 60) { pendingClose = false; return }
         if (closingFrames > 0) return
+        // Etere / PP-su (D-093): il gioco aspetta la scelta della mossa (riquadro dell'app): non si chiude niente.
+        if (etherList) { pendingFree = 0; return }
         val kind = ItemMenus.read(frameVars, frameTiles, 0).kind
         if (kind == ItemMenus.Kind.ITEM_LIST || kind == ItemMenus.Kind.START_MENU || kind == ItemMenus.Kind.USE_TOSS || kind == ItemMenus.Kind.PARTY) {
             closingFrames = 60 * 8; closingCalm = 0
@@ -694,6 +723,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var pendingA = 0
 
     private fun currentKeys(): Int {
+        keyScript?.let { ks ->
+            if (keyScriptPos < ks.size) return ks[keyScriptPos++]
+            keyScript = null; commandBusy = false
+        }
         if (directFrames > 0) {
             directFrames--
             if (directFrames == 0) commandBusy = false
@@ -701,6 +734,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         }
         if (itemExecutor.busy) return stepItemAction()
         if (battleExecutor.busy) return stepBattleAction()
+        if (closingFrames > 0 && etherList) closingFrames = 0
         if (closingFrames > 0) {
             closingFrames--
             if (closingFrames % 24 == 0) {
@@ -1034,6 +1068,26 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     forgetNew = mv[4].toInt() and 0xFF
                     forgetMoves = IntArray(4) { mv[it].toInt() and 0xFF }
                 } else forgetMoves = null
+                fun ft(x: Int, y: Int) = frameTiles[y * 20 + x].toInt() and 0xFF
+                val ether = !inBattleRaw && (frameVars[0].toInt() and 0xFF) == 7 && (frameVars[1].toInt() and 0xFF) == 5 &&
+                    ft(4, 7) == 0x79 && ft(4, 8) == 0x7C && ft(19, 7) == 0x7B && ft(0, 12) == 0x79 && ft(0, 17) == 0x7D
+                // Il gioco scrive il testo lettera per lettera: un A durante la scrittura la fa solo finire. La lista vale
+                // quando il testo è fermo da qualche fotogramma.
+                val textHash = if (ether) frameTiles.copyOfRange(13 * 20, 17 * 20).contentHashCode() else 0
+                etherCalm = if (ether && textHash == etherHash) etherCalm + 1 else 0
+                etherHash = textHash
+                // Dopo la scelta il gioco scrive la risposta ("…PP ricaricati!") nello stesso riquadro: la lista finisce
+                // appena il testo non è più la domanda, così il messaggio si vede come un dialogo normale.
+                if (!ether) etherDone = false
+                val etherReady = ether && !etherDone && (if (etherList) textHash == etherQuestion else etherCalm >= 6)
+                if (etherReady && !etherList) {
+                    etherQuestion = textHash
+                    etherText = listOf(14, 16).map { r ->
+                        it.giallotouch.bridge.TextCodec.decode(ByteArray(18) { frameTiles[r * 20 + 1 + it] }).trimEnd() }
+                }
+                // Finita la scelta (o INDIETRO): dopo il messaggio si richiudono borsa e menu del gioco, come per le Pozioni.
+                if (etherList && !etherReady) { pendingClose = true; pendingCloseFrames = 60 * 60; pendingFree = 0; etherDone = true }
+                etherList = etherReady
                 // Introduzione (D-076): sprite anche fuori dalle 144 righe e sotto le bande, per non vederli tagliati.
                 if (!inGame && !titleShown && mainMenuItems == 0) {
                     val buf = IntArray(NativeCore.WIDTH * SPRITE_LAYER_H)
@@ -1138,7 +1192,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 var dialog = !itemExecutor.busy && !battleSplit && !trainerCardShown && !namingShown && mainMenuItems == 0 &&
                     NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) == 0 && dialogAtBottom(frameTiles)
                 // Senza un'immagine di prima del dialogo (partita caricata a dialogo aperto) il dialogo resta al suo posto.
-                val onScreen = (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight)) || dialog || yn != null || nameList != null || forgetMoves != null || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
+                val onScreen = (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight)) || dialog || yn != null || nameList != null || forgetMoves != null || etherList || shopMenuShown || pcChoice.isNotEmpty() || hidingOldMenus() ||
                     ((NativeCore.nativeReadMemory(handle, MemoryMapIt.IS_IN_BATTLE) != 0 || pendingClose) && (frameTiles[1 * 20 + 4].toInt() and 0xFF) == 0x71)
                 // Senza immagine di prima: nelle scene senza mappa (introduzione, sfondo uniforme) il posto del dialogo si
                 // riempie col colore dello sfondo; sulla mappa il dialogo resta al suo posto.
@@ -1194,6 +1248,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     if (pcChoice.isNotEmpty() && frameMask.ready) add(BoxMask.Box(0, 0, 15, 9))
                     // Lista del gioco delle mosse da dimenticare: la sostituisce il riquadro dell'app (D-085).
                     if (forgetMoves != null) add(BoxMask.Box(4, 7, 19, 11, fill = back[0]))
+                    // Etere (D-093): tutta l'immagine del gioco (squadra e lista) coperta con l'immagine di prima (mappa).
+                    if (etherList) add(if (frameMask.ready) BoxMask.Box(0, 0, 19, 17) else BoxMask.Box(0, 0, 19, 17, fill = back[0]))
                     if (shopMenuShown && frameMask.ready) { add(BoxMask.Box(0, 0, 10, 6)); add(BoxMask.Box(11, 0, 19, 2)) }
                     if (dialog) add(if (frameMask.ready) BoxMask.Box(0, 12, 19, 17) else BoxMask.Box(0, 12, 19, 17, fill = back[0]))
                 }

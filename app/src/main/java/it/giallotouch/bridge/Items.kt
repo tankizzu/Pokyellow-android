@@ -16,11 +16,12 @@ object Items {
 
     /**
      * Strumenti che il gioco usa su un Pokémon della squadra (cure, pietre, vitamine, Caramella Rara, MT/MN): dopo USA
-     * il gioco chiede su chi. Gli Etere scelgono anche la mossa: per ora restano al menu del gioco.
+     * il gioco chiede su chi. Etere e PP-su scelgono poi anche la mossa (riquadro dell'app, D-093); gli Elisir valgono per tutte.
      */
     private val ON_POKEMON = setOf(
         0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
         0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2F, 0x34, 0x35, 0x36, 0x3C, 0x3D, 0x3E,
+        0x4F, 0x50, 0x51, 0x52, 0x53,
     )
 
     fun usedOnPokemon(id: Int): Boolean = id in ON_POKEMON || id >= MemoryMapIt.HM01

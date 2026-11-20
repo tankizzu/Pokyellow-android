@@ -156,6 +156,8 @@ fun GameScreen(session: GameSession, settings: Settings) {
     var nameList by remember { mutableStateOf<List<IntArray>?>(null) }
     var forgetMoves by remember { mutableStateOf<IntArray?>(null) }   // mossa da dimenticare (D-085)
     var forgetNew by remember { mutableStateOf(0) }   // nomi proposti dal Professore (D-052)
+    var etherShown by remember { mutableStateOf(false) }   // Etere: scelta della mossa (D-093)
+    var etherFor by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // strumento e Pokémon scelti (D-093)
     var pcOpen by remember { mutableStateOf(false) }       // STRUMENTI PC dell'app (D-055)
     var boxOpen by remember { mutableStateOf(false) }      // BOX POKéMON dell'app (D-058)
     var boxMons by remember { mutableStateOf<List<it.giallotouch.bridge.BoxMon>>(emptyList()) }
@@ -215,6 +217,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
             yesNo = session.yesNo
             nameList = session.nameList
             forgetMoves = session.forgetMoves; forgetNew = session.forgetNew
+            etherShown = session.etherList
             if (session.pcMenuShown && !pcOpen) pcOpen = true
             if (session.boxMenuShown && !boxOpen) boxOpen = true
             pcChoice = session.pcChoice
@@ -572,9 +575,30 @@ fun GameScreen(session: GameSession, settings: Settings) {
             )
         }
 
+        // Etere / PP-su (D-093, disposizione B scelta dal committente): Pokémon e strumento in alto, testo del gioco
+        // alla riga 9, mosse sopra INDIETRO in basso al centro.
+        if (etherShown && sheet != null) {
+            val (itemId, target) = etherFor ?: (0 to 0)
+            val mon = snapshot.party.getOrNull(target) ?: snapshot.party.firstOrNull()
+            if (mon != null) GameEther(
+                sheet = sheet!!,
+                itemName = if (itemId != 0) session.romData.itemName(itemId) else "",
+                monName = mon.name, level = mon.level,
+                effect = when (itemId) { 0x4F -> "PP MASSIMI +"; 0x50 -> "RICARICA 10 PP"; 0x51 -> "RICARICA TUTTI"; else -> "" },
+                text = session.etherText,
+                moves = mon.moves.map { slot ->
+                    val max = session.romData.maxPp(slot.id, slot.ppUps)
+                    session.romData.moveName(slot.id) to (if (max != null) "${slot.pp}/$max" else "")
+                },
+                enabled = !commandBusy,
+                onPick = { session.pickByKeys(it) },
+                onBack = { session.pickByKeys(0, NativeCore.KEY_B) },
+            )
+        }
+
         // SELECT (D-043): solo quando sullo schermo c'è un menu del gioco con il cursore ▶ (non nei dialoghi),
         // disegnato con i tile del gioco, in basso a destra.
-        if (inGame && snapshot.cursorOnScreen && session.choiceOnScreen && !commandBusy && !session.answerPending && !itemRequested && !openingTrainer && !session.itemBusy && !session.menusClosing && session.mainMenuItems == 0 && !session.titleShown && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
+        if (inGame && !etherShown && forgetMoves == null && snapshot.cursorOnScreen && session.choiceOnScreen && !commandBusy && !session.answerPending && !itemRequested && !openingTrainer && !session.itemBusy && !session.menusClosing && session.mainMenuItems == 0 && !session.titleShown && yesNo == null && nameList == null && !pcOpen && !boxOpen && pcChoice.isEmpty() && shopMode < 0 && !snapshot.inBattle && snapshot.naming == null && sheet != null) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val unit = with(density) { maxWidth.toPx() } / 160f
                 val rows = (with(density) { maxHeight.toPx() } / (8 * unit)).toInt()
@@ -672,6 +696,7 @@ fun GameScreen(session: GameSession, settings: Settings) {
                 sheet = sheet!!, party = snapshot.party, romData = session.romData,
                 onOpen = { target ->
                     usePick = null
+                    etherFor = pick.second to target
                     itemRequested = true
                     session.itemAction(ItemAction.Use(pick.first, session.romData.itemName(pick.second), target))
                 },
