@@ -1164,6 +1164,8 @@ private data class Quint<A, B, C, D, E>(val a: A, val b: B, val c: C, val d: D, 
 fun GameForgetMove(
     sheet: IntArray,
     newMove: Pair<String, String>,
+    /** Tipo e potenza della mossa nuova (D-088): "NORMALE" e "40" (potenza vuota per le mosse di stato). */
+    newMoveInfo: Pair<String, String> = "" to "",
     moves: List<Pair<String, String>>,
     enabled: Boolean,
     onForget: (Int) -> Unit,
@@ -1173,14 +1175,18 @@ fun GameForgetMove(
         val density = LocalDensity.current
         val unit = with(density) { maxWidth.toPx() } / 160f
         val tilePx = 8 * unit
-        TileImage(sheet, 20, 5, unit, key = newMove, modifier = Modifier.offset { IntOffset(0, (3 * tilePx).toInt()) }) {
-            box(0, 0, 19, 4); text("NUOVA MOSSA", 1, 1); text(newMove.first.take(11), 2, 3)
+        TileImage(sheet, 20, 9, unit, key = newMove to newMoveInfo, modifier = Modifier.offset { IntOffset(0, (1 * tilePx).toInt()) }) {
+            box(0, 0, 19, 8); text("NUOVA MOSSA", 1, 1); text(newMove.first.take(11), 2, 3)
             if (newMove.second.isNotEmpty()) text(newMove.second, 19 - newMove.second.length, 3)
+            if (newMoveInfo.first.isNotEmpty()) text("TIPO/" + newMoveInfo.first.take(12), 2, 5)
+            text("POTENZA", 2, 7)
+            val pot = newMoveInfo.second.ifEmpty { "-" }
+            text(pot, 19 - pot.length, 7)
         }
         TileImage(
             sheet, 14, 4, unit, key = "non-imparare",
             modifier = Modifier
-                .offset { IntOffset((3 * tilePx).toInt(), (9 * tilePx).toInt()) }
+                .offset { IntOffset((3 * tilePx).toInt(), (11 * tilePx).toInt()) }
                 .pointerInput(enabled) { detectTapGestures { if (enabled) onKeep() } }
         ) { box(0, 0, 13, 3); text("NON IMPARARE", 1, 2) }
         TileImage(

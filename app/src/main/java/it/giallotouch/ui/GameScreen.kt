@@ -558,6 +558,9 @@ fun GameScreen(session: GameSession, settings: Settings) {
             GameForgetMove(
                 sheet = sheet!!,
                 newMove = session.romData.moveName(forgetNew) to (session.romData.maxPp(forgetNew, 0)?.let { "$it/$it" } ?: ""),
+                newMoveInfo = session.romData.moveInfo(forgetNew)?.let { mi ->
+                    session.romData.typeName(mi.type) to (if (mi.power > 1) "${mi.power}" else "")
+                } ?: ("" to ""),
                 moves = forget.filter { it != 0 }.mapIndexed { i, id ->
                     val slot = owner?.moves?.getOrNull(i)
                     val max = session.romData.maxPp(id, slot?.ppUps ?: 0)

@@ -568,7 +568,7 @@ class AppForgetMoveTest : AppScreensHarness() {
         tapTile(5f, 39f)          // SÌ
         assertTrue("riquadro delle mosse dell'app", waitFor(5_000) { s.forgetMoves != null })
         pump(600)
-        assertTrue("mosse sotto il testo e NUOVA MOSSA in alto", shotUntil("61-mossa-elenco") { boxAt(it, 0, 32, 20, 10) && boxAt(it, 0, 3, 20, 5) })
+        assertTrue("mosse sotto il testo e NUOVA MOSSA in alto", shotUntil("61-mossa-elenco") { boxAt(it, 0, 32, 20, 10) && boxAt(it, 0, 1, 20, 9) })
         tapTile(6f, 35.5f)        // RUGGITO (seconda mossa)
         var k = 0
         while (k++ < 30 && s.latestSnapshot.get().party.first().moves.none { it.id == 98 }) { pump(400); if (s.yesNo == null && s.forgetMoves == null && !s.battleMenuShown) press(s, NativeCore.KEY_A) }
@@ -588,7 +588,7 @@ class AppKeepMovesTest : AppScreensHarness() {
         tapTile(5f, 39f)          // SÌ (dimenticare una mossa)
         assertTrue(waitFor(5_000) { s.forgetMoves != null })
         pump(600)
-        tapTile(10f, 10.5f)       // NON IMPARARE
+        tapTile(10f, 12.5f)       // NON IMPARARE
         assertTrue("domanda di conferma", waitFor(8_000) { s.yesNo != null })
         shot("63-non-imparare-conferma")
         tapTile(5f, 39f)          // SÌ: non impara

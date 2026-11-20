@@ -25,7 +25,7 @@ class RomData private constructor(
     /** Secondo fotogramma delle icone (animazione della squadra). */
     private val icons2: List<IntArray> = emptyList(),
 ) {
-    data class MoveInfo(val type: Int, val maxPp: Int)
+    data class MoveInfo(val type: Int, val maxPp: Int, val power: Int = 0)
 
     fun moveName(id: Int): String = moveNames.getOrNull(id - 1) ?: "MOSSA $id"
     fun moveInfo(id: Int): MoveInfo? = moveInfo.getOrNull(id - 1)
@@ -231,7 +231,7 @@ class RomData private constructor(
             return (0 until count).map { k ->
                 val e = start + k * M.MOVE_DATA_SIZE
                 if (u8(rom, e) != k + 1) return null
-                MoveInfo(type = u8(rom, e + 3), maxPp = u8(rom, e + 5))
+                MoveInfo(type = u8(rom, e + 3), maxPp = u8(rom, e + 5), power = u8(rom, e + 2))
             }
         }
 
