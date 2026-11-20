@@ -73,6 +73,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     private var lastYellow = 0
     private var afterBattle = 0
     private var maskMapId = -1
+    private var tipoTail = 0
     private var flashState = 0
     private var shockSeen = false
     private var titleWasShown = false
@@ -1250,7 +1251,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     // Anche quando resta sotto un messaggio ("Non hai più PP per questa mossa!"): si riconosce dalla scritta TIPO/.
                     val tipoBox = (frameTiles[9 * 20 + 1].toInt() and 0xFF) == 0x93 && (frameTiles[9 * 20 + 2].toInt() and 0xFF) == 0x88 &&
                         (frameTiles[9 * 20 + 3].toInt() and 0xFF) == 0x8F
-                    if (inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight || tipoBox) && frameMask.ready) add(BoxMask.Box(0, 8, 10, 11))
+                    // L'immagine arriva un fotogramma dopo le caselle: si copre ancora per 3 fotogrammi (D-095).
+                    val tipoNow = inBattleRaw && (frameMenu.kind == MenuKind.BATTLE_MOVES || executor.navigatingFight || tipoBox)
+                    if (tipoNow) tipoTail = 3 else if (tipoTail > 0) tipoTail--
+                    if ((tipoNow || (inBattleRaw && tipoTail > 0)) && frameMask.ready) add(BoxMask.Box(0, 8, 10, 11))
                     if (pcChoice.isNotEmpty() && frameMask.ready) add(BoxMask.Box(0, 0, 15, 9))
                     // Lista del gioco delle mosse da dimenticare: la sostituisce il riquadro dell'app (D-085).
                     if (forgetMoves != null) add(BoxMask.Box(4, 7, 19, 11, fill = back[0]))

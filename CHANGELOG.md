@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-20 – lotta senza lampo del riquadro TIPO/PP (D-095)
+- Quando tocchi una mossa, il riquadro TIPO/PP del gioco non compare più per un attimo sulla scena.
+
 ## 2026-11-20 – primo dialogo in un luogo nuovo (D-094), 0.14.4
 - Entrando nel Market di Smeraldopoli niente più pezzo di città sotto la stanza mentre parla il commesso.
 - Provati anche INDIETRO dell'Etere, Elisir e PP-su.
