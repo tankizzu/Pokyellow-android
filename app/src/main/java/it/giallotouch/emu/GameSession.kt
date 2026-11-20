@@ -1093,7 +1093,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     NativeCore.nativeReadRange(handle, 0xD3B2, warpBlock)
                     val nw = (warpBlock[0].toInt() and 0xFF).coerceAtMost(32)
                     onWarp = (0 until nw).any { (warpBlock[1 + 4 * it].toInt() and 0xFF) == py && (warpBlock[2 + 4 * it].toInt() and 0xFF) == px }
-                    debugFrameInfo = "start=$startOk joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
+                    debugFrameInfo = "start=$startOk sc=%d,%d wy=%d joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, 0xFF43), NativeCore.nativeReadMemory(handle, 0xFF42), NativeCore.nativeReadMemory(handle, 0xFF4A),NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
                         NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP), px, py, onWarp)
                 }
                 // Vibrazione ai colpi (D-069): i PS di uno dei due Pokémon in lotta scendono.
@@ -1297,9 +1297,9 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     if (dialogStrip == null) for (y in 96 until 104) { var n = 0; val b = y * NativeCore.WIDTH
                         for (x in 8 until NativeCore.WIDTH - 8) if (dark(back[b + x])) n++
                         if (n >= 140) {
-                            val side = (112 until 136).count { r -> (0 until 8).any { dark(back[r * NativeCore.WIDTH + it]) } &&
-                                (NativeCore.WIDTH - 8 until NativeCore.WIDTH).any { dark(back[r * NativeCore.WIDTH + it]) } }
-                            if (side >= 20) { boxDrawn = true; break }
+                            // dentro il riquadro, sotto il bordo, la riga vuota è chiara (il nero intorno alle stanze no)
+                            val light = (8 until NativeCore.WIDTH - 8).count { x -> val c = back[106 * NativeCore.WIDTH + x]; ((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) > 600 }
+                            if (light >= 130) { boxDrawn = true; break }
                         } }
                     val cursor = frameTiles.any { (it.toInt() and 0xFF) == 0xED }
                     val mapish = latestExtended.get().active && extendedIsMap
