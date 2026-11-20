@@ -1070,7 +1070,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val rawWhite = ((c0 shr 16) and 255) + ((c0 shr 8) and 255) + (c0 and 255) > 720 && back.all { it == c0 }
                 val holdBattleEnd = rawWhite && afterBattle > 0 && latestExtended.get().active
                 // Scritte (C) all'accensione (D-102): nel gioco hanno 16 pixel a sinistra e 8 a destra; si spostano di 4 pixel
-                // a destra così i margini sono uguali (richiesta del committente).
+                // a sinistra così i margini sono uguali (12 e 12) (richiesta del committente).
                 if (!inGame && !titleWasShown) {
                     val bg = back[0]
                     var minX = 999; var maxX = -1; var minY = 999; var maxY = -1
@@ -1078,7 +1078,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                         for (x in 0 until NativeCore.WIDTH) if (back[b + x] != bg) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; maxY = y } }
                     if (minX == 16 && maxX == 151 && minY in 48..64 && maxY in 88..104) {
                         for (y in minY..maxY) { val b = y * NativeCore.WIDTH
-                            System.arraycopy(back, b, back, b + 4, NativeCore.WIDTH - 4); for (x in 0 until 4) back[b + x] = bg }
+                            System.arraycopy(back, b + 4, back, b, NativeCore.WIDTH - 4); for (x in NativeCore.WIDTH - 4 until NativeCore.WIDTH) back[b + x] = bg }
                     }
                 }
                 // Mosse in lotta (D-096): il gioco fa tremare lo schermo (SCX/SCY). Si vibra a tempo e il testo in alto
