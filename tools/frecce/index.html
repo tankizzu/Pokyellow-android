@@ -1,0 +1,165 @@
+<title>Fotogramma per fotogramma</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: immagine del telefono in alto, comandi grandi sotto (pensata per il dito). */
+:root {
+  --bg: #f3f1ea; --fg: #1c1b17; --muted: #6a675c; --line: #d6d2c4; --btn: #ffffff; --accent: #c8a200; --panel: #e9e6db;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16150f; --fg: #ece9de; --muted: #a29e8f; --line: #36342b; --btn: #24231c; --accent: #f0cc2a; --panel: #1f1e17; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #16150f; --fg: #ece9de; --muted: #a29e8f; --line: #36342b; --btn: #24231c; --accent: #f0cc2a; --panel: #1f1e17; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 28px; }
+.wrap { max-width: 480px; margin: 0 auto; display: grid; gap: 12px; }
+.info { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.num { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.phase { font-size: 15px; color: var(--accent); font-weight: 600; }
+.flags { font-size: 12px; color: var(--muted); min-height: 1.3em; }
+.screen { width: 100%; aspect-ratio: 320 / 710; max-width: 100%; background: #000; border-radius: 10px; overflow: hidden; }
+canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.row2 { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; }
+button, select, input { font: 600 18px var(--ui); color: var(--fg); background: var(--btn); border: 1px solid var(--line); border-radius: 10px; padding: 12px 8px; }
+button { cursor: pointer; touch-action: manipulation; }
+button:active { background: var(--panel); }
+button.play[aria-pressed="true"] { background: var(--accent); color: #1c1b17; border-color: var(--accent); }
+input { width: 100%; box-sizing: border-box; font-variant-numeric: tabular-nums; }
+select { width: 100%; font-size: 15px; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.slider { width: 100%; }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.status { font-size: 13px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <div class="info">
+    <div><span class="num" id="num">–</span> <span class="status" id="of"></span></div>
+    <div class="phase" id="phase"></div>
+  </div>
+  <div class="flags" id="flags"></div>
+  <div class="screen"><canvas id="cv" width="320" height="710"></canvas></div>
+  <input class="slider" id="slider" type="range" min="0" max="0" value="0" aria-label="Posizione nella registrazione">
+  <div class="row">
+    <button id="b10" aria-label="Indietro di 10">◀◀ 10</button>
+    <button id="b1" aria-label="Indietro di 1">◀ 1</button>
+    <button id="f1" aria-label="Avanti di 1">1 ▶</button>
+    <button id="f10" aria-label="Avanti di 10">10 ▶▶</button>
+  </div>
+  <div class="row">
+    <button id="bc" aria-label="Cambio precedente">◀ cambio</button>
+    <button class="play" id="play" aria-pressed="false">Riproduci</button>
+    <button id="speed">15/s</button>
+    <button id="fc" aria-label="Cambio successivo">cambio ▶</button>
+  </div>
+  <div class="row2">
+    <input id="go" type="number" inputmode="numeric" placeholder="Numero del fotogramma" aria-label="Numero del fotogramma">
+    <button id="goBtn">Vai</button>
+    <button id="copy" aria-label="Copia il numero">Copia</button>
+  </div>
+  <label class="hint" for="phases">Fasi della registrazione</label>
+  <select id="phases"></select>
+  <div class="hint">◀ cambio / cambio ▶ saltano al fotogramma precedente o successivo in cui l'immagine cambia. Da tastiera: frecce ← → (con Maiuscole ±10), spazio per riprodurre. Il numero in alto è quello da scrivermi.</div>
+  <div class="status" id="status">Carico la registrazione…</div>
+</div>
+
+<script>
+(function () {
+  const NAME = "smeraldopoli";
+  const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  const $ = id => document.getElementById(id);
+  let data = null, i = 0, timer = null, fps = 15;
+  const sheets = new Map();
+
+  function sheet(n) {
+    if (!sheets.has(n)) {
+      const img = new Image();
+      const p = new Promise((res, rej) => { img.onload = () => res(img); img.onerror = rej; });
+      img.src = NAME + "-" + String(n).padStart(3, "0") + ".png";
+      sheets.set(n, p);
+    }
+    return sheets.get(n);
+  }
+
+  async function draw() {
+    if (!data) return;
+    const f = data.frames[i];
+    const u = f[1], s = Math.floor(u / data.per), k = u % data.per;
+    $("num").textContent = f[0];
+    $("of").textContent = "di " + data.frames[data.frames.length - 1][0];
+    $("phase").textContent = f[2];
+    $("flags").textContent = f[3] || " ";
+    $("slider").value = i;
+    try { location.replace("#f" + f[0]); } catch (e) {}
+    const want = i;
+    try {
+      const img = await sheet(s);
+      if (want !== i) return;
+      ctx.drawImage(img, (k % data.cols) * data.w, Math.floor(k / data.cols) * data.h, data.w, data.h, 0, 0, data.w, data.h);
+      $("status").textContent = "";
+    } catch (e) { $("status").textContent = "Immagine non caricata: riprova tra poco."; }
+    if (s + 1 < data.sheets) sheet(s + 1);
+  }
+
+  function go(n) { if (!data) return; i = Math.max(0, Math.min(data.frames.length - 1, n)); draw(); }
+  function goNumber(num) {
+    if (!data) return;
+    let lo = 0, hi = data.frames.length - 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (data.frames[m][0] < num) lo = m + 1; else hi = m; }
+    go(lo);
+  }
+  function change(dir) {
+    if (!data) return;
+    const cur = data.frames[i][1];
+    let j = i + dir;
+    while (j >= 0 && j < data.frames.length && data.frames[j][1] === cur) j += dir;
+    go(j);
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } $("play").setAttribute("aria-pressed", "false"); $("play").textContent = "Riproduci"; }
+  function play() {
+    if (timer) { stop(); return; }
+    $("play").setAttribute("aria-pressed", "true"); $("play").textContent = "Pausa";
+    timer = setInterval(() => { if (i >= data.frames.length - 1) stop(); else go(i + 1); }, 1000 / fps);
+  }
+
+  $("b10").onclick = () => { stop(); go(i - 10); };
+  $("b1").onclick = () => { stop(); go(i - 1); };
+  $("f1").onclick = () => { stop(); go(i + 1); };
+  $("f10").onclick = () => { stop(); go(i + 10); };
+  $("bc").onclick = () => { stop(); change(-1); };
+  $("fc").onclick = () => { stop(); change(1); };
+  $("play").onclick = play;
+  $("speed").onclick = () => {
+    fps = fps === 15 ? 60 : fps === 60 ? 5 : 15; $("speed").textContent = fps + "/s";
+    if (timer) { stop(); play(); }
+  };
+  $("slider").oninput = e => { stop(); go(parseInt(e.target.value, 10)); };
+  $("goBtn").onclick = () => { stop(); const n = parseInt($("go").value, 10); if (!isNaN(n)) goNumber(n); };
+  $("go").addEventListener("keydown", e => { if (e.key === "Enter") $("goBtn").click(); });
+  $("phases").onchange = e => { stop(); go(parseInt(e.target.value, 10)); };
+  $("copy").onclick = async () => {
+    const t = String(data ? data.frames[i][0] : "");
+    try { await navigator.clipboard.writeText(t); $("status").textContent = "Copiato: " + t; }
+    catch (e) { $("go").value = t; $("go").select(); $("status").textContent = "Numero nel campo: copialo da lì."; }
+  };
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (e.key === "ArrowRight") { stop(); go(i + (e.shiftKey ? 10 : 1)); e.preventDefault(); }
+    else if (e.key === "ArrowLeft") { stop(); go(i - (e.shiftKey ? 10 : 1)); e.preventDefault(); }
+    else if (e.key === " ") { play(); e.preventDefault(); }
+  });
+
+  fetch(NAME + ".json").then(r => r.json()).then(d => {
+    data = d;
+    $("slider").max = d.frames.length - 1;
+    let last = null;
+    d.frames.forEach((f, k) => {
+      if (f[2] !== last) { const o = document.createElement("option"); o.value = k; o.textContent = f[2] + " (dal " + f[0] + ")"; $("phases").appendChild(o); last = f[2]; }
+    });
+    const m = /^#f(\d+)$/.exec(location.hash || "");
+    if (m) goNumber(parseInt(m[1], 10)); else go(0);
+  }).catch(() => { $("status").textContent = "Registrazione non caricata: ricarica la pagina."; });
+})();
+</script>
