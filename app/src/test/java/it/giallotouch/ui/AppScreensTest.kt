@@ -2144,3 +2144,23 @@ class AppElisirTest : EtereHarness() {
         assertEquals("un ELISIR usato", 2, s.latestSnapshot.get().bag.firstOrNull { it.id == 0x52 }?.quantity)
     }
 }
+
+/** PP-su (D-093): stessa lista dell'Etere; tocco sulla prima mossa → PP massimi aumentati (ppUps 1). */
+class AppPpSuTest : EtereHarness() {
+    @Test fun ppSu() {
+        if (System.getProperty("giallo.state.two") == null) return assumeTrue(false)
+        val s = apri(0x4F)
+        assertTrue("lista delle mosse", waitFor(20_000) { s.etherList })
+        pump(600)
+        shot("80-ppsu")
+        println("DBGET testo ${s.etherText}")
+        tapTile(6f, 29.5f)                    // prima mossa
+        var k = 0
+        while (k++ < 40 && s.etherList) pump(300)
+        finoAllaMappa(s)
+        pump(1500)
+        val mv = s.latestSnapshot.get().party.first().moves
+        assertEquals("PP-su sulla prima mossa: $mv", 1, mv[0].ppUps)
+        assertEquals("un PP-su usato", 2, s.latestSnapshot.get().bag.firstOrNull { it.id == 0x4F }?.quantity)
+    }
+}
