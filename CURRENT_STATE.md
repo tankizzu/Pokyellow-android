@@ -1,6 +1,6 @@
 # CURRENT_STATE
 
-**Ultimo aggiornamento:** 2026-11-20
+**Ultimo aggiornamento:** 2026-11-21
 
 ## Dove siamo
 - **0.14.3-prototipo (consegnata il 2026-11-20)**: Etere/Elisir/PP-su coi riquadri dell'app, disposizione B (D-093);
@@ -45,12 +45,11 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. Revisione col committente nella pagina privata "Fotogramma per fotogramma": registrazioni 1 Nuovo gioco (col video
-   iniziale), 2 Cameretta, 3 Rivale, 4 Strada 1, 5 Smeraldopoli→Pacco. Note del 2026-11-20 su Nuovo gioco corrette
-   (D-102..D-105). Regola: a ogni nuova pagina proposta si cancellano le note precedenti (tools/frecce/LEGGIMI.md).
-2. Ancora aperti: 984 (riga della stanza spostata durante il dialogo), rivale che entra dalla porta (10436), Blu fino
-   alla porta (13865) da verificare.
-3. APK nuovo dopo la revisione (D-096..D-105 non ancora in un APK).
+1. APK 0.14.6 consegnata (D-096..D-107); dopo: D-108 (inizio dei dialoghi con una persona sopra il bordo) solo nel ramo.
+2. Pagina "Fotogramma per fotogramma": da ripubblicare il tratto 3 (rivale) rifatto con D-108 (la pubblicazione chiede
+   l'approvazione del committente). Regola: a ogni nuova proposta si cancellano le note precedenti.
+3. Ancora aperti: 984 (riga della stanza spostata durante il dialogo nel Market), rivale che entra dalla porta, Blu
+   fino alla porta da verificare.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
 - PC del giocatore (D-055) fatto e verificato; colori veri delle immagini dei Pokémon dalla ROM (tavolozze a 0x72B39,
