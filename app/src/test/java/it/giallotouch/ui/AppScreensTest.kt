@@ -1801,11 +1801,13 @@ class ZzGlitchTest : AppScreensHarness() {
             }
             if (s.latestSnapshot.get().inBattle) { lotta(); continue }
             if (!s.latestSnapshot.get().freeRoam) { testi(); continue }
-            val g = s.mapGridForTest() ?: break
+            val g = s.mapGridForTest()
+            if (g == null) { step(10); continue }
             // bersaglio: la casella libera raggiungibile più a nord (a parità, più vicina in orizzontale)
             val reach = (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
                 .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }
-            val target = reach.minWithOrNull(compareBy<Pair<Int, Int>> { it.second }.thenBy { kotlin.math.abs(it.first - pos().second) }) ?: break
+            val target = reach.minWithOrNull(compareBy<Pair<Int, Int>> { it.second }.thenBy { kotlin.math.abs(it.first - pos().second) })
+            if (target == null) { step(10); continue }
             if (target.first == pos().second && target.second == pos().third) {
                 // già in cima: verso nord (bordo, porta del cancello o casella oltre)
                 s.setKeys(NativeCore.KEY_UP); step(20); s.setKeys(0); step(30)
