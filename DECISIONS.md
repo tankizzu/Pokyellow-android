@@ -121,6 +121,9 @@
 | D-106 | 2026-11-20 | **START nascosto nelle scene guidate** (il Professore che accompagna al laboratorio): quando il gioco blocca i comandi START non c'è, tranne subito dopo una porta (60 fotogrammi) e dopo una lotta, dove torna subito (D-098). Da verificare. |
 | D-107 | 2026-11-20 | **Cattura di Pikachu nella disposizione della lotta**: lo sfondo del gioco resta la mappa e la vista estesa disegnava la scena della lotta dentro la mappa; con la lotta in corso e la disposizione della lotta la vista estesa si spegne. Da verificare. |
 | D-108 | 2026-11-20 | **Inizio dei dialoghi**: il dialogo si sposta anche quando il riquadro è già nell'immagine prima che nelle caselle; START sparisce appena le caselle segnano il riquadro. Il riquadro si riconosce anche con qualche pixel del bordo coperto da una persona (era la causa del fotogramma col riquadro in basso al 186 del tratto 3). |
+| D-109 | 2026-11-25 | **Terreno chiaro scambiato per un dialogo** (Strada 2 davanti al cancello del Bosco Smeraldo): un pezzo di mappa saltava in alto per qualche fotogramma. Il riquadro riconosciuto "dall'immagine" (D-108) ora deve avere anche i bordi superiore e inferiore scuri. |
+| D-110 | 2026-11-25 | **Lampo bianco nei cambi di luogo**: dopo la dissolvenza al nero il gioco mostra 1-2 fotogrammi bianchi (con una persona) prima del luogo nuovo; nell'app era una banda bianca in mezzo al nero. Si tiene il nero (al massimo 4 fotogrammi). |
+| D-111 | 2026-11-25 | **START non lampeggia nelle scene guidate**: tra due passi il gioco sblocca i comandi per un solo fotogramma (vecchio di Smeraldopoli); START compare solo dopo 2 fotogrammi di fila. |
 
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |

@@ -310,6 +310,35 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         return l > 300 && (8 until NativeCore.WIDTH - 8).count { px[inner + it] == fill } >= 112
     }
 
+    /**
+     * Bordi superiore e inferiore scuri (righe 96–103 e 136–143) d'una sola tinta per quasi tutta la larghezza (D-109): il
+     * terreno chiaro e uniforme (sabbia della Strada 2) aveva riga interna "pulita" e righe d'un colore solo, e sembrava
+     * un riquadro.
+     */
+    private fun boxEdgesDark(px: IntArray): Boolean {
+        fun darkRow(y0: Int): Boolean = (y0 until y0 + 8).any { y ->
+            val b = y * NativeCore.WIDTH; val c = px[b + 80]
+            val l = ((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255)
+            l < 200 && (8 until NativeCore.WIDTH - 8).count { px[b + it] == c } >= 112
+        }
+        return darkRow(96) && darkRow(136)
+    }
+
+    private var doorWhiteRun = 0
+    private var startCandPrev = false
+    /** Quasi tutto bianco (almeno il 90% dei punti). */
+    private fun nearlyWhite(px: IntArray): Boolean {
+        var n = 0; var w = 0; var i = 0
+        while (i < px.size) { val c = px[i]; n++; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) > 720) w++; i += 7 }
+        return w * 10 >= n * 9
+    }
+    /** Tutto scuro (fine della dissolvenza al nero). */
+    private fun darkFrame(px: IntArray): Boolean {
+        var i = 0
+        while (i < px.size) { val c = px[i]; if (((c shr 16) and 255) + ((c shr 8) and 255) + (c and 255) > 150) return false; i += 7 }
+        return true
+    }
+
     private fun boxBorderDrawn(px: IntArray): Boolean {
         val inner = 106 * NativeCore.WIDTH
         val fill = px[inner + 80]
@@ -1073,7 +1102,13 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (inBattleNowMem) afterBattle = 120 else if (afterBattle > 0) afterBattle--
                 val c0 = back[0]
                 val rawWhite = ((c0 shr 16) and 255) + ((c0 shr 8) and 255) + (c0 and 255) > 720 && back.all { it == c0 }
-                val holdBattleEnd = rawWhite && afterBattle > 0 && latestExtended.get().active
+                // Cambio di luogo (D-110): dopo la dissolvenza al nero il gioco mostra per 1-2 fotogrammi lo schermo bianco
+                // (con una persona sopra) prima del nero del luogo nuovo; intorno restava nero: banda bianca in mezzo. Si
+                // tiene il nero di prima.
+                val doorWhite = inGame && !inBattleNowMem && afterBattle == 0 && doorWhiteRun < 4 && nearlyWhite(back) && darkFrame(latestFrame.get())
+                if (doorWhite) doorWhiteRun++ else doorWhiteRun = 0
+                val holdBattleEnd = (rawWhite && afterBattle > 0 && latestExtended.get().active) || doorWhite
+                if (doorWhite) System.arraycopy(latestFrame.get(), 0, back, 0, back.size)
                 // Scritte (C) all'accensione (D-102): nel gioco hanno 16 pixel a sinistra e 8 a destra; si spostano di 4 pixel
                 // a sinistra così i margini sono uguali (12 e 12) (richiesta del committente).
                 if (!inGame && !titleWasShown) {
@@ -1321,7 +1356,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // fotogramma il riquadro si vedeva al suo posto in basso (con START). Riquadro largo tutto lo schermo,
                 // bordo e interno puliti: è un dialogo.
                 if (!dialog && !dialogWas && !itemExecutor.busy && !battleSplit && !inBattleRaw && (frameMask.ready || (extendedActive && extendedIsMap)) && mainMenuItems == 0 &&
-                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back)) {
+                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back) && boxEdgesDark(back)) {
                     dialog = true
                     if (!frameMask.ready) mapUnderDialog = true
                 }
@@ -1364,8 +1399,12 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val noParty = NativeCore.nativeReadMemory(handle, MemoryMapIt.PARTY_COUNT) == 0
                     if (noParty && mapIdNow != 37 && mapIdNow != 38 && mapish) leftHouse = true
                     val startHome = noParty && !leftHouse && (mapIdNow == 37 || mapIdNow == 38)
-                    startOk = !startHome && !joyBlocked && !dialogAtBottom(frameTiles) && !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
+                    // Per comparire servono 2 fotogrammi di fila (D-111): tra due passi d'una scena guidata il gioco sblocca i
+                    // comandi per un fotogramma solo e START lampeggiava (vecchio di Smeraldopoli).
+                    val cand = !startHome && !joyBlocked && !dialogAtBottom(frameTiles) && !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
                         !itemExecutor.busy && yesNo == null && nameList == null && !holdBattleEnd && (mapish || (startOk && startMapCalm < 30))
+                    startOk = cand && (startOk || startCandPrev)
+                    startCandPrev = cand
                 }
                 if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
                 checkPendingClose(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles))
