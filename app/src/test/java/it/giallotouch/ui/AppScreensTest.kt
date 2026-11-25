@@ -1758,6 +1758,75 @@ class ZzGlitchTest : AppScreensHarness() {
         fase("fine"); step(120)
     }
 
+    /**
+     * Analisi verso nord (-Pgiallo.state.citta=STATO, es. dopo la consegna del Pacco): esce dall'edificio, poi va sempre
+     * verso il bordo nord di ogni luogo (Strada 1, Smeraldopoli, Strada 2, Bosco Smeraldo) fino a Plumbeopoli (luogo 2),
+     * con lotte (PS ricaricati in memoria: solo prova) e dialoghi. Salva una partita a ogni luogo nuovo.
+     */
+    @Test fun analisiNord() = registra("analisi9", auto = "giallo.state.citta") { step, fase ->
+        fun pos() = s.positionForTest()
+        fun lotta() {
+            fase("lotta"); var b = 0
+            while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && b++ < 400) {
+                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(0)); step(30) }
+                else if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(false)); step(30) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+            }
+            // solo per la prova: PS e PP del primo Pokémon ricaricati, così la passeggiata non si ferma
+            val m = s.latestSnapshot.get().party.firstOrNull()
+            if (m != null) { s.writeMemoryForTest(0xD16F + 1, m.maxHp shr 8); s.writeMemoryForTest(0xD16F + 2, m.maxHp and 0xFF); s.writeMemoryForTest(0xD16F + 29, 30) }
+        }
+        fun testi() { var k = 0; while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < 60) {
+            if (s.yesNo != null) s.command(it.giallotouch.bridge.GameCommand.Answer(false)) else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            step(20) } }
+        fase("uscita"); step(30)
+        // fuori dall'edificio: porta più in basso
+        run {
+            val m = pos().first
+            val d = s.warpsForTest().maxByOrNull { it.first }
+            if (d != null && m >= 37) {
+                s.walkPathForTest(d.second, d.first)
+                var j = 0
+                while (j++ < 400 && pos().first == m) { step(4); if (j % 20 == 0) { s.setKeys(NativeCore.KEY_DOWN); step(8); s.setKeys(0) } }
+            }
+        }
+        var lastMap = -1
+        var k = 0
+        while (pos().first != 2 && k++ < 120) {
+            val m = pos().first
+            if (m != lastMap) {
+                lastMap = m; fase("luogo$m"); step(30)
+                System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "nord-$m.state")) }
+                println("DBGNO luogo $m a ${pos()}")
+            }
+            if (s.latestSnapshot.get().inBattle) { lotta(); continue }
+            if (!s.latestSnapshot.get().freeRoam) { testi(); continue }
+            val g = s.mapGridForTest() ?: break
+            // bersaglio: la casella libera raggiungibile più a nord (a parità, più vicina in orizzontale)
+            val reach = (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
+                .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }
+            val target = reach.minWithOrNull(compareBy<Pair<Int, Int>> { it.second }.thenBy { kotlin.math.abs(it.first - pos().second) }) ?: break
+            if (target.first == pos().second && target.second == pos().third) {
+                // già in cima: verso nord (bordo, porta del cancello o casella oltre)
+                s.setKeys(NativeCore.KEY_UP); step(20); s.setKeys(0); step(30)
+                if (pos().first == m && pos().third == target.second) {
+                    // niente passaggio: prova a destra e a sinistra
+                    s.setKeys(NativeCore.KEY_RIGHT); step(40); s.setKeys(0); s.setKeys(NativeCore.KEY_UP); step(20); s.setKeys(0); step(20)
+                }
+                continue
+            }
+            s.walkPathForTest(target.first, target.second)
+            var t = 0
+            while (t++ < 500 && pos().first == m && (pos().second != target.first || pos().third != target.second)) {
+                step(4)
+                if (s.latestSnapshot.get().inBattle) { lotta(); fase("luogo$m"); s.walkPathForTest(target.first, target.second) }
+                else if (!s.latestSnapshot.get().freeRoam && t % 8 == 0) { testi(); s.walkPathForTest(target.first, target.second) }
+            }
+        }
+        println("DBGNO fine ${pos()}")
+        fase("fine"); step(120)
+    }
+
     /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */
     @Test fun analisiCentro() = registra("analisi6", auto = "giallo.state.centro") { step, fase ->
         fun pos() = s.positionForTest()
