@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 2026-11-26 – controllo delle persone che spariscono (D-118)
+- Prove: le persone disegnate vanno nell'indice dei fotogrammi; controllo su Strada 3, Strada 4 e Monte Luna: nessun difetto dell'app trovato.
+
 ## 2026-11-26 – palestra di Plumbeopoli e Brock (D-116, D-117), 0.14.8
 - Lotta: scegliendo una mossa la disposizione della lotta non sparisce più per 3 fotogrammi (D-116).
 - Palestra: dopo una frase di Brock nel riquadro del dialogo non compare più un pezzo del pavimento (D-117).
