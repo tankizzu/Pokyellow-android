@@ -93,6 +93,10 @@ abstract class AppScreensHarness {
 
     /** Tocco in una casella (colonna, riga) della griglia di 8 pixel del gioco sullo schermo. */
     protected fun tapTile(col: Float, row: Float) = tap(col * 8 * unit, row * 8 * unit)
+    protected var lastSession: GameSession? = null
+    /** START compare dopo 3 fotogrammi di fila (D-112) e solo con la vista estesa, la cui altezza si sa solo quando la vista è
+     * disegnata (qui solo con una foto): si disegna e si aspetta che START ci sia prima di toccarlo. */
+    protected fun tapStart() { shot("_start"); waitFor(20_000) { lastSession?.startOk != false }; pump(400); tapTile(10f, rows() - 2f) }
 
     protected fun tap(x: Float, y: Float) {
         val t = SystemClock.uptimeMillis()
@@ -147,6 +151,7 @@ abstract class AppScreensHarness {
         val activity = c.get()
         root = activity.window.decorView
         pump(500)
+        lastSession = activity.sessionForTest
         return activity.sessionForTest
     }
 
@@ -200,7 +205,7 @@ abstract class AppScreensHarness {
         while (!s.latestSnapshot.get().freeRoam && k++ < 20) press(s, NativeCore.KEY_B)
         waitFor(5_000) { s.latestSnapshot.get().freeRoam }
         assertTrue("START di nuovo visibile", shotUntil("05c-dopo-dialogo") { boxAt(it, 7, rows() - 4, 7, 4) })
-        tapTile(10f, rows() - 2f)
+        tapStart()
         assertTrue("riquadro dei pulsanti aperto", shotUntil("06-menu-aperto") { boxAt(it, 0, rows() - 13, 20, 9) })
         tapTile(4f, rows() - 7f)     // BORSA
         assertTrue("Borsa aperta", shotUntil("06b-borsa") { boxAt(it, 0, 3, 20, 3) })
@@ -208,7 +213,7 @@ abstract class AppScreensHarness {
         root.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_BACK))
         root.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_BACK))
         pump(800)
-        tapTile(10f, rows() - 2f)    // MENU di nuovo
+        tapStart()    // MENU di nuovo
         pump(800)
         tapTile(15f, rows() - 10f)   // OPZIONI
         assertTrue("OPZIONI aperte", shotUntil("07-opzioni") { boxAt(it, 0, 10, 20, 5) })
@@ -370,7 +375,7 @@ abstract class AppScreensHarness {
             assertTrue("fuggiti", waitFor(15_000) { s.latestSnapshot.get().freeRoam })
             pump(1500)
             // BORSA dell'app → POZIONE → USA → "SU CHI?" dell'app → PIKACHU (D-051): niente menu vecchi, si torna a camminare.
-            tapTile(10f, rows() - 2f); pump(800)
+            tapStart(); pump(800)
             tapTile(4f, 36f)                      // BORSA
             assertTrue("borsa", shotUntil("26-borsa") { b -> boxAt(b, 0, 3, 20, 3) })
             tapTile(4f, 10f); pump(800)           // POZIONE
@@ -440,7 +445,7 @@ abstract class AppScreensHarness {
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         assertTrue("in partita", waitFor(20_000) { s.inGame && s.latestSnapshot.get().freeRoam })
-        tapTile(10f, rows() - 2f)
+        tapStart()
         assertTrue("menu aperto", shotUntil("10-menu-allenatore") { boxAt(it, 0, rows() - 15, 20, 11) })
         tapTile(14f, rows() - 13f)   // nome del giocatore (a destra di POKéMON)
         // Durante il passaggio dal menu START del gioco non si vede nessun menu vecchio (D-049): foto da guardare.
@@ -458,12 +463,12 @@ abstract class AppScreensHarness {
         pump(1500)
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         assertTrue("in partita", waitFor(20_000) { s.inGame && s.latestSnapshot.get().freeRoam })
-        tapTile(10f, rows() - 2f)
+        tapStart()
         assertTrue("START aperto", shotUntil("13-start") { boxAt(it, 0, 28, 20, 11) && boxAt(it, 0, 2, 20, 8) })
         tapTile(15f, 36f)            // SALVA
         assertTrue("messaggio nello stile del gioco", shotUntil("13b-salvata") { boxAt(it, 0, 9, 20, 6) })
         pump(2500)
-        tapTile(10f, rows() - 2f)
+        tapStart()
         assertTrue("START aperto di nuovo", shotUntil("13c-start") { boxAt(it, 0, 28, 20, 11) })
         tapTile(4f, 30f)             // POKéMON
         assertTrue("squadra", shotUntil("14-squadra") { boxAt(it, 0, 7, 20, 32) && boxAt(it, 0, 39, 10, 4) && boxAt(it, 10, 39, 10, 4) })
@@ -473,7 +478,7 @@ abstract class AppScreensHarness {
         assertTrue("di nuovo la squadra", shotUntil("16-squadra-2") { boxAt(it, 10, 39, 10, 4) })
         tapTile(4f, 40.5f)           // INDIETRO → gioco
         pump(800)
-        tapTile(10f, rows() - 2f)
+        tapStart()
         pump(800)
         tapTile(4f, 33f)             // POKéDEX
         assertTrue("Pokédex", shotUntil("17-pokedex") { boxAt(it, 0, 7, 20, 27) && boxAt(it, 0, 34, 20, 5) })
@@ -485,7 +490,7 @@ abstract class AppScreensHarness {
         tapTile(9f, 40.5f)           // INDIETRO → lista
         tapTile(9f, 40.5f)
         pump(800)
-        tapTile(10f, rows() - 2f)
+        tapStart()
         pump(800)
         tapTile(15f, 33f)            // OPZIONI
         // OPZIONI uniche (D-075, D-080, D-082): un solo riquadro GIOCO dalla riga 6 (COLORI alle righe 23-24)
@@ -494,7 +499,7 @@ abstract class AppScreensHarness {
         assertTrue("opzione bianco e nero", waitFor(3_000) { s.blackWhite })
         tapTile(9f, 40.5f)           // INDIETRO
         shot("18b-bianco-e-nero")
-        tapTile(10f, rows() - 2f); pump(800); tapTile(15f, 33f); pump(800)
+        tapStart(); pump(800); tapTile(15f, 33f); pump(800)
         tapTile(4f, 23.5f)           // di nuovo a colori
         assertTrue("di nuovo a colori", waitFor(3_000) { !s.blackWhite })
     }
@@ -1090,7 +1095,7 @@ class AppPartySwapTest : AppScreensHarness() {
         assertTrue(s.loadSlot(SaveSlot.AUTO))
         assertTrue(waitFor(10_000) { s.latestSnapshot.get().freeRoam && s.latestSnapshot.get().party.size == 2 })
         val names0 = s.latestSnapshot.get().party.map { it.name }
-        tapTile(10f, rows() - 2f); pump(800)
+        tapStart(); pump(800)
         tapTile(4f, 30f)                                  // POKéMON
         assertTrue("squadra", shotUntil("45-squadra-due") { b -> boxAt(b, 10, 39, 10, 4) })
         tapTile(15f, 41f)                                 // SELECT
@@ -2249,7 +2254,7 @@ abstract class EtereHarness : AppScreensHarness() {
         var opened = false
         for (t in 0 until 3) {
             if (opened) break
-            pump(800); tapTile(10f, rows() - 2f); pump(800)
+            pump(800); tapStart(); pump(800)
             tapTile(4f, 36f)                  // BORSA
             opened = shotUntil("75-borsa") { b -> boxAt(b, 0, 3, 20, 3) }
             if (!opened) { s.closeMenus(); waitFor(10_000) { s.latestSnapshot.get().freeRoam && !s.menusClosing } }

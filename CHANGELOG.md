@@ -5,6 +5,7 @@
 - Uscendo dal laboratorio niente più rettangolo bianco col personaggio: resta il nero fino al luogo nuovo.
 - Pulsante START: niente più lampeggi di un fotogramma nelle scene guidate (vecchio di Smeraldopoli, laboratorio).
 - Inizio dei dialoghi con una persona sopra il bordo del riquadro (D-108).
+- Pulsante START visibile anche nel laboratorio di Oak (pavimento a righe, D-115).
 
 ## 2026-11-20 – scene guidate e cattura di Pikachu (D-106..D-108), 0.14.6
 - START nascosto mentre il Professore ti accompagna e appena inizia un dialogo.

@@ -1391,7 +1391,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     // Non vale subito dopo una porta o una lotta, dove il blocco dura pochi fotogrammi e START torna subito.
                     val joyBlocked = NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) != 0 && afterBattle == 0 && doorRecent == 0
                     var boxDrawn = false
-                    if (dialogStrip == null) boxDrawn = boxBorderDrawn(back) && boxInnerClean(back)
+                    if (dialogStrip == null) boxDrawn = boxBorderDrawn(back) && boxInnerClean(back) && boxEdgesDark(back)   // D-115: pavimento del laboratorio
                     val cursor = frameTiles.any { (it.toInt() and 0xFF) == 0xED }
                     val mapish = latestExtended.get().active && extendedIsMap
                     if (mapish) startMapCalm = 0 else startMapCalm++
