@@ -50,6 +50,8 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
+- Regola del committente (2026-11-26): si registrano e controllano fotogramma per fotogramma solo le novità (luoghi,
+  dialoghi, scene nuove); le lotte solo se hanno qualcosa di mai visto. Le correzioni della lotta valgono per tutte.
 1. APK 0.14.8 consegnata il 2026-11-26 (D-116, D-117). Prove: 120, 1 fallita solo nella prova completa
    (ZzGlitchTest.opzioniIniziali: il tocco su OPZIONI del menu iniziale non arriva; da sola passa, fallisce anche prima di D-109). Palestra di Brock fatta (0.14.8, D-116, D-117). Prossimo: Strada 3 e Monte Luna con lo stesso controllo.
 2. Pagina "Fotogramma per fotogramma": da ripubblicare il tratto 3 (rivale) rifatto con D-108 (la pubblicazione chiede
