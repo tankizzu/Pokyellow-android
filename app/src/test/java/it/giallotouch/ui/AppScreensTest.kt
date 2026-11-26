@@ -2016,6 +2016,8 @@ class ZzGlitchTest : AppScreensHarness() {
      * Registra ogni fotogramma (sessione in passo a passo dall'accensione) in [dir]: un'immagine per ogni fotogramma
      * diverso dal precedente (320 di larghezza) e indice.txt "fotogramma file lampeggio fase stato menu titolo".
      */
+    private class Fermati : RuntimeException()
+
     private fun registra(dir: String, auto: String? = null, body: (step: (Int) -> Unit, fase: (String) -> Unit) -> Unit) {
         GameSession.testStepFromStart = true
         GameSession.debugPeople = true
@@ -2052,16 +2054,19 @@ class ZzGlitchTest : AppScreensHarness() {
                     fun h(b: ByteArray, o: Int) = (0 until 16).joinToString("") { "%02x".format(b[o + it].toInt() and 0xFF) }
                     println("DBGSP $n " + (0 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }.joinToString(" | ") { "$it:${h(d1, it * 16)}/${h(d2, it * 16)}" })
                 } }
-                System.getProperty("giallo.raw")?.split("-")?.let { (a, b) -> if (n in a.toInt()..b.toInt()) {
+                System.getProperty("giallo.raw")?.split(",")?.map { it.split("-") }?.firstOrNull { (a, b) -> n in a.toInt()..b.toInt() }?.let {
+                    if (true) {
                     val rb = Bitmap.createBitmap(raw, 160, 144, Bitmap.Config.ARGB_8888)
                     FileOutputStream(File(out, "raw%05d.png".format(n))).use { rb.compress(Bitmap.CompressFormat.PNG, 100, it) } } }
                 index.append("$n $file $blip $fase ${if (rawWhite) "uniforme" else "immagine"} ${s.mainMenuItems} ${s.titleShown} " +
                     "lotta=${s.latestSnapshot.get().inBattle} divisa=${s.battleSplit} dialogo=${s.dialogStrip != null} estesa=${s.latestExtended.get().active} libero=${s.freeRoamNow} ${s.debugFrameInfo}\n")
                 // indice salvato anche durante la registrazione: se la prova viene fermata per tempo non si perde
                 if (n % 2000 == 0) File(out, "indice.txt").writeText(index.toString())
+                // -Pgiallo.fermati=N: registrazione corta (per confrontare con le immagini del gioco)
+                System.getProperty("giallo.fermati")?.toIntOrNull()?.let { if (n >= it) throw Fermati() }
             }
         }
-        body(step) { fase = it }
+        try { body(step) { fase = it } } catch (_: Fermati) {}
         File(out, "indice.txt").writeText(index.toString())
         println("DBGAN $dir fotogrammi $n, immagini ${out.list()!!.size - 1}")
     }
