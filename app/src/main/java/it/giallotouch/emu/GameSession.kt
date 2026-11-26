@@ -324,6 +324,17 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
         return darkRow(96) && darkRow(136)
     }
 
+    /**
+     * Fascia vuota sotto il bordo superiore (righe 104–111, sopra la prima riga di testo): nel riquadro vero le 8 righe
+     * hanno tutte lo stesso colore. Il pavimento a righe della palestra di Plumbeopoli ha una riga scura uniforme che
+     * sembrava il bordo, ma righe di colori diversi (D-117).
+     */
+    private fun boxBlankBand(px: IntArray): Boolean {
+        val fill = px[104 * NativeCore.WIDTH + 80]
+        return (104 until 112).all { y -> val b = y * NativeCore.WIDTH
+            px[b + 80] == fill && (8 until NativeCore.WIDTH - 8).count { px[b + it] == fill } >= 112 }
+    }
+
     private var doorWhiteRun = 0
     private var startCandRun = 0
     /** Quasi tutto bianco (almeno il 90% dei punti). */
@@ -1349,18 +1360,18 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (dialog && !frameMask.ready && !plainBackground && !mapUnderDialog) dialog = false
                 // Il riquadro deve essere già disegnato nell'immagine (bordo superiore scuro alla riga 96-103): nei primi
                 // fotogrammi la mappa delle caselle lo ha già ma l'immagine no, e si spostava un pezzo di mappa (D-086).
-                if (dialog && !boxBorderDrawn(back)) dialog = false
+                if (dialog && !(boxBorderDrawn(back) && boxBlankBand(back))) dialog = false
                 // Fine dialogo: le caselle non hanno più il riquadro ma l'immagine sì (arriva dopo) per un fotogramma,
                 // e il dialogo compariva in basso (D-092). Finché il riquadro è ancora disegnato si continua a spostarlo.
                 if (!dialog && dialogWas && dialogEnd < 3 && !itemExecutor.busy && !battleSplit && !inBattleRaw && frameMask.ready) {
-                    if (boxBorderDrawn(back)) { dialog = true; dialogEnd++ }
+                    if (boxBorderDrawn(back) && boxBlankBand(back)) { dialog = true; dialogEnd++ }
                 }
                 // Inizio dialogo (D-108): a volte l'immagine ha già il riquadro e le caselle non ancora; prima per un
                 // fotogramma il riquadro si vedeva al suo posto in basso (con START). Riquadro largo tutto lo schermo,
                 // bordo e interno puliti: è un dialogo.
                 // Mai durante la dissolvenza d'una porta (D-113): al cancello della Strada 2 la terra sbiadita sembrava un riquadro.
                 if (!dialog && !dialogWas && !doorPending && !itemExecutor.busy && !battleSplit && !inBattleRaw && (frameMask.ready || (extendedActive && extendedIsMap)) && mainMenuItems == 0 &&
-                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back) && boxEdgesDark(back)) {
+                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back) && boxEdgesDark(back) && boxBlankBand(back)) {
                     dialog = true
                     if (!frameMask.ready) mapUnderDialog = true
                 }
