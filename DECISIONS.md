@@ -126,6 +126,7 @@
 | D-111 | 2026-11-25 | **START non lampeggia nelle scene guidate**: tra due passi il gioco sblocca i comandi per un solo fotogramma (vecchio di Smeraldopoli); START compare solo dopo 2 fotogrammi di fila. |
 | D-112 | 2026-11-26 | **START: 3 fotogrammi di fila**: nella nuova registrazione completa START lampeggiava ancora per un fotogramma nel laboratorio e davanti al cancello della Strada 2 (sblocchi di 2 fotogrammi); ora ne servono 3. |
 | D-113 | 2026-11-26 | **Niente dialogo finto nella dissolvenza delle porte**: entrando nel cancello della Strada 2 la terra sbiadita sembrava un riquadro e compariva una striscia verde e bianca; il riconoscimento del dialogo dall'immagine (D-108) è spento finché la porta non è finita. |
+| D-114 | 2026-11-26 | **Bianco all'uscita del laboratorio**: il bianco del gioco dura 5 fotogrammi e D-110 lo copriva solo per 4 (rettangolo bianco con il personaggio); ora fino a 8. |
 
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |

@@ -1104,8 +1104,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val rawWhite = ((c0 shr 16) and 255) + ((c0 shr 8) and 255) + (c0 and 255) > 720 && back.all { it == c0 }
                 // Cambio di luogo (D-110): dopo la dissolvenza al nero il gioco mostra per 1-2 fotogrammi lo schermo bianco
                 // (con una persona sopra) prima del nero del luogo nuovo; intorno restava nero: banda bianca in mezzo. Si
-                // tiene il nero di prima.
-                val doorWhite = inGame && !inBattleNowMem && afterBattle == 0 && doorWhiteRun < 4 && nearlyWhite(back) && darkFrame(latestFrame.get())
+                // tiene il nero di prima (fino a 8 fotogrammi: uscendo dal laboratorio il bianco ne dura 5, D-114).
+                val doorWhite = inGame && !inBattleNowMem && afterBattle == 0 && doorWhiteRun < 8 && nearlyWhite(back) && darkFrame(latestFrame.get())
                 if (doorWhite) doorWhiteRun++ else doorWhiteRun = 0
                 val holdBattleEnd = (rawWhite && afterBattle > 0 && latestExtended.get().active) || doorWhite
                 if (doorWhite) System.arraycopy(latestFrame.get(), 0, back, 0, back.size)

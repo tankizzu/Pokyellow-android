@@ -1,8 +1,11 @@
 # CURRENT_STATE
 
-**Ultimo aggiornamento:** 2026-11-21
+**Ultimo aggiornamento:** 2026-11-26
 
 ## Dove siamo
+- **0.14.7-prototipo (2026-11-26)**: registrazione completa dal laboratorio a Plumbeopoli (34288 fotogrammi) controllata
+  fotogramma per fotogramma: nessun lampeggio di dialogo o di START rimasto (D-109..D-114). Restano solo i lampi della
+  lotta e le tendine, che sono del gioco.
 - **0.14.3-prototipo (consegnata il 2026-11-20)**: Etere/Elisir/PP-su coi riquadri dell'app, disposizione B (D-093);
   fine cattura ferma (D-089), porte coi colori di fuori (D-090), fine lotta senza messaggio doppio (D-091), niente
   fotogrammi fuori posto dopo CURA (D-092), TIPO e POTENZA nella mossa da dimenticare (D-088). Prove complete: 101,
@@ -45,7 +48,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 (le foto contengono immagini del gioco: cartella temporanea, mai nel repository).
 
 ## Prossimo passo
-1. APK 0.14.6 consegnata (D-096..D-107); dopo: D-108 (inizio dei dialoghi con una persona sopra il bordo) solo nel ramo.
+1. APK 0.14.7 pronta (D-108..D-114). Prossimo: oltre Plumbeopoli (palestra di Brock) con lo stesso controllo.
 2. Pagina "Fotogramma per fotogramma": da ripubblicare il tratto 3 (rivale) rifatto con D-108 (la pubblicazione chiede
    l'approvazione del committente). Regola: a ogni nuova proposta si cancellano le note precedenti.
 3. Ancora aperti: 984 (riga della stanza spostata durante il dialogo nel Market), rivale che entra dalla porta, Blu

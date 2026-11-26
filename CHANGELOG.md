@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-11-26 – da Biancavilla a Plumbeopoli senza lampi (D-108..D-114), 0.14.7
+- Strada 2: niente più riquadro del dialogo finto sul terreno chiaro e nella dissolvenza del cancello.
+- Uscendo dal laboratorio niente più rettangolo bianco col personaggio: resta il nero fino al luogo nuovo.
+- Pulsante START: niente più lampeggi di un fotogramma nelle scene guidate (vecchio di Smeraldopoli, laboratorio).
+- Inizio dei dialoghi con una persona sopra il bordo del riquadro (D-108).
+
 ## 2026-11-20 – scene guidate e cattura di Pikachu (D-106..D-108), 0.14.6
 - START nascosto mentre il Professore ti accompagna e appena inizia un dialogo.
 - Cattura di Pikachu nella disposizione della lotta (non più dentro la mappa).
