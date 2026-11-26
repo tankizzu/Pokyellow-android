@@ -330,9 +330,12 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
      * sembrava il bordo, ma righe di colori diversi (D-117).
      */
     private fun boxBlankBand(px: IntArray): Boolean {
-        val fill = px[104 * NativeCore.WIDTH + 80]
+        // colore più frequente della fascia (al centro può esserci il personaggio, sopra il riquadro)
+        val counts = HashMap<Int, Int>()
+        for (x in 8 until NativeCore.WIDTH - 8) { val c = px[104 * NativeCore.WIDTH + x]; counts[c] = (counts[c] ?: 0) + 1 }
+        val fill = counts.maxByOrNull { it.value }!!.key
         return (104 until 112).all { y -> val b = y * NativeCore.WIDTH
-            px[b + 80] == fill && (8 until NativeCore.WIDTH - 8).count { px[b + it] == fill } >= 112 }
+            (8 until NativeCore.WIDTH - 8).count { px[b + it] == fill } >= 112 }
     }
 
     private var doorWhiteRun = 0
