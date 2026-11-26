@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-26 – palestra di Plumbeopoli e Brock (D-116, D-117), 0.14.8
+- Lotta: scegliendo una mossa la disposizione della lotta non sparisce più per 3 fotogrammi (D-116).
+- Palestra: dopo una frase di Brock nel riquadro del dialogo non compare più un pezzo del pavimento (D-117).
+- Registrazione completa della palestra (allenatore, Brock, mossa nuova, medaglia, MT, uscita) controllata fotogramma per fotogramma.
+
 ## 2026-11-26 – da Biancavilla a Plumbeopoli senza lampi (D-108..D-114), 0.14.7
 - Strada 2: niente più riquadro del dialogo finto sul terreno chiaro e nella dissolvenza del cancello.
 - Uscendo dal laboratorio niente più rettangolo bianco col personaggio: resta il nero fino al luogo nuovo.

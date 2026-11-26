@@ -3,6 +3,8 @@
 **Ultimo aggiornamento:** 2026-11-26
 
 ## Dove siamo
+- **0.14.8-prototipo (2026-11-26)**: palestra di Plumbeopoli fino alla medaglia e all'uscita (11590 fotogrammi)
+  controllata fotogramma per fotogramma: corretti il menu mosse (D-116) e il pavimento della palestra nel dialogo (D-117).
 - **0.14.7-prototipo (2026-11-26)**: registrazione completa dal laboratorio a Plumbeopoli (34288 fotogrammi) controllata
   fotogramma per fotogramma: nessun lampeggio di dialogo o di START rimasto (D-109..D-114). Restano solo i lampi della
   lotta e le tendine, che sono del gioco.
@@ -49,7 +51,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 
 ## Prossimo passo
 1. APK 0.14.7 consegnata il 2026-11-26 (D-108..D-115). Prove: 118, 1 fallita solo nella prova completa
-   (ZzGlitchTest.opzioniIniziali: il tocco su OPZIONI del menu iniziale non arriva; da sola passa, fallisce anche prima di D-109). Prossimo: oltre Plumbeopoli (palestra di Brock) con lo stesso controllo.
+   (ZzGlitchTest.opzioniIniziali: il tocco su OPZIONI del menu iniziale non arriva; da sola passa, fallisce anche prima di D-109). Palestra di Brock fatta (0.14.8, D-116, D-117). Prossimo: Strada 3 e Monte Luna con lo stesso controllo.
 2. Pagina "Fotogramma per fotogramma": da ripubblicare il tratto 3 (rivale) rifatto con D-108 (la pubblicazione chiede
    l'approvazione del committente). Regola: a ogni nuova proposta si cancellano le note precedenti.
 3. Ancora aperti: 984 (riga della stanza spostata durante il dialogo nel Market), rivale che entra dalla porta, Blu

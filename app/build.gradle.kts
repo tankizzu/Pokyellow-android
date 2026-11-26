@@ -12,8 +12,8 @@ android {
         applicationId = "it.giallotouch"
         minSdk = 26
         targetSdk = 36
-        versionCode = 40
-        versionName = "0.14.7-prototipo"
+        versionCode = 41
+        versionName = "0.14.8-prototipo"
         ndk {
             // CMF Phone 2 Pro e quasi tutti i telefoni moderni sono arm64.
             abiFilters += listOf("arm64-v8a")

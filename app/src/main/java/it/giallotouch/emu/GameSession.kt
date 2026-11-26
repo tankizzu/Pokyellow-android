@@ -325,17 +325,17 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
 
     /**
-     * Fascia vuota sotto il bordo superiore (righe 104–111, sopra la prima riga di testo): nel riquadro vero le 8 righe
-     * hanno tutte lo stesso colore. Il pavimento a righe della palestra di Plumbeopoli ha una riga scura uniforme che
-     * sembrava il bordo, ma righe di colori diversi (D-117).
+     * Lati del riquadro (D-117): le 8 colonne a sinistra e a destra, dalla riga 104 alla 135, sono uguali su ogni riga
+     * (la linea verticale del bordo). Il pavimento a righe della palestra di Plumbeopoli ha una riga scura uniforme che
+     * sembrava il bordo superiore, ma ai lati righe di colori diversi e rocce.
      */
-    private fun boxBlankBand(px: IntArray): Boolean {
-        // colore più frequente della fascia (al centro può esserci il personaggio, sopra il riquadro)
-        val counts = HashMap<Int, Int>()
-        for (x in 8 until NativeCore.WIDTH - 8) { val c = px[104 * NativeCore.WIDTH + x]; counts[c] = (counts[c] ?: 0) + 1 }
-        val fill = counts.maxByOrNull { it.value }!!.key
-        return (104 until 112).all { y -> val b = y * NativeCore.WIDTH
-            (8 until NativeCore.WIDTH - 8).count { px[b + it] == fill } >= 112 }
+    private fun boxSidesDrawn(px: IntArray): Boolean {
+        for (x0 in intArrayOf(0, NativeCore.WIDTH - 8)) {
+            val ref = 104 * NativeCore.WIDTH + x0
+            for (y in 105 until 136) { val b = y * NativeCore.WIDTH + x0
+                for (x in 0 until 8) if (px[b + x] != px[ref + x]) return false }
+        }
+        return true
     }
 
     private var doorWhiteRun = 0
@@ -1363,18 +1363,18 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 if (dialog && !frameMask.ready && !plainBackground && !mapUnderDialog) dialog = false
                 // Il riquadro deve essere già disegnato nell'immagine (bordo superiore scuro alla riga 96-103): nei primi
                 // fotogrammi la mappa delle caselle lo ha già ma l'immagine no, e si spostava un pezzo di mappa (D-086).
-                if (dialog && !(boxBorderDrawn(back) && boxBlankBand(back))) dialog = false
+                if (dialog && !(boxBorderDrawn(back) && boxSidesDrawn(back))) dialog = false
                 // Fine dialogo: le caselle non hanno più il riquadro ma l'immagine sì (arriva dopo) per un fotogramma,
                 // e il dialogo compariva in basso (D-092). Finché il riquadro è ancora disegnato si continua a spostarlo.
                 if (!dialog && dialogWas && dialogEnd < 3 && !itemExecutor.busy && !battleSplit && !inBattleRaw && frameMask.ready) {
-                    if (boxBorderDrawn(back) && boxBlankBand(back)) { dialog = true; dialogEnd++ }
+                    if (boxBorderDrawn(back) && boxSidesDrawn(back)) { dialog = true; dialogEnd++ }
                 }
                 // Inizio dialogo (D-108): a volte l'immagine ha già il riquadro e le caselle non ancora; prima per un
                 // fotogramma il riquadro si vedeva al suo posto in basso (con START). Riquadro largo tutto lo schermo,
                 // bordo e interno puliti: è un dialogo.
                 // Mai durante la dissolvenza d'una porta (D-113): al cancello della Strada 2 la terra sbiadita sembrava un riquadro.
                 if (!dialog && !dialogWas && !doorPending && !itemExecutor.busy && !battleSplit && !inBattleRaw && (frameMask.ready || (extendedActive && extendedIsMap)) && mainMenuItems == 0 &&
-                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back) && boxEdgesDark(back) && boxBlankBand(back)) {
+                    !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back) && boxEdgesDark(back) && boxSidesDrawn(back)) {
                     dialog = true
                     if (!frameMask.ready) mapUnderDialog = true
                 }

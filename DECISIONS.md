@@ -128,6 +128,8 @@
 | D-113 | 2026-11-26 | **Niente dialogo finto nella dissolvenza delle porte**: entrando nel cancello della Strada 2 la terra sbiadita sembrava un riquadro e compariva una striscia verde e bianca; il riconoscimento del dialogo dall'immagine (D-108) è spento finché la porta non è finita. |
 | D-114 | 2026-11-26 | **Bianco all'uscita del laboratorio**: il bianco del gioco dura 5 fotogrammi e D-110 lo copriva solo per 4 (rettangolo bianco con il personaggio); ora fino a 8. |
 | D-115 | 2026-11-26 | **START anche sul pavimento a righe del laboratorio**: il controllo "riquadro del gioco disegnato" scambiava le righe del pavimento per un riquadro e START non compariva; ora vuole anche i bordi scuri (come D-109). Nel banco di prova START si tocca solo dopo che è comparso. |
+| D-116 | 2026-11-26 | **Menu mosse senza gioco intero**: all'apertura del menu mosse la freccia compare 3 fotogrammi prima che le variabili del menu lo dicano; l'app lo prendeva per un altro menu del gioco (D-049) e mostrava il gioco intero. La freccia nella colonna delle mosse (colonna 5, righe 13–16) e la scelta guidata d'una mossa non contano come altro menu. |
+| D-117 | 2026-11-26 | **Il pavimento a righe della palestra non è un riquadro**: dopo "metti alla prova la tua abilità!" il gioco chiude il riquadro per 17 fotogrammi; le caselle lo avevano ancora e una riga scura del pavimento sembrava il bordo, così nel riquadro del dialogo compariva un pezzo di palestra. Ora il riquadro vuole anche i lati: le 8 colonne a sinistra e a destra uguali su ogni riga (104–135). Una prima prova con la fascia vuota sotto il bordo non andava: il testo comincia subito sotto il bordo. |
 
 ## Decisioni in attesa
 | ID | Decisione | Proposta | Stato |
