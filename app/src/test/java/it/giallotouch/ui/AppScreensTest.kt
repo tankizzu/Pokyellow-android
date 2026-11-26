@@ -1925,10 +1925,15 @@ class ZzGlitchTest : AppScreensHarness() {
         k = 0
         while (s.mainMenuItems == 0 && k++ < 10) { press(s, NativeCore.KEY_START); pump(1500) }
         pump(800)
-        shot("op-menu")
+        val menuShot = shot("op-menu")
         val entries = it.giallotouch.bridge.StartMenuLayout.entries(s.mainMenuItems)
         val frameTop = (root.height - 144 * unit) / 2 / (8 * unit)
-        tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(entries.indexOf(it.giallotouch.bridge.StartMenuLayout.Entry.OPZIONI)) + 0.5f)
+        // nella prova completa il primo tocco a volte arriva mentre il menu compare: se lo schermo non cambia si ritocca
+        var opTries = 0
+        do {
+            tapTile(4f, frameTop + it.giallotouch.bridge.StartMenuLayout.row(entries.indexOf(it.giallotouch.bridge.StartMenuLayout.Entry.OPZIONI)) + 0.5f)
+            pump(1000)
+        } while (opTries++ < 3 && shot("op-opzioni").sameAs(menuShot))
         // OPZIONI uniche dell'app (D-075, D-080): un tocco su ANIMAZIONE la cambia nella memoria del gioco
         assertTrue("OPZIONI dell'app", shotUntil("op-opzioni") { boxAt(it, 0, 6, 20, 24) })
         val before = s.gameOptions and 0x80
