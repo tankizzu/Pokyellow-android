@@ -1845,7 +1845,7 @@ class ZzGlitchTest : AppScreensHarness() {
         fun lotta() {
             fase("lotta"); var b = 0
             while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && b++ < 600) {
-                if (s.latestSnapshot.get().inBattle) { s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP, 0); s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP + 1, 1) }
+                if (s.latestSnapshot.get().inBattle && s.battleMenuShown && !s.commandBusy) { s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP, 0); s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP + 1, 1) }
                 if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(1)); step(30) }
                 else if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(false)); step(30) }
                 else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
