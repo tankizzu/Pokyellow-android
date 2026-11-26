@@ -1159,7 +1159,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 val menuRaw = frameMenu.kind == MenuKind.BATTLE_MAIN || frameMenu.kind == MenuKind.BATTLE_MOVES
                 // In lotta, un altro menu del gioco con il cursore (squadra, borsa, cambio): si mostra il gioco intero e
                 // i riquadri di lotta dell'app spariscono (D-049).
-                var gameMenu = inBattleRaw && !menuRaw && frameTiles.any { (it.toInt() and 0xFF) == 0xED }
+                // Il riquadro delle mosse: la freccia (colonna 5, righe 13–16) compare qualche fotogramma prima che le
+                // variabili del menu lo dicano; non è un altro menu (prima 3 fotogrammi di gioco intero, D-116).
+                val movesCursor = (13..16).any { (frameTiles[it * 20 + 5].toInt() and 0xFF) == 0xED }
+                var gameMenu = inBattleRaw && !menuRaw && !movesCursor && !executor.navigatingFight && frameTiles.any { (it.toInt() and 0xFF) == 0xED }
                 // Il gioco chiede un Pokémon (dopo un KO): l'app mostra la sua lista SQUADRA sopra la lotta (D-054).
                 battlePartyAsked = gameMenu && !battleExecutor.busy &&
                     BattleMenus.read(frameVars, frameTiles, 0).kind == BattleMenus.Kind.PARTY
