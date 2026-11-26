@@ -1838,16 +1838,15 @@ class ZzGlitchTest : AppScreensHarness() {
     /**
      * Analisi della palestra di Plumbeopoli (-Pgiallo.state.citta=STATO a Plumbeopoli): entra nella palestra (luogo 54), sale
      * fino a Brock lottando con chi si incontra, lotta con Brock e riesce. Solo prova: PS del nostro Pokémon ricaricati e PS
-     * dell'avversario portati a 1 (Pikachu non fa danni ai Pokémon roccia), così si guarda la scena e non la strategia.
+     * dell'avversario portati a 1 e AZIONE al posto della seconda mossa (Pikachu non fa danni ai Pokémon roccia), così si guarda la scena e non la strategia.
      */
     @Test fun analisiPalestra() = registra("analisi10", auto = "giallo.state.citta") { step, fase ->
         fun pos() = s.positionForTest()
-        var mossa = 0
         fun lotta() {
             fase("lotta"); var b = 0
             while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && b++ < 600) {
                 if (s.latestSnapshot.get().inBattle) { s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP, 0); s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP + 1, 1) }
-                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(mossa++ % 4)); step(30) }
+                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(1)); step(30) }
                 else if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(false)); step(30) }
                 else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
             }
@@ -1865,6 +1864,8 @@ class ZzGlitchTest : AppScreensHarness() {
                 else if (!s.latestSnapshot.get().freeRoam && t % 8 == 0) { testi(); s.walkPathForTest(x, y) }
             }
         }
+        // solo prova: Pikachu ha solo mosse Elettro e di stato; la seconda mossa diventa AZIONE (0x21, PP 35)
+        s.writeMemoryForTest(0xD16F + 9, 0x21); s.writeMemoryForTest(0xD16F + 30, 35)
         fase("città"); step(30)
         val porta = s.warpsForTest().firstOrNull { it.third == 54 }
         println("DBGPA porta $porta da ${pos()}")
