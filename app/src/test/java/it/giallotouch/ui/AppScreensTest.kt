@@ -1832,6 +1832,64 @@ class ZzGlitchTest : AppScreensHarness() {
         }
         println("DBGNO fine ${pos()}")
         fase("fine"); step(120)
+        System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "nord-${pos().first}.state")) }
+    }
+
+    /**
+     * Analisi della palestra di Plumbeopoli (-Pgiallo.state.citta=STATO a Plumbeopoli): entra nella palestra (luogo 54), sale
+     * fino a Brock lottando con chi si incontra, lotta con Brock e riesce. Solo prova: PS del nostro Pokémon ricaricati e PS
+     * dell'avversario portati a 1 (Pikachu non fa danni ai Pokémon roccia), così si guarda la scena e non la strategia.
+     */
+    @Test fun analisiPalestra() = registra("analisi10", auto = "giallo.state.citta") { step, fase ->
+        fun pos() = s.positionForTest()
+        var mossa = 0
+        fun lotta() {
+            fase("lotta"); var b = 0
+            while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && b++ < 600) {
+                if (s.latestSnapshot.get().inBattle) { s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP, 0); s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP + 1, 1) }
+                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(mossa++ % 4)); step(30) }
+                else if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(false)); step(30) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+            }
+            val m = s.latestSnapshot.get().party.firstOrNull()
+            if (m != null) { s.writeMemoryForTest(0xD16F + 1, m.maxHp shr 8); s.writeMemoryForTest(0xD16F + 2, m.maxHp and 0xFF); s.writeMemoryForTest(0xD16F + 29, 30) }
+        }
+        fun testi() { var k = 0; while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < 80) {
+            if (s.yesNo != null) s.command(it.giallotouch.bridge.GameCommand.Answer(false)) else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            step(20) } }
+        fun vai(x: Int, y: Int, m: Int) {
+            s.walkPathForTest(x, y); var t = 0
+            while (t++ < 600 && pos().first == m && (pos().second != x || pos().third != y)) {
+                step(4)
+                if (s.latestSnapshot.get().inBattle) { lotta(); fase("palestra"); s.walkPathForTest(x, y) }
+                else if (!s.latestSnapshot.get().freeRoam && t % 8 == 0) { testi(); s.walkPathForTest(x, y) }
+            }
+        }
+        fase("città"); step(30)
+        val porta = s.warpsForTest().firstOrNull { it.third == 54 }
+        println("DBGPA porta $porta da ${pos()}")
+        if (porta != null) {
+            vai(porta.second, porta.first + 1, 2)
+            var j = 0
+            while (j++ < 200 && pos().first == 2) { s.setKeys(NativeCore.KEY_UP); step(8); s.setKeys(0); step(8) }
+        }
+        fase("palestra"); step(60)
+        println("DBGPA dentro ${pos()}")
+        // Brock in (4,1): si parla da (4,2) guardando in su
+        vai(4, 2, pos().first)
+        s.setKeys(NativeCore.KEY_UP); step(6); s.setKeys(0); step(6)
+        s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0)
+        fase("brock")
+        var k = 0
+        while (k++ < 40 && !s.latestSnapshot.get().inBattle) { step(20); s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+        if (s.latestSnapshot.get().inBattle) lotta()
+        fase("dopo"); testi(); step(60)
+        println("DBGPA medaglie ${s.memoryForTest(it.giallotouch.bridge.MemoryMapIt.BADGES, 1)[0]} a ${pos()}")
+        System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "brock.state")) }
+        fase("uscita")
+        val door = s.warpsForTest().maxByOrNull { it.first }
+        if (door != null) { vai(door.second, door.first, pos().first); var j = 0; while (j++ < 100 && pos().first == 54) { s.setKeys(NativeCore.KEY_DOWN); step(8); s.setKeys(0); step(8) } }
+        fase("fine"); step(120)
     }
 
     /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */
