@@ -1938,7 +1938,9 @@ class ZzGlitchTest : AppScreensHarness() {
         var lastMap = -1
         var k = 0
         var grotta = 0
-        while (k++ < 200) {
+        val evitate = HashSet<Triple<Int, Int, Int>>()
+        val scadenza = System.currentTimeMillis() + 75 * 60_000L
+        while (k++ < 200 && System.currentTimeMillis() < scadenza) {
             val m = pos().first
             if (m != lastMap) { lastMap = m; fase("luogo$m"); step(30); println("DBGES luogo $m a ${pos()}") }
             if (s.latestSnapshot.get().inBattle) { lotta(); continue }
@@ -1961,16 +1963,22 @@ class ZzGlitchTest : AppScreensHarness() {
             if (g == null) { step(10); continue }
             // Plumbeopoli e Strada 3: verso est (a parità, più a nord); in fondo alla Strada 3 si sale alla Strada 4
             val reach = (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
-                .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }
+                .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null && Triple(m, it.first, it.second) !in evitate }
             val target = if (m == 14) reach.minWithOrNull(compareBy<Pair<Int, Int>> { -it.first / 4 }.thenBy { it.second }) else
                 reach.minWithOrNull(compareBy<Pair<Int, Int>> { -it.first }.thenBy { kotlin.math.abs(it.second - pos().third) })
             if (target == null) { step(10); continue }
             if (target.first == pos().second && target.second == pos().third) {
                 spingi(if (m == 14) NativeCore.KEY_UP else NativeCore.KEY_RIGHT)
                 if (pos().first == m) spingi(if (m == 14) NativeCore.KEY_RIGHT else NativeCore.KEY_UP)
+                if (pos().first == m) evitate += Triple(m, target.first, target.second)
                 continue
             }
+            val prima = pos()
             vai(target.first, target.second)
+            // casella irraggiungibile in pratica (sporgenze, erba): la si scarta
+            if (pos().first == m && (pos().second != target.first || pos().third != target.second)) {
+                evitate += Triple(m, target.first, target.second); println("DBGES evito $target da $prima a ${pos()}")
+            }
         }
         println("DBGES fine ${pos()}")
         fase("fine"); step(120)
@@ -2049,6 +2057,8 @@ class ZzGlitchTest : AppScreensHarness() {
                     FileOutputStream(File(out, "raw%05d.png".format(n))).use { rb.compress(Bitmap.CompressFormat.PNG, 100, it) } } }
                 index.append("$n $file $blip $fase ${if (rawWhite) "uniforme" else "immagine"} ${s.mainMenuItems} ${s.titleShown} " +
                     "lotta=${s.latestSnapshot.get().inBattle} divisa=${s.battleSplit} dialogo=${s.dialogStrip != null} estesa=${s.latestExtended.get().active} libero=${s.freeRoamNow} ${s.debugFrameInfo}\n")
+                // indice salvato anche durante la registrazione: se la prova viene fermata per tempo non si perde
+                if (n % 2000 == 0) File(out, "indice.txt").writeText(index.toString())
             }
         }
         body(step) { fase = it }
