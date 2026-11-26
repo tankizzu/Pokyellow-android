@@ -1355,7 +1355,8 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                 // Inizio dialogo (D-108): a volte l'immagine ha già il riquadro e le caselle non ancora; prima per un
                 // fotogramma il riquadro si vedeva al suo posto in basso (con START). Riquadro largo tutto lo schermo,
                 // bordo e interno puliti: è un dialogo.
-                if (!dialog && !dialogWas && !itemExecutor.busy && !battleSplit && !inBattleRaw && (frameMask.ready || (extendedActive && extendedIsMap)) && mainMenuItems == 0 &&
+                // Mai durante la dissolvenza d'una porta (D-113): al cancello della Strada 2 la terra sbiadita sembrava un riquadro.
+                if (!dialog && !dialogWas && !doorPending && !itemExecutor.busy && !battleSplit && !inBattleRaw && (frameMask.ready || (extendedActive && extendedIsMap)) && mainMenuItems == 0 &&
                     !namingShown && !trainerCardShown && yn == null && nameList == null && boxBorderDrawn(back) && boxInnerClean(back) && boxEdgesDark(back)) {
                     dialog = true
                     if (!frameMask.ready) mapUnderDialog = true
