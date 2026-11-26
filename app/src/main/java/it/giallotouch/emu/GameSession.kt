@@ -325,7 +325,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     }
 
     private var doorWhiteRun = 0
-    private var startCandPrev = false
+    private var startCandRun = 0
     /** Quasi tutto bianco (almeno il 90% dei punti). */
     private fun nearlyWhite(px: IntArray): Boolean {
         var n = 0; var w = 0; var i = 0
@@ -1399,12 +1399,12 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val noParty = NativeCore.nativeReadMemory(handle, MemoryMapIt.PARTY_COUNT) == 0
                     if (noParty && mapIdNow != 37 && mapIdNow != 38 && mapish) leftHouse = true
                     val startHome = noParty && !leftHouse && (mapIdNow == 37 || mapIdNow == 38)
-                    // Per comparire servono 2 fotogrammi di fila (D-111): tra due passi d'una scena guidata il gioco sblocca i
+                    // Per comparire servono 3 fotogrammi di fila (D-111, D-112): tra due passi d'una scena guidata il gioco sblocca i
                     // comandi per un fotogramma solo e START lampeggiava (vecchio di Smeraldopoli).
                     val cand = !startHome && !joyBlocked && !dialogAtBottom(frameTiles) && !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
                         !itemExecutor.busy && yesNo == null && nameList == null && !holdBattleEnd && (mapish || (startOk && startMapCalm < 30))
-                    startOk = cand && (startOk || startCandPrev)
-                    startCandPrev = cand
+                    startCandRun = if (cand) startCandRun + 1 else 0
+                    startOk = cand && (startOk || startCandRun >= 3)
                 }
                 if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
                 checkPendingClose(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles))
