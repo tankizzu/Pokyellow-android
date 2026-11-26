@@ -1964,7 +1964,7 @@ class ZzGlitchTest : AppScreensHarness() {
             // Plumbeopoli e Strada 3: verso est (a parità, più a nord); in fondo alla Strada 3 si sale alla Strada 4
             val reach = (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
                 .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null && Triple(m, it.first, it.second) !in evitate }
-            val target = if (m == 14) reach.minWithOrNull(compareBy<Pair<Int, Int>> { -it.first / 4 }.thenBy { it.second }) else
+            val target = if (m == 14) reach.minWithOrNull(compareBy<Pair<Int, Int>> { if (pos().second >= 56) it.second else -it.first / 4 }.thenBy { if (pos().second >= 56) -it.first else it.second }) else
                 reach.minWithOrNull(compareBy<Pair<Int, Int>> { -it.first }.thenBy { kotlin.math.abs(it.second - pos().third) })
             if (target == null) { step(10); continue }
             if (target.first == pos().second && target.second == pos().third) {
