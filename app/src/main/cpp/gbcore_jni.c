@@ -185,7 +185,9 @@ JNIEXPORT jint JNICALL
 Java_it_giallotouch_emu_NativeCore_nativeEvDebug(JNIEnv *env, jclass cls, jlong handle, jint what) {
     (void)env; (void)cls;
     EVState *st = &as_core(handle)->ev;
-    switch (what) { case 0: return st->dbg_score; case 1: return st->dbg_dx; case 2: return st->dbg_dy; case 3: return st->dbg_rows;
+    /* persone (solo per le prove): 6 = tabella valida, 7 = riga dell'inquadratura, 100 + sprite × 4 + campo */
+    if (what >= 100 && what < 100 + 16 * 4) return st->people[(what - 100) / 4][(what - 100) % 4];
+    switch (what) { case 6: return st->people_ok; case 7: return st->people_top; case 0: return st->dbg_score; case 1: return st->dbg_dx; case 2: return st->dbg_dy; case 3: return st->dbg_rows;
         case 4: return st->base_x; default: return st->base_y; }
 }
 

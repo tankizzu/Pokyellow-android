@@ -16,6 +16,10 @@ typedef struct {
     bool attr_known[256];
     uint8_t obj_attr_by_tile[256]; /* attributi degli sprite visti nella memoria degli sprite (OAM) */
     bool obj_attr_known[256];
+    /* Diagnosi delle persone (solo per le prove): per ogni sprite 1–14 stato (0 nessuno, 1 nascosto, 2 disegnato dal
+     * gioco, 3 disegnato qui), posizione (x, y dell'inquadratura) e punti scritti qui; people_ok = tabella valida. */
+    int people[16][4];
+    int people_ok, people_top;
     uint8_t bgidx[160 * 512];     /* colore dello sfondo (0–3, bit 7 = priorità) delle righe disegnate, per gli sprite */
 } EVState;
 

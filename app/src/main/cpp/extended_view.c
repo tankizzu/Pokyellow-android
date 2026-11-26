@@ -210,15 +210,16 @@ static bool toggled_off(GB_gameboy_t *gb, int slot) {
 }
 
 /* Un tile 8×8 di sprite, solo nelle righe fuori dall'inquadratura originale (il centro resta l'immagine del gioco). */
-static void draw_obj_tile_in(uint32_t *out, int out_h, int off_top, const EVState *st, const uint8_t *data,
+static int draw_obj_tile_in(uint32_t *out, int out_h, int off_top, const EVState *st, const uint8_t *data,
                              int tile, int sx, int sy, uint8_t attr, const uint32_t pal[4], bool inside);
 static void draw_obj_tile(uint32_t *out, int out_h, int off_top, const EVState *st, const uint8_t *data,
                           int tile, int sx, int sy, uint8_t attr, const uint32_t pal[4]) {
     draw_obj_tile_in(out, out_h, off_top, st, data, tile, sx, sy, attr, pal, false);
 }
 /* [inside]: anche dentro l'inquadratura (persone che il gioco non disegna perché per lui sono fuori, D-100). */
-static void draw_obj_tile_in(uint32_t *out, int out_h, int off_top, const EVState *st, const uint8_t *data,
+static int draw_obj_tile_in(uint32_t *out, int out_h, int off_top, const EVState *st, const uint8_t *data,
                              int tile, int sx, int sy, uint8_t attr, const uint32_t pal[4], bool inside) {
+    int written = 0;
     for (int py = 0; py < 8; py++) {
         int row = off_top + sy + py;
         bool in_frame = row >= off_top && row < off_top + FRAME_H;
@@ -237,8 +238,10 @@ static void draw_obj_tile_in(uint32_t *out, int out_h, int off_top, const EVStat
                 if ((bg & 3) && ((attr & 0x80) || (bg & 0x80))) continue;   /* dietro l'erba o dietro lo sfondo */
             }
             out[(size_t)row * FRAME_W + col] = pal[c];
+            written++;
         }
     }
+    return written;
 }
 
 /* Posizione a 8 bit sullo schermo (che si "avvolge" ogni 256 pixel) ricondotta a quella vicina alla stima. */
@@ -278,14 +281,18 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
         st->obj_attr_known[o[2]] = true;
     }
     if (visible == 0) return;   /* il gioco non sta mostrando gli sprite */
+    st->people_ok = 1; st->people_top = off_top;
 
     /* Sprite che il gioco non disegna perché fuori dall'inquadratura (persone, oggetti a terra). */
     int px = rd(gb, X_COORD), py = rd(gb, Y_COORD);
     for (int slot = 1; slot < 15; slot++) {   /* 0 = giocatore, 15 = compagno che segue: sempre vicini */
         uint16_t d1 = (uint16_t)(SPRITE_DATA1 + slot * 16), d2 = (uint16_t)(SPRITE_DATA2 + slot * 16);
-        if (!rd(gb, d1) || rd(gb, (uint16_t)(d1 + 2)) != 0xFF || toggled_off(gb, slot)) continue;
+        int *pp = st->people[slot];
+        if (!rd(gb, d1)) continue;
         int base = rd(gb, (uint16_t)(d2 + 0x0E));
-        if (base < 1 || base > 0x10) continue;
+        bool onscreen = rd(gb, (uint16_t)(d1 + 2)) != 0xFF;
+        pp[0] = 1;
+        if (toggled_off(gb, slot) || base < 1 || base > 0x10) continue;
         int n = base - 1;
         int dir = (n << 4) >= 0xA0 ? 0 : (rd(gb, (uint16_t)(d1 + 9)) >> 2) & 3;
         int tile_base = n == 0x0B ? 0x7C : n * 12;
@@ -298,13 +305,15 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
         if (abs(sy - est_y) > 16) sy = est_y;
         if (abs(sx - est_x) > 16) sx = est_x;
         (void)px; (void)py;
+        pp[0] = onscreen ? 2 : 3; pp[1] = sx; pp[2] = sy;
+        if (onscreen) continue;
         if (sy + 16 <= -off_top || sy >= FRAME_H + (out_h - FRAME_H - off_top) || sx + 16 <= 0 || sx >= FRAME_W) continue;
         uint8_t grass = rd(gb, (uint16_t)(d2 + 7)) & 0x80;
         for (int t = 0; t < 4; t++) {
             int tile = tile_base + STANDING[dir][t][2];
             uint8_t learned = st->obj_attr_known[tile] ? (st->obj_attr_by_tile[tile] & 0x0F) : 0;
             uint8_t attr = (uint8_t)(learned | (dir == 3 ? 0x20 : 0) | (t >= 2 ? grass : 0));
-            draw_obj_tile_in(out, out_h, off_top, st, (attr & 0x08) ? bank1 : bank0, tile,
+            pp[3] += draw_obj_tile_in(out, out_h, off_top, st, (attr & 0x08) ? bank1 : bank0, tile,
                              sx + STANDING[dir][t][1], sy + STANDING[dir][t][0], attr, pal[attr & 7], true);
         }
     }
@@ -392,6 +401,7 @@ static int title_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, 
 }
 
 int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h, int frame_top, EVState *st) {
+    st->people_ok = 0; memset(st->people, 0, sizeof(st->people));
     if (out_h < FRAME_H) return 0;
     int off_top = (frame_top < 0 || frame_top > out_h - FRAME_H) ? (out_h - FRAME_H) / 2 : frame_top;
     uint8_t lcdc = rd(gb, 0xFF40);

@@ -1894,6 +1894,89 @@ class ZzGlitchTest : AppScreensHarness() {
         fase("fine"); step(120)
     }
 
+    /**
+     * Analisi verso est (-Pgiallo.state.citta=STATO dopo Brock, nella palestra): esce, attraversa Plumbeopoli verso est,
+     * la Strada 3 (14) fino in fondo, la Strada 4 (15) fino all'ingresso del Monte Luna (59) e gira un po' nella grotta.
+     * Come nella palestra: solo prova, PS dell'avversario a 1 e i nostri ricaricati (si guardano le scene, non la strategia).
+     * L'indice riporta le persone disegnate (pp=, D-118) per cercare chi sparisce.
+     */
+    @Test fun analisiEst() = registra("analisi11", auto = "giallo.state.citta") { step, fase ->
+        fun pos() = s.positionForTest()
+        fun lotta() {
+            fase("lotta"); var b = 0
+            while ((s.latestSnapshot.get().inBattle || !s.latestSnapshot.get().freeRoam) && b++ < 600) {
+                if (s.latestSnapshot.get().inBattle && s.battleMenuShown && !s.commandBusy) { s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP, 0); s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP + 1, 1) }
+                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(1)); step(30) }
+                else if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); step(30) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+            }
+            val m = s.latestSnapshot.get().party.firstOrNull()
+            if (m != null) { s.writeMemoryForTest(0xD16F + 1, m.maxHp shr 8); s.writeMemoryForTest(0xD16F + 2, m.maxHp and 0xFF); s.writeMemoryForTest(0xD16F + 29, 30); s.writeMemoryForTest(0xD16F + 30, 30) }
+        }
+        fun testi() { var k = 0; while (!s.latestSnapshot.get().freeRoam && !s.latestSnapshot.get().inBattle && k++ < 80) {
+            if (s.yesNo != null) s.command(it.giallotouch.bridge.GameCommand.Answer(false)) else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            step(20) } }
+        /** Cammina fino a (x, y) lottando e leggendo i dialoghi; false se il luogo cambia prima. */
+        fun vai(x: Int, y: Int) {
+            val m = pos().first
+            s.walkPathForTest(x, y); var t = 0
+            while (t++ < 600 && pos().first == m && (pos().second != x || pos().third != y)) {
+                step(4)
+                if (s.latestSnapshot.get().inBattle) { lotta(); fase("luogo$m"); s.walkPathForTest(x, y) }
+                else if (!s.latestSnapshot.get().freeRoam && t % 8 == 0) { testi(); s.walkPathForTest(x, y) }
+                else if (t % 60 == 0) s.walkPathForTest(x, y)
+            }
+        }
+        fun spingi(key: Int) { var j = 0; val m = pos().first; while (j++ < 30 && pos().first == m) { s.setKeys(key); step(8); s.setKeys(0); step(8)
+            if (s.latestSnapshot.get().inBattle) lotta() else if (!s.latestSnapshot.get().freeRoam) testi() } }
+        fase("palestra"); step(30)
+        // fuori dalla palestra: porta più in basso
+        run {
+            val d = s.warpsForTest().maxByOrNull { it.first }
+            if (d != null) { vai(d.second, d.first); spingi(NativeCore.KEY_DOWN) }
+        }
+        var lastMap = -1
+        var k = 0
+        var grotta = 0
+        while (k++ < 200) {
+            val m = pos().first
+            if (m != lastMap) { lastMap = m; fase("luogo$m"); step(30); println("DBGES luogo $m a ${pos()}") }
+            if (s.latestSnapshot.get().inBattle) { lotta(); continue }
+            if (!s.latestSnapshot.get().freeRoam) { testi(); continue }
+            if (m == 59) {
+                // Monte Luna: qualche giro verso caselle lontane, poi basta
+                if (grotta++ >= 4) break
+                val g = s.mapGridForTest() ?: run { step(10); null } ?: continue
+                val reach = (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
+                    .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }
+                val far = reach.maxByOrNull { kotlin.math.abs(it.first - pos().second) + kotlin.math.abs(it.second - pos().third) } ?: break
+                vai(far.first, far.second); continue
+            }
+            if (m == 15) {
+                // Strada 4: porta del Monte Luna
+                val w = s.warpsForTest().firstOrNull { it.third == 59 }
+                if (w != null) { vai(w.second, w.first); spingi(NativeCore.KEY_UP); continue }
+            }
+            val g = s.mapGridForTest()
+            if (g == null) { step(10); continue }
+            // Plumbeopoli e Strada 3: verso est (a parità, più a nord); in fondo alla Strada 3 si sale alla Strada 4
+            val reach = (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
+                .filter { g.isFree(it.first, it.second) && g.path(pos().second, pos().third, setOf(it)) != null }
+            val target = if (m == 14) reach.minWithOrNull(compareBy<Pair<Int, Int>> { -it.first / 4 }.thenBy { it.second }) else
+                reach.minWithOrNull(compareBy<Pair<Int, Int>> { -it.first }.thenBy { kotlin.math.abs(it.second - pos().third) })
+            if (target == null) { step(10); continue }
+            if (target.first == pos().second && target.second == pos().third) {
+                spingi(if (m == 14) NativeCore.KEY_UP else NativeCore.KEY_RIGHT)
+                if (pos().first == m) spingi(if (m == 14) NativeCore.KEY_RIGHT else NativeCore.KEY_UP)
+                continue
+            }
+            vai(target.first, target.second)
+        }
+        println("DBGES fine ${pos()}")
+        fase("fine"); step(120)
+        System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "est-${pos().first}.state")) }
+    }
+
     /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */
     @Test fun analisiCentro() = registra("analisi6", auto = "giallo.state.centro") { step, fase ->
         fun pos() = s.positionForTest()
@@ -1927,6 +2010,7 @@ class ZzGlitchTest : AppScreensHarness() {
      */
     private fun registra(dir: String, auto: String? = null, body: (step: (Int) -> Unit, fase: (String) -> Unit) -> Unit) {
         GameSession.testStepFromStart = true
+        GameSession.debugPeople = true
         try {
             s = (if (auto != null) start(auto = auto) else start(battery = "giallo.battery")) ?: return assumeTrue(false)
         } finally { GameSession.testStepFromStart = false }
