@@ -2063,8 +2063,18 @@ class ZzGlitchTest : AppScreensHarness() {
                 if (passi.count { it.first == 3 } > 3) break
             }
             if (m == 61 && !fossile) {
-                // fossili: tappe che aggirano l'allenatore fermo in (29,11) (il percorso calcolato passa sopra le persone)
-                for ((x, y) in listOf(31 to 10, 31 to 14, 13 to 9, 13 to 8, 13 to 7)) if (pos().first == m) vai(x, y)
+                // fossili: si arriva dalla scala (21,17); da un'altra zona del piano (dislivelli, D-120) si torna su
+                val gf = s.mapGridForTest()
+                if (gf != null && gf.path(pos().second, pos().third, setOf(13 to 7)) == null) {
+                    println("DBGMO fossili non raggiungibili da ${pos()}, torno su")
+                    val w = s.warpsForTest().filter { gf.path(pos().second, pos().third, setOf(it.second to it.first)) != null }
+                        .minByOrNull { kotlin.math.abs(it.second - pos().second) + kotlin.math.abs(it.first - pos().third) }
+                    if (w == null) break
+                    vai(w.second, w.first)
+                    for (key in intArrayOf(NativeCore.KEY_UP, NativeCore.KEY_RIGHT, NativeCore.KEY_DOWN, NativeCore.KEY_LEFT)) if (pos().first == m) spingi(key)
+                    continue
+                }
+                vai(13, 7)
                 println("DBGMO ai fossili ${pos()}")
                 for (x in intArrayOf(13, 12)) {
                     if (pos().first != m) break
@@ -2148,6 +2158,8 @@ class ZzGlitchTest : AppScreensHarness() {
         val d1 = s.memoryForTest(0xC100, 256); val d2 = s.memoryForTest(0xC200, 256)
         val pers = (1 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }.associateBy { ((d2[it * 16 + 5].toInt() and 0xFF) - 4) to ((d2[it * 16 + 4].toInt() and 0xFF) - 4) }
         val ws = s.warpsForTest().associateBy { it.second to it.first }
+        System.getProperty("giallo.meta")?.split(",")?.map { it.trim().toInt() }?.let { (tx, ty) -> println("DBGSO percorso verso ($tx,$ty): ${g.path(px, py, setOf(tx to ty))?.size}")
+            s.warpsForTest().forEach { w -> println("DBGSO da ($tx,$ty) alla porta $w: ${g.path(tx, ty, setOf(w.second to w.first))?.size}") } }
         println("DBGSO luogo $m a ($px,$py) ${g.width}x${g.height} persone ${pers.map { "${it.value}@${it.key}" }} porte ${ws.values}")
         for (y in 0 until g.height) println("DBGSO %2d ".format(y) + (0 until g.width).joinToString("") { x ->
             when { x == px && y == py -> "@"; (x to y) in pers -> "P"; (x to y) in ws -> "W"; g.isFree(x, y) -> "."; else -> "#" } })

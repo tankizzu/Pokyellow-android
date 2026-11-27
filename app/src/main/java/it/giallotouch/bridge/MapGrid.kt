@@ -7,7 +7,9 @@ import it.giallotouch.bridge.MemoryMapIt as M
  * un passo è calpestabile se il tile in basso a sinistra è nella lista dei tile calpestabili del set corrente.
  * I personaggi (sprite 1–14) occupano il loro passo. Il compagno che segue (sprite 15) non blocca.
  * Gli oggetti che il gioco ha nascosto (lista D5D2 + bit D5AA) non contano: né ostacolo né da toccare.
- * Casi non ancora gestiti (sporgenze da saltare, acqua con Surf, dislivelli nelle grotte) risultano non
+ * Dislivelli (grotte, foresta): tra certe coppie di tile il gioco non lascia passare anche se entrambi sono
+ * calpestabili (tabella TilePairCollisionsLand), e il percorso ne tiene conto (D-120).
+ * Casi non ancora gestiti (sporgenze da saltare, acqua con Surf) risultano non
  * calpestabili: il percorso li evita, e comunque è sempre il gioco a decidere se un passo riesce.
  */
 class MapGrid(
@@ -18,6 +20,7 @@ class MapGrid(
     private val tiles: IntArray = IntArray(width * height),
     private val talkingOver: Set<Int> = emptySet(),
     val signs: Set<Pair<Int, Int>> = emptySet(),
+    private val tileset: Int = -1,
 ) {
 
     fun inside(x: Int, y: Int) = x in 0 until width && y in 0 until height
@@ -43,6 +46,13 @@ class MapGrid(
         return out
     }
 
+    /** Passo vietato dal gioco tra due tile calpestabili a quote diverse (stessa tabella del gioco). */
+    fun stepBlocked(a: Pair<Int, Int>, b: Pair<Int, Int>): Boolean {
+        if (!inside(a.first, a.second) || !inside(b.first, b.second)) return false
+        val ta = tiles[a.second * width + a.first]; val tb = tiles[b.second * width + b.first]
+        return TILE_PAIRS.any { it.first == tileset && (it.second == ta && it.third == tb || it.second == tb && it.third == ta) }
+    }
+
     /** Percorso più breve (direzioni) da (sx, sy) a uno degli obiettivi; null se irraggiungibile. */
     fun path(sx: Int, sy: Int, goals: Set<Pair<Int, Int>>): List<Dir>? {
         if ((sx to sy) in goals) return emptyList()
@@ -53,7 +63,7 @@ class MapGrid(
             val cur = queue.removeFirst()
             for (d in Dir.entries) {
                 val next = cur.first + d.dx to cur.second + d.dy
-                if (next in seen || !isFree(next.first, next.second)) continue
+                if (next in seen || !isFree(next.first, next.second) || stepBlocked(cur, next)) continue
                 seen += next
                 prev[next] = cur to d
                 if (next in goals) {
@@ -73,6 +83,14 @@ class MapGrid(
     }
 
     companion object {
+        private const val CAVERN = 17
+        private const val FOREST = 3
+        /** TilePairCollisionsLand del gioco: set, tile, tile. */
+        private val TILE_PAIRS = listOf(
+            Triple(CAVERN, 0x20, 0x05), Triple(CAVERN, 0x41, 0x05), Triple(FOREST, 0x30, 0x2E), Triple(CAVERN, 0x2A, 0x05),
+            Triple(CAVERN, 0x05, 0x21), Triple(FOREST, 0x52, 0x2E), Triple(FOREST, 0x55, 0x2E), Triple(FOREST, 0x56, 0x2E),
+            Triple(FOREST, 0x20, 0x2E), Triple(FOREST, 0x5E, 0x2E), Triple(FOREST, 0x5F, 0x2E),
+        )
         /**
          * @param read legge [n] byte di memoria a partire da un indirizzo.
          * @param rom la ROM dell'utente (per blocchi e lista dei tile calpestabili).
@@ -121,7 +139,8 @@ class MapGrid(
             val signs = (0 until signCount).map { k ->
                 (signData[2 + 2 * k].toInt() and 0xFF) to (signData[1 + 2 * k].toInt() and 0xFF)
             }.toSet()
-            return MapGrid(gw, gh, passable, people, tiles, talking, signs)
+            val tileset = read(M.CUR_MAP_TILESET, 1)[0].toInt() and 0xFF
+            return MapGrid(gw, gh, passable, people, tiles, talking, signs, tileset)
         }
 
         /** Sprite che il gioco ha nascosto (oggetti raccolti, persone non presenti): stessa regola del gioco. */
