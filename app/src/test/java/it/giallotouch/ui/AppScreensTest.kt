@@ -2023,6 +2023,7 @@ class ZzGlitchTest : AppScreensHarness() {
         val evitate = HashSet<Triple<Int, Int, Int>>()
         val passi = HashSet<Triple<Int, Int, Int>>()
         val parlati = HashSet<Pair<Int, Int>>()
+        var fossile = false
         /** Va accanto a una persona (o a un oggetto, come i fossili) non ancora sentita e preme A guardandola. */
         fun parla(m: Int): Boolean {
             val d1 = s.memoryForTest(0xC100, 256); val d2 = s.memoryForTest(0xC200, 256)
@@ -2052,7 +2053,8 @@ class ZzGlitchTest : AppScreensHarness() {
         var k = 0
         while (k++ < 400 && System.currentTimeMillis() < scadenza) {
             val m = pos().first
-            if (m != lastMap) { lastMap = m; visti += m; fase("luogo$m"); step(30); println("DBGMO luogo $m a ${pos()}") }
+            if (m != lastMap) { lastMap = m; visti += m; fase("luogo$m"); step(30); println("DBGMO luogo $m a ${pos()}")
+                System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "arrivo-$m.state")) } }
             if (snap().inBattle) { lotta(); continue }
             if (!snap().freeRoam) { testi(); continue }
             if (m == 3) {
@@ -2060,6 +2062,26 @@ class ZzGlitchTest : AppScreensHarness() {
                 if (passi.count { it.first == 3 } > 3) break
             }
             if (m == 61 && parla(m)) continue
+            // percorso noto del Monte Luna (scale e porte, x a y): piano terra → primo sotterraneo a ovest → fossili → uscita
+            if (m == 61 && pos().second < 30) fossile = true
+            val piano = when (m) {
+                59 -> 5 to 5
+                60 -> if (!fossile) 21 to 17 else 27 to 3
+                61 -> if (fossile) 5 to 7 else null
+                else -> null
+            }
+            if (piano != null && Triple(m, piano.first, piano.second) !in evitate) {
+                if (pos().second == piano.first && pos().third == piano.second) {
+                    for (key in intArrayOf(NativeCore.KEY_UP, NativeCore.KEY_RIGHT, NativeCore.KEY_DOWN, NativeCore.KEY_LEFT)) if (pos().first == m) spingi(key)
+                    if (pos().first == m) evitate += Triple(m, piano.first, piano.second)
+                } else {
+                    vai(piano.first, piano.second)
+                    if (pos().first == m && (pos().second != piano.first || pos().third != piano.second)) {
+                        println("DBGMO non arrivo a $piano in $m, sono a ${pos()}"); if (!parla(m)) evitate += Triple(m, piano.first, piano.second)
+                    }
+                }
+                continue
+            }
             val g = s.mapGridForTest() ?: run { step(10); null } ?: continue
             val (_, px, py) = pos()
             passi += Triple(m, px / 4, py / 4)
@@ -2098,6 +2120,19 @@ class ZzGlitchTest : AppScreensHarness() {
         println("DBGMO fine ${pos()} visti $visti")
         fase("fine"); step(120)
         System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "monte-${pos().first}.state")) }
+    }
+
+    /** Sonda (-Pgiallo.state.citta=STATO): stampa la mappa percorribile, le porte e le persone del luogo. */
+    @Test fun sondaLuogo() = registra("sonda", auto = "giallo.state.citta") { step, _ ->
+        step(30)
+        val (m, px, py) = s.positionForTest()
+        val g = s.mapGridForTest() ?: return@registra
+        val d1 = s.memoryForTest(0xC100, 256); val d2 = s.memoryForTest(0xC200, 256)
+        val pers = (1 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }.associateBy { ((d2[it * 16 + 5].toInt() and 0xFF) - 4) to ((d2[it * 16 + 4].toInt() and 0xFF) - 4) }
+        val ws = s.warpsForTest().associateBy { it.second to it.first }
+        println("DBGSO luogo $m a ($px,$py) ${g.width}x${g.height} persone ${pers.map { "${it.value}@${it.key}" }} porte ${ws.values}")
+        for (y in 0 until g.height) println("DBGSO %2d ".format(y) + (0 until g.width).joinToString("") { x ->
+            when { x == px && y == py -> "@"; (x to y) in pers -> "P"; (x to y) in ws -> "W"; g.isFree(x, y) -> "."; else -> "#" } })
     }
 
     /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */
