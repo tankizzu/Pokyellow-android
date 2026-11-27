@@ -2022,6 +2022,31 @@ class ZzGlitchTest : AppScreensHarness() {
         val usate = HashSet<Triple<Int, Int, Int>>()
         val evitate = HashSet<Triple<Int, Int, Int>>()
         val passi = HashSet<Triple<Int, Int, Int>>()
+        val parlati = HashSet<Pair<Int, Int>>()
+        /** Va accanto a una persona (o a un oggetto, come i fossili) non ancora sentita e preme A guardandola. */
+        fun parla(m: Int): Boolean {
+            val d1 = s.memoryForTest(0xC100, 256); val d2 = s.memoryForTest(0xC200, 256)
+            val g = s.mapGridForTest() ?: return false
+            val (_, px, py) = pos()
+            for (sl in 1 until 16) {
+                if ((d1[sl * 16].toInt() and 0xFF) == 0 || (m to sl) in parlati) continue
+                val oy = (d2[sl * 16 + 4].toInt() and 0xFF) - 4; val ox = (d2[sl * 16 + 5].toInt() and 0xFF) - 4
+                val lati = listOf(Triple(ox, oy + 1, NativeCore.KEY_UP), Triple(ox, oy - 1, NativeCore.KEY_DOWN),
+                    Triple(ox + 1, oy, NativeCore.KEY_LEFT), Triple(ox - 1, oy, NativeCore.KEY_RIGHT))
+                    .filter { g.isFree(it.first, it.second) && (it.first == px && it.second == py || g.path(px, py, setOf(it.first to it.second)) != null) }
+                parlati += m to sl
+                val l = lati.firstOrNull() ?: continue
+                println("DBGMO parlo con $sl in ($ox,$oy) da $l")
+                vai(l.first, l.second)
+                if (pos().first != m) return true
+                s.setKeys(l.third); step(3); s.setKeys(0); step(6)
+                s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(20)
+                if (snap().inBattle) lotta()
+                testi(); if (snap().inBattle) lotta()
+                return true
+            }
+            return false
+        }
         var lastMap = -1
         val scadenza = System.currentTimeMillis() + 80 * 60_000L
         var k = 0
@@ -2034,6 +2059,7 @@ class ZzGlitchTest : AppScreensHarness() {
                 // Celestopoli: un giro verso nord e verso est, poi basta
                 if (passi.count { it.first == 3 } > 3) break
             }
+            if (m == 61 && parla(m)) continue
             val g = s.mapGridForTest() ?: run { step(10); null } ?: continue
             val (_, px, py) = pos()
             passi += Triple(m, px / 4, py / 4)
