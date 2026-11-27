@@ -280,7 +280,7 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
         st->obj_attr_by_tile[o[2]] = o[3];
         st->obj_attr_known[o[2]] = true;
     }
-    if (visible == 0) return;   /* il gioco non sta mostrando gli sprite */
+    if (visible == 0) { memset(st->drawn, 0, sizeof(st->drawn)); return; }   /* il gioco non sta mostrando gli sprite */
     st->people_ok = 1; st->people_top = off_top;
 
     /* Sprite che il gioco non disegna perché fuori dall'inquadratura (persone, oggetti a terra). */
@@ -288,6 +288,8 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
     for (int slot = 1; slot < 15; slot++) {   /* 0 = giocatore, 15 = compagno che segue: sempre vicini */
         uint16_t d1 = (uint16_t)(SPRITE_DATA1 + slot * 16), d2 = (uint16_t)(SPRITE_DATA2 + slot * 16);
         int *pp = st->people[slot];
+        bool was_drawn = st->drawn[slot];
+        st->drawn[slot] = false;
         if (!rd(gb, d1)) continue;
         int base = rd(gb, (uint16_t)(d2 + 0x0E));
         bool onscreen = rd(gb, (uint16_t)(d1 + 2)) != 0xFF;
@@ -310,7 +312,7 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
          * fotogrammi l'OAM non l'ha ancora e non la disegnava nessuno (Poké Ball del Monte Luna). Se nell'OAM non c'è nulla
          * nel suo riquadro, la si disegna ancora qui. */
         /* Lo stesso vale appena chiuso un riquadro di testo (D-121): il gioco la rimette "dentro" prima di averla nell'OAM. */
-        if (onscreen && (sy < 0 || sy + 16 > FRAME_H || st->boxed[slot] > 0)) {
+        if (onscreen && (sy < 0 || sy + 16 > FRAME_H || st->boxed[slot] > 0 || was_drawn)) {
             bool in_oam = false;
             for (int i = 0; i < 40 && !in_oam; i++) {
                 const uint8_t *o = oam + i * 4;
@@ -332,9 +334,11 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
                     if (rd(gb, (uint16_t)(0xC3A0 + r * 20 + c)) >= 0x60) under_box = true;
             /* alla chiusura del riquadro il gioco la rimette "dentro" qualche fotogramma dopo: nel frattempo resta all'app */
             if (under_box) st->boxed[slot] = 8; else if (st->boxed[slot] > 0) { st->boxed[slot]--; under_box = true; }
-            if (!under_box) continue;
+            /* e se l'app la stava già disegnando (entra dal bordo con lo scorrimento) continua: niente buco finché la prende il gioco */
+            if (!under_box && !was_drawn) continue;
         }
         if (sy + 16 <= -off_top || sy >= FRAME_H + (out_h - FRAME_H - off_top) || sx + 16 <= 0 || sx >= FRAME_W) continue;
+        st->drawn[slot] = true;
         uint8_t grass = rd(gb, (uint16_t)(d2 + 7)) & 0x80;
         for (int t = 0; t < 4; t++) {
             int tile = tile_base + STANDING[dir][t][2];
@@ -441,6 +445,7 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     if (map_id != st->map_id) {
         memset(st->attr_known, 0, sizeof(st->attr_known));
         memset(st->boxed, 0, sizeof(st->boxed));
+        memset(st->drawn, 0, sizeof(st->drawn));
         memset(st->obj_attr_known, 0, sizeof(st->obj_attr_known));
         st->map_id = map_id;
     }
