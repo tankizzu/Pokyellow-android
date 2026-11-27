@@ -2212,6 +2212,14 @@ class ZzGlitchTest : AppScreensHarness() {
                     println("DBGVI persone " + (1 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }
                         .map { "$it@(${(d2[it * 16 + 5].toInt() and 0xFF) - 4},${(d2[it * 16 + 4].toInt() and 0xFF) - 4})" }) }
                 "w" -> step(a[1].toInt())
+                "m" -> s.forceMapFromRow = a[1].toInt()
+                "a" -> { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(10) }
+                "x" -> { val e = s.latestExtended.get(); val f = s.latestFrame.get()
+                    val bi = java.awt.image.BufferedImage(NativeCore.WIDTH * 2 + 8, e.height, java.awt.image.BufferedImage.TYPE_INT_RGB)
+                    for (y in 0 until e.height) for (x in 0 until NativeCore.WIDTH) bi.setRGB(x, y, e.pixels[y * NativeCore.WIDTH + x])
+                    for (y in 0 until NativeCore.HEIGHT) for (x in 0 until NativeCore.WIDTH) bi.setRGB(NativeCore.WIDTH + 8 + x, y, f[y * NativeCore.WIDTH + x])
+                    javax.imageio.ImageIO.write(bi, "png", File(System.getProperty("giallo.shots"), "ext-${a[1]}.png"))
+                    println("DBGVI ext ${a[1]} attivo=${e.active} h=${e.height} ${s.debugFrameInfo}") }
             }
         }
         println("DBGVI fine ${pos()} medaglie ${s.memoryForTest(it.giallotouch.bridge.MemoryMapIt.BADGES, 1)[0].toInt() and 0xFF}")
@@ -2312,7 +2320,14 @@ class ZzGlitchTest : AppScreensHarness() {
                 // indice salvato anche durante la registrazione: se la prova viene fermata per tempo non si perde
                 if (n % 2000 == 0) File(out, "indice.txt").writeText(index.toString())
                 // -Pgiallo.fermati=N: registrazione corta (per confrontare con le immagini del gioco)
-                System.getProperty("giallo.fermati")?.toIntOrNull()?.let { if (n >= it) throw Fermati() }
+                System.getProperty("giallo.fermati")?.toIntOrNull()?.let { if (n >= it) {
+                    // all'arresto: anche la vista estesa e l'immagine del gioco grezze, una accanto all'altra
+                    val e = s.latestExtended.get(); val fr = s.latestFrame.get()
+                    val bi = java.awt.image.BufferedImage(NativeCore.WIDTH * 2 + 8, maxOf(e.height, NativeCore.HEIGHT), java.awt.image.BufferedImage.TYPE_INT_RGB)
+                    for (y in 0 until e.height) for (x in 0 until NativeCore.WIDTH) bi.setRGB(x, y, e.pixels[y * NativeCore.WIDTH + x])
+                    for (y in 0 until NativeCore.HEIGHT) for (x in 0 until NativeCore.WIDTH) bi.setRGB(NativeCore.WIDTH + 8 + x, y, fr[y * NativeCore.WIDTH + x])
+                    javax.imageio.ImageIO.write(bi, "png", File(out, "grezzo-$n.png"))
+                    throw Fermati() } }
             }
         }
         try { body(step) { fase = it } } catch (_: Fermati) {}

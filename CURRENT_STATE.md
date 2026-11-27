@@ -56,7 +56,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
    (ZzGlitchTest.opzioniIniziali: il tocco su OPZIONI del menu iniziale non arriva; da sola passa, fallisce anche prima di D-109). Palestra di Brock fatta (0.14.8, D-116, D-117). Strada 3, Strada 4 e Monte Luna (primo e secondo piano) controllati anche per le persone che spariscono (D-118): nulla da correggere. Monte Luna fino ai fossili (Team Rocket) controllato: corretti START dopo un dialogo e persone sul bordo (D-119, 0.14.9). Fossili, uscita dal Monte Luna e Strada 4 controllati: corretti dislivelli nel percorso e Poké Ball dopo la scala (D-120, D-121, 0.15.0). Celestopoli (città, Centro Pokémon, Market e due case) controllata: nulla da correggere; all'uscita da un edificio persone e giocatore compaiono insieme (D-121). Palestra di Misty fatta (0.15.1, correzione D-121 per chi sta sotto il riquadro di testo). Prossimo: Ponte Pepita, Bill.
 2. Pagina "Fotogramma per fotogramma": da ripubblicare il tratto 3 (rivale) rifatto con D-108 (la pubblicazione chiede
    l'approvazione del committente). Regola: a ogni nuova proposta si cancellano le note precedenti.
-3. Ancora aperti: 984 (riga della stanza spostata durante il dialogo nel Market), rivale che entra dalla porta, Blu
+3. Ancora aperti: 984 (riga della stanza spostata durante il dialogo nel Market; si riproduce nella casa di Bill: stato v4/bill.state, programma f_bill;p_5_5_R;w_300;p_1_5_U;w_600;q;k_R_1;w_600, fotogramma 5222: le righe disegnate dalla mappa sotto il riquadro sono 10 pixel più a destra, mentre l'allineamento riportato è giusto; da capire), rivale che entra dalla porta, Blu
    fino alla porta da verificare.
 
 ## Diario del lavoro autonomo (dal 2026-11-18 19:30 UTC, per il resoconto)
