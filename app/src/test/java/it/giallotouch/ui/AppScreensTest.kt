@@ -1985,6 +1985,95 @@ class ZzGlitchTest : AppScreensHarness() {
         System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "est-${pos().first}.state")) }
     }
 
+    /**
+     * Il resto del Monte Luna e Celestopoli (-Pgiallo.state.citta=STATO nel Monte Luna): esplorazione a scale e porte,
+     * preferendo quelle verso luoghi non ancora visti. Lotte di sola prova come in [analisiEst]; alle domande si risponde SÌ.
+     */
+    @Test fun analisiMonte() = registra("analisi12", auto = "giallo.state.citta") { step, fase ->
+        fun pos() = s.positionForTest()
+        fun snap() = s.latestSnapshot.get()
+        fun lotta() {
+            fase("lotta"); var b = 0
+            while ((snap().inBattle || !snap().freeRoam) && b++ < 600) {
+                if (snap().inBattle && s.battleMenuShown && !s.commandBusy) { s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP, 0); s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP + 1, 1) }
+                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(1)); step(30) }
+                else if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); step(30) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+            }
+            val m = snap().party.firstOrNull()
+            if (m != null) { s.writeMemoryForTest(0xD16F + 1, m.maxHp shr 8); s.writeMemoryForTest(0xD16F + 2, m.maxHp and 0xFF); s.writeMemoryForTest(0xD16F + 29, 30); s.writeMemoryForTest(0xD16F + 30, 30) }
+        }
+        fun testi() { var k = 0; while (!snap().freeRoam && !snap().inBattle && k++ < 80) {
+            if (s.yesNo != null) s.command(it.giallotouch.bridge.GameCommand.Answer(true)) else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            step(20) } }
+        fun vai(x: Int, y: Int) {
+            val m = pos().first
+            s.walkPathForTest(x, y); var t = 0
+            while (t++ < 600 && pos().first == m && (pos().second != x || pos().third != y)) {
+                step(4)
+                if (snap().inBattle) { lotta(); fase("luogo$m"); s.walkPathForTest(x, y) }
+                else if (!snap().freeRoam && t % 8 == 0) { testi(); s.walkPathForTest(x, y) }
+                else if (t % 60 == 0) s.walkPathForTest(x, y)
+            }
+        }
+        fun spingi(key: Int) { var j = 0; val m = pos().first; while (j++ < 6 && pos().first == m) { s.setKeys(key); step(8); s.setKeys(0); step(8)
+            if (snap().inBattle) lotta() else if (!snap().freeRoam) testi() } }
+        val visti = HashSet<Int>()
+        val usate = HashSet<Triple<Int, Int, Int>>()
+        val evitate = HashSet<Triple<Int, Int, Int>>()
+        val passi = HashSet<Triple<Int, Int, Int>>()
+        var lastMap = -1
+        val scadenza = System.currentTimeMillis() + 80 * 60_000L
+        var k = 0
+        while (k++ < 400 && System.currentTimeMillis() < scadenza) {
+            val m = pos().first
+            if (m != lastMap) { lastMap = m; visti += m; fase("luogo$m"); step(30); println("DBGMO luogo $m a ${pos()}") }
+            if (snap().inBattle) { lotta(); continue }
+            if (!snap().freeRoam) { testi(); continue }
+            if (m == 3) {
+                // Celestopoli: un giro verso nord e verso est, poi basta
+                if (passi.count { it.first == 3 } > 3) break
+            }
+            val g = s.mapGridForTest() ?: run { step(10); null } ?: continue
+            val (_, px, py) = pos()
+            passi += Triple(m, px / 4, py / 4)
+            fun raggiungibile(x: Int, y: Int) = g.path(px, py, setOf(x to y)) != null
+            val target: Pair<Int, Int>? = if (m == 15) {
+                // Strada 4 dopo il Monte Luna: verso est fino a Celestopoli
+                (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
+                    .filter { g.isFree(it.first, it.second) && Triple(m, it.first, it.second) !in evitate && raggiungibile(it.first, it.second) }
+                    .minWithOrNull(compareBy<Pair<Int, Int>> { -it.first }.thenBy { kotlin.math.abs(it.second - py) })
+            } else {
+                val ws = s.warpsForTest().filter { Triple(m, it.second, it.first) !in usate && Triple(m, it.second, it.first) !in evitate && raggiungibile(it.second, it.first) }
+                    // da Monte Luna non si torna alla Strada 3/4 dall'ingresso
+                    .filter { !(m == 59 && it.third == 0xFF && 61 !in visti) }
+                val w = ws.minWithOrNull(compareBy<Triple<Int, Int, Int>> { if (it.third in visti) 1 else 0 }
+                    .thenBy { kotlin.math.abs(it.second - px) + kotlin.math.abs(it.first - py) })
+                if (w != null) w.second to w.first else
+                    // nessuna porta nuova: verso la zona meno visitata
+                    (0 until g.width).flatMap { x -> (0 until g.height).map { x to it } }
+                        .filter { g.isFree(it.first, it.second) && Triple(m, it.first / 4, it.second / 4) !in passi && Triple(m, it.first, it.second) !in evitate && raggiungibile(it.first, it.second) }
+                        .maxByOrNull { kotlin.math.abs(it.first - px) + kotlin.math.abs(it.second - py) }
+            }
+            if (target == null) { println("DBGMO fermo in $m a ${pos()}"); break }
+            if (target.first == px && target.second == py) {
+                usate += Triple(m, px, py)
+                for (key in intArrayOf(NativeCore.KEY_DOWN, NativeCore.KEY_UP, NativeCore.KEY_LEFT, NativeCore.KEY_RIGHT)) if (pos().first == m) spingi(key)
+                if (pos().first == m) evitate += Triple(m, px, py)
+                continue
+            }
+            vai(target.first, target.second)
+            if (pos().first == m) {
+                if (pos().second != target.first || pos().third != target.second) { evitate += Triple(m, target.first, target.second); println("DBGMO evito $target in $m da ${pos()}") }
+                // persone vicine: si parla (fossili, allenatori fermi)
+                s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(10); if (!snap().freeRoam) testi()
+            } else usate += Triple(m, target.first, target.second)
+        }
+        println("DBGMO fine ${pos()} visti $visti")
+        fase("fine"); step(120)
+        System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "monte-${pos().first}.state")) }
+    }
+
     /** Analisi della cura al Centro Pokémon (-Pgiallo.state.centro=STATO nel Centro): infermiera, CURA, uscita. */
     @Test fun analisiCentro() = registra("analisi6", auto = "giallo.state.centro") { step, fase ->
         fun pos() = s.positionForTest()
