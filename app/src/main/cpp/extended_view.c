@@ -319,6 +319,10 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
             if (!in_oam) { onscreen = false; pp[0] = 4; }
         }
         if (onscreen) continue;
+        /* Tutta dentro lo schermo del gioco ma per il gioco "fuori" (D-121): succede subito dopo una scala, prima che il
+         * gioco aggiorni le persone; lì decide il gioco, che non la mostra ancora. Disegnarla la faceva comparire per un
+         * fotogramma, sparire per due e ricomparire (Poké Ball del Monte Luna). */
+        if (pp[0] == 3 && sy >= 0 && sy + 16 <= FRAME_H && sx >= 0 && sx + 16 <= FRAME_W) continue;
         if (sy + 16 <= -off_top || sy >= FRAME_H + (out_h - FRAME_H - off_top) || sx + 16 <= 0 || sx >= FRAME_W) continue;
         uint8_t grass = rd(gb, (uint16_t)(d2 + 7)) & 0x80;
         for (int t = 0; t < 4; t++) {
