@@ -2054,7 +2054,7 @@ class ZzGlitchTest : AppScreensHarness() {
         var k = 0
         while (k++ < 400 && System.currentTimeMillis() < scadenza) {
             val m = pos().first
-            if (m != lastMap) { lastMap = m; visti += m; evitate.removeAll { it.first == m } fase("luogo$m"); step(30); println("DBGMO luogo $m a ${pos()}")
+            if (m != lastMap) { lastMap = m; visti += m; evitate.removeAll { it.first == m }; fase("luogo$m"); step(30); println("DBGMO luogo $m a ${pos()}")
                 System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "arrivo-$m.state")) } }
             if (snap().inBattle) { lotta(); continue }
             if (!snap().freeRoam) { testi(); continue }
