@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-11-27 – Monte Luna: START e persone sul bordo (D-119), 0.14.9
+- START non lampeggia più quando si riparla subito con la stessa persona.
+- Gli oggetti e le persone che passano dal bordo dell'inquadratura non spariscono più per 2 fotogrammi.
+- Prove: Monte Luna fino al Team Rocket dei fossili controllato.
+
 ## 2026-11-26 – controllo delle persone che spariscono (D-118)
 - Prove: le persone disegnate vanno nell'indice dei fotogrammi; controllo su Strada 3, Strada 4 e Monte Luna: nessun difetto dell'app trovato.
 
