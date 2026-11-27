@@ -309,7 +309,8 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
         /* Passaggio dal bordo (D-119): appena una persona a cavallo del bordo diventa "dentro" per il gioco, per un paio di
          * fotogrammi l'OAM non l'ha ancora e non la disegnava nessuno (Poké Ball del Monte Luna). Se nell'OAM non c'è nulla
          * nel suo riquadro, la si disegna ancora qui. */
-        if (onscreen && (sy < 0 || sy + 16 > FRAME_H)) {
+        /* Lo stesso vale appena chiuso un riquadro di testo (D-121): il gioco la rimette "dentro" prima di averla nell'OAM. */
+        if (onscreen && (sy < 0 || sy + 16 > FRAME_H || st->boxed[slot] > 0)) {
             bool in_oam = false;
             for (int i = 0; i < 40 && !in_oam; i++) {
                 const uint8_t *o = oam + i * 4;
@@ -318,7 +319,7 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
             }
             if (!in_oam) { onscreen = false; pp[0] = 4; }
         }
-        if (onscreen) { st->boxed[slot] = 0; continue; }
+        if (onscreen) { if (st->boxed[slot] > 0) st->boxed[slot]--; continue; }
         /* Tutta dentro lo schermo del gioco ma per il gioco "fuori" (D-121): succede subito dopo una scala, prima che il
          * gioco aggiorni le persone; lì decide il gioco, che non la mostra ancora. Disegnarla la faceva comparire per un
          * fotogramma, sparire per due e ricomparire (Poké Ball del Monte Luna). */
