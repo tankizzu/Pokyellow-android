@@ -2150,6 +2150,71 @@ class ZzGlitchTest : AppScreensHarness() {
         System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "monte-${pos().first}.state")) }
     }
 
+    /**
+     * Viaggio a tappe (-Pgiallo.state.citta=STATO, -Pgiallo.meta=PROGRAMMA): comandi separati da ';'
+     * "v x y" va in (x,y); "p x y D" va in (x,y), guarda verso D (U/D/L/R), preme A e segue dialoghi e lotte;
+     * "e D M" spinge verso D finché il luogo diventa M; "k D n" preme D n volte; "s nome" salva lo stato nello scenario;
+     * "f nome" cambia fase. Lotte come nelle altre analisi: solo prova, PS dell'avversario a 1 (si guardano le scene).
+     */
+    @Test fun analisiViaggio() = registra("analisi13", auto = "giallo.state.citta") { step, fase ->
+        fun pos() = s.positionForTest()
+        fun snap() = s.latestSnapshot.get()
+        var faseOra = "inizio"
+        fun lotta() {
+            fase("lotta"); var b = 0
+            while ((snap().inBattle || !snap().freeRoam) && b++ < 800) {
+                if (snap().inBattle && s.battleMenuShown && !s.commandBusy) { s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP, 0); s.writeMemoryForTest(it.giallotouch.bridge.MemoryMapIt.ENEMY_MON_HP + 1, 1) }
+                if (s.battleMenuShown && !s.commandBusy) { s.command(it.giallotouch.bridge.GameCommand.Fight(1)); step(30) }
+                else if (s.yesNo != null) { s.command(it.giallotouch.bridge.GameCommand.Answer(true)); step(30) }
+                else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(16) }
+            }
+            val m = snap().party.firstOrNull()
+            if (m != null) { s.writeMemoryForTest(0xD16F + 1, m.maxHp shr 8); s.writeMemoryForTest(0xD16F + 2, m.maxHp and 0xFF); s.writeMemoryForTest(0xD16F + 29, 30); s.writeMemoryForTest(0xD16F + 30, 30) }
+            fase(faseOra)
+        }
+        fun testi() { var k = 0; while (!snap().freeRoam && !snap().inBattle && k++ < 120) {
+            if (s.yesNo != null) s.command(it.giallotouch.bridge.GameCommand.Answer(true)) else { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0) }
+            step(20) }
+            if (snap().inBattle) { lotta(); testi() } }
+        fun vai(x: Int, y: Int) {
+            val m = pos().first
+            s.walkPathForTest(x, y); var t = 0
+            while (t++ < 900 && pos().first == m && (pos().second != x || pos().third != y)) {
+                step(4)
+                if (snap().inBattle) { lotta(); testi(); s.walkPathForTest(x, y) }
+                else if (!snap().freeRoam && t % 8 == 0) { testi(); s.walkPathForTest(x, y) }
+                else if (t % 60 == 0) s.walkPathForTest(x, y)
+            }
+            if (pos().first == m && (pos().second != x || pos().third != y)) println("DBGVI non arrivo a ($x,$y) in $m, sono a ${pos()}")
+        }
+        fun tasto(d: String) = when (d) { "U" -> NativeCore.KEY_UP; "D" -> NativeCore.KEY_DOWN; "L" -> NativeCore.KEY_LEFT; else -> NativeCore.KEY_RIGHT }
+        step(30)
+        val programma = (System.getProperty("giallo.meta") ?: "").replace("_", " ").split(";").map { it.trim() }.filter { it.isNotEmpty() }
+        for (c in programma) {
+            val a = c.split(" ").filter { it.isNotEmpty() }
+            println("DBGVI $c da ${pos()}")
+            when (a[0]) {
+                "f" -> { faseOra = a[1]; fase(a[1]) }
+                "v" -> vai(a[1].toInt(), a[2].toInt())
+                "p" -> { vai(a[1].toInt(), a[2].toInt())
+                    s.setKeys(tasto(a[3])); step(3); s.setKeys(0); step(6)
+                    s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(20)
+                    var k = 0
+                    while (k++ < 10 && snap().freeRoam && !snap().inBattle) step(10)
+                    if (snap().inBattle) lotta()
+                    testi() }
+                "e" -> { var j = 0; while (j++ < 40 && pos().first != a[2].toInt()) { s.setKeys(tasto(a[1])); step(8); s.setKeys(0); step(8)
+                    if (snap().inBattle) lotta() else if (!snap().freeRoam) testi() }
+                    step(60); println("DBGVI luogo ${pos()}") }
+                "k" -> repeat(a[2].toInt()) { s.setKeys(tasto(a[1])); step(8); s.setKeys(0); step(8); if (snap().inBattle) lotta() else if (!snap().freeRoam) testi() }
+                "s" -> System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "${a[1]}.state")) }
+            }
+        }
+        println("DBGVI fine ${pos()} medaglie ${s.memoryForTest(it.giallotouch.bridge.MemoryMapIt.BADGES, 1)[0].toInt() and 0xFF}")
+        fase("fine"); step(120)
+        System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "fine.state")) }
+    }
+
     /** Sonda (-Pgiallo.state.citta=STATO): stampa la mappa percorribile, le porte e le persone del luogo. */
     @Test fun sondaLuogo() = registra("sonda", auto = "giallo.state.citta") { step, _ ->
         step(30)
