@@ -2062,9 +2062,23 @@ class ZzGlitchTest : AppScreensHarness() {
                 // Celestopoli: un giro verso nord e verso est, poi basta
                 if (passi.count { it.first == 3 } > 3) break
             }
-            if (m == 61 && parla(m)) continue
+            if (m == 61 && !fossile) {
+                // fossili: tappe che aggirano l'allenatore fermo in (29,11) (il percorso calcolato passa sopra le persone)
+                for ((x, y) in listOf(31 to 10, 31 to 14, 13 to 9, 13 to 8, 13 to 7)) if (pos().first == m) vai(x, y)
+                println("DBGMO ai fossili ${pos()}")
+                for (x in intArrayOf(13, 12)) {
+                    if (pos().first != m) break
+                    vai(x, 7)
+                    s.setKeys(NativeCore.KEY_UP); step(3); s.setKeys(0); step(6)
+                    s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(20)
+                    if (snap().inBattle) lotta()
+                    testi(); if (snap().inBattle) lotta()
+                }
+                val bag = s.memoryForTest(0xD31D, 41)
+                println("DBGMO borsa ${(0 until (bag[0].toInt() and 0xFF).coerceAtMost(20)).map { bag[1 + 2 * it].toInt() and 0xFF }}")
+                fossile = true; continue
+            }
             // percorso noto del Monte Luna (scale e porte, x a y): piano terra → primo sotterraneo a ovest → fossili → uscita
-            if (m == 61 && pos().second < 30) fossile = true
             val piano = when (m) {
                 59 -> 5 to 5
                 60 -> if (!fossile) 21 to 17 else 27 to 3
