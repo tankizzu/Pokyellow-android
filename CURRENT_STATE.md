@@ -53,7 +53,7 @@ Far girare il banco di prova dell'interfaccia e guardare le foto:
 - Regola del committente (2026-11-26): si registrano e controllano fotogramma per fotogramma solo le novità (luoghi,
   dialoghi, scene nuove); le lotte solo se hanno qualcosa di mai visto. Le correzioni della lotta valgono per tutte.
 1. APK 0.14.8 consegnata il 2026-11-26 (D-116, D-117). Prove: 120, 1 fallita solo nella prova completa
-   (ZzGlitchTest.opzioniIniziali: il tocco su OPZIONI del menu iniziale non arriva; da sola passa, fallisce anche prima di D-109). Palestra di Brock fatta (0.14.8, D-116, D-117). Strada 3, Strada 4 e Monte Luna (primo e secondo piano) controllati anche per le persone che spariscono (D-118): nulla da correggere. Prossimo: il resto del Monte Luna (Team Rocket, fossili) e Celestopoli.
+   (ZzGlitchTest.opzioniIniziali: il tocco su OPZIONI del menu iniziale non arriva; da sola passa, fallisce anche prima di D-109). Palestra di Brock fatta (0.14.8, D-116, D-117). Strada 3, Strada 4 e Monte Luna (primo e secondo piano) controllati anche per le persone che spariscono (D-118): nulla da correggere. Monte Luna piano più basso (Team Rocket) controllato: nulla da correggere. Prossimo: fossili, uscita dal Monte Luna e Celestopoli (la registrazione automatica si ferma davanti allo Scienziato dei fossili).
 2. Pagina "Fotogramma per fotogramma": da ripubblicare il tratto 3 (rivale) rifatto con D-108 (la pubblicazione chiede
    l'approvazione del committente). Regola: a ogni nuova proposta si cancellano le note precedenti.
 3. Ancora aperti: 984 (riga della stanza spostata durante il dialogo nel Market), rivale che entra dalla porta, Blu
