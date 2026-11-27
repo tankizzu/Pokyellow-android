@@ -2024,6 +2024,7 @@ class ZzGlitchTest : AppScreensHarness() {
         val passi = HashSet<Triple<Int, Int, Int>>()
         val parlati = HashSet<Pair<Int, Int>>()
         var fossile = false
+        var giri = 0
         /** Va accanto a una persona (o a un oggetto, come i fossili) non ancora sentita e preme A guardandola. */
         fun parla(m: Int): Boolean {
             val d1 = s.memoryForTest(0xC100, 256); val d2 = s.memoryForTest(0xC200, 256)
@@ -2077,7 +2078,10 @@ class ZzGlitchTest : AppScreensHarness() {
                 } else {
                     vai(piano.first, piano.second)
                     if (pos().first == m && (pos().second != piano.first || pos().third != piano.second)) {
-                        println("DBGMO non arrivo a $piano in $m, sono a ${pos()}"); if (!parla(m)) evitate += Triple(m, piano.first, piano.second)
+                        println("DBGMO non arrivo a $piano in $m, sono a ${pos()}")
+                        // fossili: dopo la lotta si riparla con tutti (la prima volta il fossile non si poteva ancora prendere)
+                        if (m == 61 && giri++ < 2) { parlati.removeAll { it.first == 61 }; continue }
+                        if (!parla(m)) evitate += Triple(m, piano.first, piano.second)
                     }
                 }
                 continue
