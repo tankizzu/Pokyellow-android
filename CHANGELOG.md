@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2026-11-27 – palestra di Misty, 0.15.1
+- Corretto un effetto della 0.15.0: le persone sotto il riquadro di testo del gioco sparivano per tutto il dialogo (D-121).
+- Prove: viaggio a tappe da programma (analisiViaggio); palestra di Misty controllata.
+
 ## 2026-11-27 – Monte Luna: dislivelli e Poké Ball dopo la scala (D-120, D-121), 0.15.0
 - Toccando per camminare nelle grotte il percorso gira intorno ai dislivelli invece di fermarsi contro (D-120).
 - Scendendo una scala, persone e oggetti già sullo schermo non lampeggiano più prima di comparire (D-121).
