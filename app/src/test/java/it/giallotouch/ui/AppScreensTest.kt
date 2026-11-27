@@ -2208,6 +2208,10 @@ class ZzGlitchTest : AppScreensHarness() {
                     step(60); println("DBGVI luogo ${pos()}") }
                 "k" -> repeat(a[2].toInt()) { s.setKeys(tasto(a[1])); step(8); s.setKeys(0); step(8); if (snap().inBattle) lotta() else if (!snap().freeRoam) testi() }
                 "s" -> System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "${a[1]}.state")) }
+                "q" -> { val d1 = s.memoryForTest(0xC100, 256); val d2 = s.memoryForTest(0xC200, 256)
+                    println("DBGVI persone " + (1 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }
+                        .map { "$it@(${(d2[it * 16 + 5].toInt() and 0xFF) - 4},${(d2[it * 16 + 4].toInt() and 0xFF) - 4})" }) }
+                "w" -> step(a[1].toInt())
             }
         }
         println("DBGVI fine ${pos()} medaglie ${s.memoryForTest(it.giallotouch.bridge.MemoryMapIt.BADGES, 1)[0].toInt() and 0xFF}")

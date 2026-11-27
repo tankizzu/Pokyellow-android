@@ -11,6 +11,7 @@ typedef struct {
     int map_from_row;
     uint32_t bg0;
     int dbg_score, dbg_dx, dbg_dy, dbg_rows;   /* diagnosi dell'allineamento */       /* colore 0 dello sfondo (per l'erba sopra le persone dentro l'inquadratura, D-100) */   /* righe del gioco da questa in giù disegnate dalla mappa (sotto il dialogo, D-094) */   /* ultimo luogo all'aperto (porte: colori di fuori finché si vede ancora fuori) */
+    int al_dx, al_dy, al_tx, al_ty, al_map; bool al_ok;   /* allineamento del fotogramma prima (984, D-122) */
     int base_x, base_y;           /* pixel della mappa (con il bordo) nell'angolo in alto a sinistra dell'inquadratura */
     uint8_t attr_by_tile[256];    /* attributi a colori imparati dai tile visibili */
     bool attr_known[256];
