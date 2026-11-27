@@ -1207,7 +1207,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     NativeCore.nativeReadRange(handle, 0xD3B2, warpBlock)
                     val nw = (warpBlock[0].toInt() and 0xFF).coerceAtMost(32)
                     onWarp = (0 until nw).any { (warpBlock[1 + 4 * it].toInt() and 0xFF) == py && (warpBlock[2 + 4 * it].toInt() and 0xFF) == px }
-                    debugFrameInfo = "al=${(0..5).joinToString(",") { NativeCore.nativeEvDebug(handle, it).toString() }} start=$startOk sc=%d,%d wy=%d joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, 0xFF43), NativeCore.nativeReadMemory(handle, 0xFF42), NativeCore.nativeReadMemory(handle, 0xFF4A),NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
+                    debugFrameInfo = "al=${(0..5).joinToString(",") { NativeCore.nativeEvDebug(handle, it).toString() }} start=$startOk sc=%d,%d wy=%d wx=%d lcdc=%02x joy=%02x pos=%d,%d,%d warp=%s".format(NativeCore.nativeReadMemory(handle, 0xFF43), NativeCore.nativeReadMemory(handle, 0xFF42), NativeCore.nativeReadMemory(handle, 0xFF4A), NativeCore.nativeReadMemory(handle, 0xFF4B), NativeCore.nativeReadMemory(handle, 0xFF40),NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE),
                         NativeCore.nativeReadMemory(handle, MemoryMapIt.CUR_MAP), px, py, onWarp) +
                         // persone (prove, D-118): sprite:stato:x:y:punti, con l'altezza della vista estesa e la riga dell'inquadratura
                         (if (!debugPeople) "" else " ext=${latestExtended.get().height} pt=${NativeCore.nativeEvDebug(handle, 7)} pp=" + if (NativeCore.nativeEvDebug(handle, 6) == 0) "-" else
