@@ -3,7 +3,7 @@
 ## 2026-11-27 – Monte Luna: dislivelli e Poké Ball dopo la scala (D-120, D-121), 0.15.0
 - Toccando per camminare nelle grotte il percorso gira intorno ai dislivelli invece di fermarsi contro (D-120).
 - Scendendo una scala, persone e oggetti già sullo schermo non lampeggiano più prima di comparire (D-121).
-- Prove: Monte Luna fino ai fossili, uscita e Strada 4 controllati.
+- Prove: Monte Luna fino ai fossili, uscita, Strada 4 e Celestopoli (con quattro edifici) controllati.
 
 ## 2026-11-27 – Monte Luna: START e persone sul bordo (D-119), 0.14.9
 - START non lampeggia più quando si riparla subito con la stessa persona.
