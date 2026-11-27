@@ -306,6 +306,18 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
         if (abs(sx - est_x) > 16) sx = est_x;
         (void)px; (void)py;
         pp[0] = onscreen ? 2 : 3; pp[1] = sx; pp[2] = sy;
+        /* Passaggio dal bordo (D-119): appena una persona a cavallo del bordo diventa "dentro" per il gioco, per un paio di
+         * fotogrammi l'OAM non l'ha ancora e non la disegnava nessuno (Poké Ball del Monte Luna). Se nell'OAM non c'è nulla
+         * nel suo riquadro, la si disegna ancora qui. */
+        if (onscreen && (sy < 0 || sy + 16 > FRAME_H)) {
+            bool in_oam = false;
+            for (int i = 0; i < 40 && !in_oam; i++) {
+                const uint8_t *o = oam + i * 4;
+                int oy = o[0] - 16, ox = o[1] - 8;
+                if (o[1] != 0 && o[1] < 168 && o[0] != 0 && o[0] < 160 && ox > sx - 8 && ox < sx + 16 && oy > sy - 8 && oy < sy + 16) in_oam = true;
+            }
+            if (!in_oam) { onscreen = false; pp[0] = 4; }
+        }
         if (onscreen) continue;
         if (sy + 16 <= -off_top || sy >= FRAME_H + (out_h - FRAME_H - off_top) || sx + 16 <= 0 || sx >= FRAME_W) continue;
         uint8_t grass = rd(gb, (uint16_t)(d2 + 7)) & 0x80;

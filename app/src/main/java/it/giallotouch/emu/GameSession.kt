@@ -77,6 +77,7 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
     @Volatile var onWarp = false
     /** Pulsante START visibile in questo fotogramma (D-098). */
     @Volatile var startOk = false
+    private var startAfterDialog = 0
     private var startMapId = -1
     private var startOnWarp = false
     private var doorPending = false
@@ -1426,7 +1427,10 @@ class GameSession(private val storage: SaveStorage, private val rom: ByteArray) 
                     val cand = !startHome && !joyBlocked && !dialogAtBottom(frameTiles) && !inBattleRaw && !battleSplit && dialogStrip == null && !boxDrawn && !cursor && !uniform && !doorPending &&
                         !itemExecutor.busy && yesNo == null && nameList == null && !holdBattleEnd && (mapish || (startOk && startMapCalm < 30))
                     startCandRun = if (cand) startCandRun + 1 else 0
-                    startOk = cand && (startOk || startCandRun >= 3)
+                    // Subito dopo un dialogo (D-119) se ne aspettano 12: chi preme di nuovo A per riparlare con la stessa persona
+                    // riapre il dialogo dopo pochi fotogrammi e START lampeggiava per 2–4 fotogrammi.
+                    if (dialogStrip != null || boxDrawn || dialogAtBottom(frameTiles)) startAfterDialog = 40 else if (startAfterDialog > 0) startAfterDialog--
+                    startOk = cand && (startOk || startCandRun >= (if (startAfterDialog > 0) 12 else 3))
                 }
                 if (trainerOpening > 0) trainerOpening = if (trainerCardShown) 0 else trainerOpening - 1
                 checkPendingClose(NativeCore.nativeReadMemory(handle, MemoryMapIt.JOY_IGNORE) == 0 && FreeRoam.screenIsMap(frameTiles))
