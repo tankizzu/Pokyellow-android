@@ -19,6 +19,7 @@ typedef struct {
     /* Diagnosi delle persone (solo per le prove): per ogni sprite 1–14 stato (0 nessuno, 1 nascosto, 2 disegnato dal
      * gioco, 3 disegnato qui), posizione (x, y dell'inquadratura) e punti scritti qui; people_ok = tabella valida. */
     int people[16][4];
+    int boxed[16];          /* fotogrammi in cui la persona resta "sotto il riquadro" dopo che il testo è sparito (D-121) */
     int people_ok, people_top;
     uint8_t bgidx[160 * 512];     /* colore dello sfondo (0–3, bit 7 = priorità) delle righe disegnate, per gli sprite */
 } EVState;

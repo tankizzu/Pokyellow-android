@@ -318,11 +318,21 @@ static void draw_sprites(GB_gameboy_t *gb, uint32_t *out, int out_h, int off_top
             }
             if (!in_oam) { onscreen = false; pp[0] = 4; }
         }
-        if (onscreen) continue;
+        if (onscreen) { st->boxed[slot] = 0; continue; }
         /* Tutta dentro lo schermo del gioco ma per il gioco "fuori" (D-121): succede subito dopo una scala, prima che il
          * gioco aggiorni le persone; lì decide il gioco, che non la mostra ancora. Disegnarla la faceva comparire per un
          * fotogramma, sparire per due e ricomparire (Poké Ball del Monte Luna). */
-        if (pp[0] == 3 && sy >= 0 && sy + 16 <= FRAME_H && sx >= 0 && sx + 16 <= FRAME_W) continue;
+        if (pp[0] == 3 && sy >= 0 && sy + 16 <= FRAME_H && sx >= 0 && sx + 16 <= FRAME_W) {
+            /* Ma se il gioco l'ha nascosta perché è sotto un riquadro di testo (tile del riquadro, da 0x60 in su, nella
+             * mappa dello schermo C3A0), nell'app quel riquadro non copre la mappa: la si disegna (palestra di Celeste). */
+            bool under_box = false;
+            for (int r = sy / 8; r <= (sy + 15) / 8 && r < 18; r++)
+                for (int c = sx / 8; c <= (sx + 15) / 8 && c < 20; c++)
+                    if (rd(gb, (uint16_t)(0xC3A0 + r * 20 + c)) >= 0x60) under_box = true;
+            /* alla chiusura del riquadro il gioco la rimette "dentro" qualche fotogramma dopo: nel frattempo resta all'app */
+            if (under_box) st->boxed[slot] = 8; else if (st->boxed[slot] > 0) { st->boxed[slot]--; under_box = true; }
+            if (!under_box) continue;
+        }
         if (sy + 16 <= -off_top || sy >= FRAME_H + (out_h - FRAME_H - off_top) || sx + 16 <= 0 || sx >= FRAME_W) continue;
         uint8_t grass = rd(gb, (uint16_t)(d2 + 7)) & 0x80;
         for (int t = 0; t < 4; t++) {
@@ -429,6 +439,7 @@ int ev_render(GB_gameboy_t *gb, const uint32_t *frame, uint32_t *out, int out_h,
     int map_id = rd(gb, CUR_MAP);
     if (map_id != st->map_id) {
         memset(st->attr_known, 0, sizeof(st->attr_known));
+        memset(st->boxed, 0, sizeof(st->boxed));
         memset(st->obj_attr_known, 0, sizeof(st->obj_attr_known));
         st->map_id = map_id;
     }
