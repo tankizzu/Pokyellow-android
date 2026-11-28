@@ -2215,6 +2215,7 @@ class ZzGlitchTest : AppScreensHarness() {
                         .map { "$it@(${(d2[it * 16 + 5].toInt() and 0xFF) - 4},${(d2[it * 16 + 4].toInt() and 0xFF) - 4})" }) }
                 "w" -> step(a[1].toInt())
                 "cestini" -> {   // palestra di Lt. Surge: interruttori nei cestini (x dispari, righe 7/9/11), finché il cancello si apre
+                    var prima: ByteArray? = null
                     fun apri(cx: Int, cy: Int) {
                         val g = s.mapGridForTest(); val (_, px, py) = pos()
                         val lati = listOf(Triple(cx, cy - 1, NativeCore.KEY_DOWN), Triple(cx, cy + 1, NativeCore.KEY_UP), Triple(cx - 1, cy, NativeCore.KEY_RIGHT), Triple(cx + 1, cy, NativeCore.KEY_LEFT))
@@ -2223,9 +2224,13 @@ class ZzGlitchTest : AppScreensHarness() {
                         val l = lati.firstOrNull() ?: return
                         vai(l.first, l.second); s.setKeys(l.third); step(3); s.setKeys(0); step(6)
                         s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(20); testi()
-                        dbg("cestino ($cx,$cy) da ${pos()} mem " + s.memoryForTest(0xD740, 32).joinToString("") { "%02x".format(it.toInt() and 0xFF) }) }
+                        val ora = s.memoryForTest(0xD600, 0x500)
+                        dbg("cestino ($cx,$cy) da ${pos()} cambi " + ora.indices.filter { prima != null && ora[it] != prima!![it] }.take(24)
+                            .joinToString(" ") { "%04x:%02x>%02x".format(0xD600 + it, prima!![it].toInt() and 0xFF, ora[it].toInt() and 0xFF) })
+                        prima = ora }
                     fun aperto() = s.mapGridForTest()?.isPassable(4, 4) == true || s.mapGridForTest()?.isPassable(5, 4) == true
                     val cans = (7..11 step 2).flatMap { y -> (1..9 step 2).map { x -> x to y } }
+                    if (a.size > 1) for (c in cans) apri(c.first, c.second) else
                     loop@ for (c in cans) {
                         apri(c.first, c.second); if (aperto()) break@loop
                         for (n in cans.filter { kotlin.math.abs(it.first - c.first) + kotlin.math.abs(it.second - c.second) == 2 }) {
