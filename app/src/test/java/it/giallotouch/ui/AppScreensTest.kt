@@ -2230,8 +2230,9 @@ class ZzGlitchTest : AppScreensHarness() {
                         prima = ora }
                     fun aperto() = s.mapGridForTest()?.isPassable(4, 4) == true || s.mapGridForTest()?.isPassable(5, 4) == true
                     val cans = (7..11 step 2).flatMap { y -> (1..9 step 2).map { x -> x to y } }
-                    if (a.size > 1) for (c in cans) apri(c.first, c.second) else
-                    loop@ for (c in cans) {
+                    val ordine = if (a.size > 2) listOf(a[1].toInt() to a[2].toInt()) + cans.filter { it != a[1].toInt() to a[2].toInt() } else cans
+                    if (a.size == 2) for (c in cans) apri(c.first, c.second) else
+                    loop@ for (c in ordine) {
                         apri(c.first, c.second); if (aperto()) break@loop
                         for (n in cans.filter { kotlin.math.abs(it.first - c.first) + kotlin.math.abs(it.second - c.second) == 2 }) {
                             apri(n.first, n.second); if (aperto()) break@loop
