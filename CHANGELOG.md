@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-28 – Ponte Pepita, Bill, M/N Anna e palestra di Lt. Surge, 0.15.2
+- Le persone che restano ferme sotto il riquadro di testo non spariscono e non tornano a scatti (continuità, D-121).
+- Vista estesa ferma nello stesso posto: a parità di allineamento resta quello di prima, niente salti di un passo (D-122).
+- Toccando per camminare il percorso non passa più sopra porte e scale lungo la strada: ci va solo se sono l'arrivo
+  (sulla M/N Anna si finiva a prua invece che dal capitano, D-123).
+- Prove: Ponte Pepita, Strada 24 e 25, Bill, Celestopoli sud, Strada 5, Sotterraneo, Strada 6, Aranciopoli, M/N Anna
+  (rivale, capitano) e palestra di Lt. Surge (cestini, lotta, medaglia) controllati.
+
 ## 2026-11-27 – palestra di Misty, 0.15.1
 - Corretto un effetto della 0.15.0: le persone sotto il riquadro di testo del gioco sparivano per tutto il dialogo (D-121).
 - Le persone che entrano dal bordo mentre lo schermo scorre non spariscono più per un quarto di secondo (Strada 24, D-121).
