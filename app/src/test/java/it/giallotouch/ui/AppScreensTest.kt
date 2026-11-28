@@ -2212,6 +2212,22 @@ class ZzGlitchTest : AppScreensHarness() {
                     println("DBGVI persone " + (1 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }
                         .map { "$it@(${(d2[it * 16 + 5].toInt() and 0xFF) - 4},${(d2[it * 16 + 4].toInt() and 0xFF) - 4})" }) }
                 "w" -> step(a[1].toInt())
+                "cestini" -> {   // palestra di Lt. Surge: interruttori nei cestini (x dispari, righe 7/9/11), finché il cancello si apre
+                    fun apri(cx: Int, cy: Int) { vai(cx, cy - 1); s.setKeys(NativeCore.KEY_DOWN); step(3); s.setKeys(0); step(6)
+                        s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(20); testi() }
+                    fun aperto() = s.mapGridForTest()?.isPassable(4, 4) == true || s.mapGridForTest()?.isPassable(5, 4) == true
+                    val cans = (7..11 step 2).flatMap { y -> (1..9 step 2).map { x -> x to y } }
+                    loop@ for (c in cans) {
+                        apri(c.first, c.second); if (aperto()) break@loop
+                        for (n in cans.filter { kotlin.math.abs(it.first - c.first) + kotlin.math.abs(it.second - c.second) == 2 }) {
+                            apri(n.first, n.second); if (aperto()) break@loop
+                            apri(c.first, c.second)   // se il primo era giusto ma il secondo no, il gioco ha rimescolato: si riprova
+                        }
+                    }
+                    println("DBGVI cancello aperto=${aperto()}") }
+                "t" -> for (kk in a[1].split(",")) {   // tasti in fila: U D L R A B S (START), ognuno poi 30 fotogrammi
+                    val key = when (kk) { "A" -> NativeCore.KEY_A; "B" -> NativeCore.KEY_B; "S" -> NativeCore.KEY_START; else -> tasto(kk) }
+                    s.setKeys(key); step(4); s.setKeys(0); step(30) }
                 "b" -> { val bag = s.memoryForTest(0xD321, 41)
                     println("DBGVI borsa " + (0 until (bag[0].toInt() and 0xFF).coerceAtMost(20)).map { "%02x".format(bag[1 + 2 * it].toInt() and 0xFF) }) }
                 "n" -> s.writeMemoryForTest(a[1].toInt(16), a[2].toInt(16))
