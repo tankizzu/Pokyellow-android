@@ -2231,12 +2231,19 @@ class ZzGlitchTest : AppScreensHarness() {
                     fun aperto() = s.mapGridForTest()?.isPassable(4, 4) == true || s.mapGridForTest()?.isPassable(5, 4) == true
                     val cans = (7..11 step 2).flatMap { y -> (1..9 step 2).map { x -> x to y } }
                     val ordine = if (a.size > 2) listOf(a[1].toInt() to a[2].toInt()) + cans.filter { it != a[1].toInt() to a[2].toInt() } else cans
-                    if (a.size == 2) for (c in cans) apri(c.first, c.second) else
-                    loop@ for (c in ordine) {
-                        apri(c.first, c.second); if (aperto()) break@loop
-                        for (n in cans.filter { kotlin.math.abs(it.first - c.first) + kotlin.math.abs(it.second - c.second) == 2 }) {
-                            apri(n.first, n.second); if (aperto()) break@loop
-                            apri(c.first, c.second)   // se il primo era giusto ma il secondo no, il gioco ha rimescolato: si riprova
+                    // Nel Giallo, se il secondo cestino è sbagliato i lucchetti si richiudono e il primo cambia posto:
+                    // si cerca il primo (bit 3 di D737), poi si prova un vicino; se sbagliato si ricomincia.
+                    fun primo() = (s.memoryForTest(0xD737, 1)[0].toInt() and 0x08) != 0
+                    var giri = 0
+                    cerca@ while (!aperto() && giri++ < 12) {
+                        for (c in cans) {
+                            apri(c.first, c.second)
+                            if (!primo()) continue
+                            dbg("primo lucchetto in $c")
+                            for (n in cans.filter { kotlin.math.abs(it.first - c.first) + kotlin.math.abs(it.second - c.second) == 2 }.shuffled()) {
+                                apri(n.first, n.second); if (aperto()) break@cerca
+                                if (!primo()) continue@cerca
+                            }
                         }
                     }
                     dbg("cancello aperto=${aperto()}") }
