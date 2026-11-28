@@ -2212,6 +2212,9 @@ class ZzGlitchTest : AppScreensHarness() {
                     println("DBGVI persone " + (1 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }
                         .map { "$it@(${(d2[it * 16 + 5].toInt() and 0xFF) - 4},${(d2[it * 16 + 4].toInt() and 0xFF) - 4})" }) }
                 "w" -> step(a[1].toInt())
+                "b" -> { val bag = s.memoryForTest(0xD321, 41)
+                    println("DBGVI borsa " + (0 until (bag[0].toInt() and 0xFF).coerceAtMost(20)).map { "%02x".format(bag[1 + 2 * it].toInt() and 0xFF) }) }
+                "n" -> s.writeMemoryForTest(a[1].toInt(16), a[2].toInt(16))
                 "z" -> { val g = s.mapGridForTest(); val (m, px, py) = pos()
                     val ws = s.warpsForTest().associateBy { it.second to it.first }
                     println("DBGVI mappa $m a ($px,$py) porte ${ws.values}")
