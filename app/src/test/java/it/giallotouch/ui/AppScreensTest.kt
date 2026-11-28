@@ -2157,6 +2157,8 @@ class ZzGlitchTest : AppScreensHarness() {
      * "f nome" cambia fase. Lotte come nelle altre analisi: solo prova, PS dell'avversario a 1 (si guardano le scene).
      */
     @Test fun analisiViaggio() = registra("analisi13", auto = "giallo.state.citta") { step, fase ->
+        val logF = File(System.getProperty("giallo.shots"), "viaggio.log").also { it.delete() }
+        fun dbg(t: String) { println("DBGVI $t"); logF.appendText(t + "\n") }
         fun pos() = s.positionForTest()
         fun snap() = s.latestSnapshot.get()
         var faseOra = "inizio"
@@ -2185,14 +2187,14 @@ class ZzGlitchTest : AppScreensHarness() {
                 else if (!snap().freeRoam && t % 8 == 0) { testi(); s.walkPathForTest(x, y) }
                 else if (t % 60 == 0) s.walkPathForTest(x, y)
             }
-            if (pos().first == m && (pos().second != x || pos().third != y)) println("DBGVI non arrivo a ($x,$y) in $m, sono a ${pos()}")
+            if (pos().first == m && (pos().second != x || pos().third != y)) dbg("non arrivo a ($x,$y) in $m, sono a ${pos()}")
         }
         fun tasto(d: String) = when (d) { "U" -> NativeCore.KEY_UP; "D" -> NativeCore.KEY_DOWN; "L" -> NativeCore.KEY_LEFT; else -> NativeCore.KEY_RIGHT }
         step(30)
         val programma = (System.getProperty("giallo.meta") ?: "").replace("_", " ").split(";").map { it.trim() }.filter { it.isNotEmpty() }
         for (c in programma) {
             val a = c.split(" ").filter { it.isNotEmpty() }
-            println("DBGVI $c da ${pos()}")
+            dbg("$c da ${pos()}")
             when (a[0]) {
                 "f" -> { faseOra = a[1]; fase(a[1]) }
                 "v" -> vai(a[1].toInt(), a[2].toInt())
@@ -2205,16 +2207,23 @@ class ZzGlitchTest : AppScreensHarness() {
                     testi() }
                 "e" -> { var j = 0; while (j++ < 40 && pos().first != a[2].toInt()) { s.setKeys(tasto(a[1])); step(8); s.setKeys(0); step(8)
                     if (snap().inBattle) lotta() else if (!snap().freeRoam) testi() }
-                    step(60); println("DBGVI luogo ${pos()}") }
+                    step(60); dbg("luogo ${pos()}") }
                 "k" -> repeat(a[2].toInt()) { s.setKeys(tasto(a[1])); step(8); s.setKeys(0); step(8); if (snap().inBattle) lotta() else if (!snap().freeRoam) testi() }
                 "s" -> System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "${a[1]}.state")) }
                 "q" -> { val d1 = s.memoryForTest(0xC100, 256); val d2 = s.memoryForTest(0xC200, 256)
-                    println("DBGVI persone " + (1 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }
+                    dbg("persone " + (1 until 16).filter { (d1[it * 16].toInt() and 0xFF) != 0 }
                         .map { "$it@(${(d2[it * 16 + 5].toInt() and 0xFF) - 4},${(d2[it * 16 + 4].toInt() and 0xFF) - 4})" }) }
                 "w" -> step(a[1].toInt())
                 "cestini" -> {   // palestra di Lt. Surge: interruttori nei cestini (x dispari, righe 7/9/11), finché il cancello si apre
-                    fun apri(cx: Int, cy: Int) { vai(cx, cy - 1); s.setKeys(NativeCore.KEY_DOWN); step(3); s.setKeys(0); step(6)
-                        s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(20); testi() }
+                    fun apri(cx: Int, cy: Int) {
+                        val g = s.mapGridForTest(); val (_, px, py) = pos()
+                        val lati = listOf(Triple(cx, cy - 1, NativeCore.KEY_DOWN), Triple(cx, cy + 1, NativeCore.KEY_UP), Triple(cx - 1, cy, NativeCore.KEY_RIGHT), Triple(cx + 1, cy, NativeCore.KEY_LEFT))
+                            .filter { g == null || (g.isPassable(it.first, it.second) && (it.first to it.second) !in g.people) || (it.first == px && it.second == py) }
+                            .sortedBy { kotlin.math.abs(it.first - px) + kotlin.math.abs(it.second - py) }
+                        val l = lati.firstOrNull() ?: return
+                        vai(l.first, l.second); s.setKeys(l.third); step(3); s.setKeys(0); step(6)
+                        s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(20); testi()
+                        dbg("cestino ($cx,$cy) da ${pos()} mem " + s.memoryForTest(0xD740, 32).joinToString("") { "%02x".format(it.toInt() and 0xFF) }) }
                     fun aperto() = s.mapGridForTest()?.isPassable(4, 4) == true || s.mapGridForTest()?.isPassable(5, 4) == true
                     val cans = (7..11 step 2).flatMap { y -> (1..9 step 2).map { x -> x to y } }
                     loop@ for (c in cans) {
@@ -2224,17 +2233,17 @@ class ZzGlitchTest : AppScreensHarness() {
                             apri(c.first, c.second)   // se il primo era giusto ma il secondo no, il gioco ha rimescolato: si riprova
                         }
                     }
-                    println("DBGVI cancello aperto=${aperto()}") }
+                    dbg("cancello aperto=${aperto()}") }
                 "t" -> for (kk in a[1].split(",")) {   // tasti in fila: U D L R A B S (START), ognuno poi 30 fotogrammi
                     val key = when (kk) { "A" -> NativeCore.KEY_A; "B" -> NativeCore.KEY_B; "S" -> NativeCore.KEY_START; else -> tasto(kk) }
                     s.setKeys(key); step(4); s.setKeys(0); step(30) }
                 "b" -> { val bag = s.memoryForTest(0xD321, 41)
-                    println("DBGVI borsa " + (0 until (bag[0].toInt() and 0xFF).coerceAtMost(20)).map { "%02x".format(bag[1 + 2 * it].toInt() and 0xFF) }) }
+                    dbg("borsa " + (0 until (bag[0].toInt() and 0xFF).coerceAtMost(20)).map { "%02x".format(bag[1 + 2 * it].toInt() and 0xFF) }) }
                 "n" -> s.writeMemoryForTest(a[1].toInt(16), a[2].toInt(16))
                 "z" -> { val g = s.mapGridForTest(); val (m, px, py) = pos()
                     val ws = s.warpsForTest().associateBy { it.second to it.first }
-                    println("DBGVI mappa $m a ($px,$py) porte ${ws.values}")
-                    if (g != null) for (y in 0 until g.height) println("DBGVI %2d ".format(y) + (0 until g.width).joinToString("") { x ->
+                    dbg("mappa $m a ($px,$py) porte ${ws.values}")
+                    if (g != null) for (y in 0 until g.height) dbg("%2d ".format(y) + (0 until g.width).joinToString("") { x ->
                         when { x == px && y == py -> "@"; (x to y) in g.people -> "P"; (x to y) in ws -> "W"; g.isPassable(x, y) -> "."; else -> "#" } }) }
                 "m" -> s.forceMapFromRow = a[1].toInt()
                 "a" -> { s.setKeys(NativeCore.KEY_A); step(4); s.setKeys(0); step(10) }
@@ -2243,10 +2252,10 @@ class ZzGlitchTest : AppScreensHarness() {
                     for (y in 0 until e.height) for (x in 0 until NativeCore.WIDTH) bi.setRGB(x, y, e.pixels[y * NativeCore.WIDTH + x])
                     for (y in 0 until NativeCore.HEIGHT) for (x in 0 until NativeCore.WIDTH) bi.setRGB(NativeCore.WIDTH + 8 + x, y, f[y * NativeCore.WIDTH + x])
                     javax.imageio.ImageIO.write(bi, "png", File(System.getProperty("giallo.shots"), "ext-${a[1]}.png"))
-                    println("DBGVI ext ${a[1]} attivo=${e.active} h=${e.height} ${s.debugFrameInfo}") }
+                    dbg("ext ${a[1]} attivo=${e.active} h=${e.height} ${s.debugFrameInfo}") }
             }
         }
-        println("DBGVI fine ${pos()} medaglie ${s.memoryForTest(it.giallotouch.bridge.MemoryMapIt.BADGES, 1)[0].toInt() and 0xFF}")
+        dbg("fine ${pos()} medaglie ${s.memoryForTest(it.giallotouch.bridge.MemoryMapIt.BADGES, 1)[0].toInt() and 0xFF}")
         fase("fine"); step(120)
         System.getProperty("giallo.scenario")?.let { s.saveStateForTest(File(it, "fine.state")) }
     }
