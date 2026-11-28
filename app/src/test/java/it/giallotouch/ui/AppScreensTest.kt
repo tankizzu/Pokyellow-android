@@ -2231,13 +2231,13 @@ class ZzGlitchTest : AppScreensHarness() {
                     fun aperto() = s.mapGridForTest()?.isPassable(4, 4) == true || s.mapGridForTest()?.isPassable(5, 4) == true
                     val cans = (7..11 step 2).flatMap { y -> (1..9 step 2).map { x -> x to y } }
                     val ordine = if (a.size > 2) listOf(a[1].toInt() to a[2].toInt()) + cans.filter { it != a[1].toInt() to a[2].toInt() } else cans
-                    // D747 tiene l'indice del cestino col lucchetto (per colonne: x=1+2*(i/3), y=7+2*(i%3));
-                    // aperto il primo, lo stesso byte passa all'indice del secondo.
-                    fun indice() = s.memoryForTest(0xD747, 1)[0].toInt() and 0xFF
+                    // Come in pokered: D747 = indice del primo lucchetto, D748 = del secondo (scelto all'apertura del primo).
+                    // Indici per colonne: x=1+2*(i/3), y=7+2*(i%3).
+                    fun cestino(addr: Int): Pair<Int, Int> { val i = s.memoryForTest(addr, 1)[0].toInt() and 0xFF; return (1 + 2 * (i / 3)) to (7 + 2 * (i % 3)) }
                     var giri = 0
                     while (!aperto() && giri++ < 6) {
-                        val i = indice(); val c = (1 + 2 * (i / 3)) to (7 + 2 * (i % 3))
-                        dbg("lucchetto indice $i -> cestino $c"); apri(c.first, c.second)
+                        val c1 = cestino(0xD747); dbg("primo $c1"); apri(c1.first, c1.second)
+                        val c2 = cestino(0xD748); dbg("secondo $c2"); apri(c2.first, c2.second)
                     }
                     dbg("cancello aperto=${aperto()}") }
                 "t" -> for (kk in a[1].split(",")) {   // tasti in fila: U D L R A B S (START), ognuno poi 30 fotogrammi
