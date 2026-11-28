@@ -27,4 +27,13 @@ class MapGridTest {
         val g = MapGrid(3, 2, BooleanArray(6) { true }, emptySet(), intArrayOf(0x20, 0x05, 0x20, 0x20, 0x20, 0x20), tileset = 17)
         assertEquals(4, g.path(0, 0, setOf(2 to 0))?.size)
     }
+
+    @Test
+    fun portaSulPercorso_siGiraIntorno() {
+        // 3×2 tutto pavimento, porta in (1,0): da (0,0) a (2,0) si passa da sotto, non sulla porta.
+        val g = MapGrid(3, 2, BooleanArray(6) { true }, emptySet(), IntArray(6), warps = setOf(1 to 0))
+        assertEquals(4, g.path(0, 0, setOf(2 to 0))?.size)
+        // ma se la porta è l'arrivo ci si va
+        assertEquals(1, g.path(0, 0, setOf(1 to 0))?.size)
+    }
 }

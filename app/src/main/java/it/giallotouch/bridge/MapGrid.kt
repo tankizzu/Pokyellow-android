@@ -21,6 +21,8 @@ class MapGrid(
     private val talkingOver: Set<Int> = emptySet(),
     val signs: Set<Pair<Int, Int>> = emptySet(),
     private val tileset: Int = -1,
+    /** Porte e scale (x, y): il percorso non ci passa sopra, tranne quando sono l'arrivo (D-123). */
+    val warps: Set<Pair<Int, Int>> = emptySet(),
 ) {
 
     fun inside(x: Int, y: Int) = x in 0 until width && y in 0 until height
@@ -64,6 +66,8 @@ class MapGrid(
             for (d in Dir.entries) {
                 val next = cur.first + d.dx to cur.second + d.dy
                 if (next in seen || !isFree(next.first, next.second) || stepBlocked(cur, next)) continue
+                // passando su una porta o una scala il gioco cambia luogo: solo se è lì che si vuole andare
+                if (next in warps && next !in goals) continue
                 seen += next
                 prev[next] = cur to d
                 if (next in goals) {
@@ -83,6 +87,8 @@ class MapGrid(
     }
 
     companion object {
+        /** Numero di porte del luogo, poi 4 byte per porta: riga, colonna, porta e luogo di arrivo. */
+        private const val WARPS = 0xD3B2
         private const val CAVERN = 17
         private const val FOREST = 3
         /** TilePairCollisionsLand del gioco: set, tile, tile. */
@@ -140,7 +146,10 @@ class MapGrid(
                 (signData[2 + 2 * k].toInt() and 0xFF) to (signData[1 + 2 * k].toInt() and 0xFF)
             }.toSet()
             val tileset = read(M.CUR_MAP_TILESET, 1)[0].toInt() and 0xFF
-            return MapGrid(gw, gh, passable, people, tiles, talking, signs, tileset)
+            val warpData = read(WARPS, 1 + 4 * 32)
+            val warpCount = (warpData[0].toInt() and 0xFF).coerceAtMost(32)
+            val warps = (0 until warpCount).map { k -> (warpData[2 + 4 * k].toInt() and 0xFF) to (warpData[1 + 4 * k].toInt() and 0xFF) }.toSet()
+            return MapGrid(gw, gh, passable, people, tiles, talking, signs, tileset, warps)
         }
 
         /** Sprite che il gioco ha nascosto (oggetti raccolti, persone non presenti): stessa regola del gioco. */
